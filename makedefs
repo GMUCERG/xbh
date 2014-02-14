@@ -1,0 +1,14 @@
+PROJECT_ROOT   := ${shell pwd}
+TIVA_ROOT      := ../ext/tivaware
+TIVA_MAKE_ROOT := ${PROJECT_ROOT}/tiva_make
+INCLUDE        := $(TIVA_ROOT)/inc:$
+
+
+LIBDIR         := lib
+BUILDDIR       := build
+
+#${LIBDIR}:
+#	@mkdir -p lib
+
+include ${TIVA_MAKE_ROOT}/tiva.makedefs
+include ${TIVA_MAKE_ROOT}/driverlib.make
