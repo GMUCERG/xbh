@@ -35,8 +35,8 @@ include ${TIVA_MAKE_ROOT}/tiva.makedefs
 #
 # Where to find source files that do not live in this directory.
 #
-VPATH=${TIVA_ROOT}/usblib/device
-VPATH+=${TIVA_ROOT}/usblib/host
+vpath=./device
+
 
 #
 # Where to find header files that do not live in the source directory.
@@ -47,7 +47,8 @@ VPATH+=${TIVA_ROOT}/usblib/host
 # The rule to create the target directory.
 #
 ${BUILDDIR}/usblib:
-	@mkdir -p ${BUILDDIR}/usblib
+	@mkdir -p ${BUILDDIR}/usblib/device
+	@mkdir -p ${BUILDDIR}/usblib/host
 
 
 #
@@ -60,7 +61,7 @@ ${BUILDDIR}/usblib/%.o: ${TIVA_ROOT}/usblib/%.c | ${BUILDDIR}/usblib
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
 	 else                                                 \
-	     echo ${CC} ${CFLAGS} -D${BUILDDIR}/driverlib -o ${@} ${<}; \
+	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}; \
 	 fi
 	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}
 ifneq ($(findstring CYGWIN, ${os}), )
@@ -71,34 +72,36 @@ endif
 #
 # Rules for building the USB library.
 #
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbbuffer.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdaudio.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdbulk.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdcdc.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdcdesc.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdcomp.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdconfig.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbddfu-rt.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdenum.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdesc.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdhandler.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdhid.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdhidkeyb.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdhidmouse.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdma.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbdmsc.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbhaudio.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbhhid.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbhhidkeyboard.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbhhidmouse.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbhhub.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbhmsc.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbhostenum.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbhscsi.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbkeyboardmap.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbmode.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbringbuf.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usbtick.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbbuffer.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbdesc.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbdma.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbkeyboardmap.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbmode.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbringbuf.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbtick.o
+#
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdaudio.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdbulk.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdcdc.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdcdesc.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdcomp.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdconfig.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbddfu-rt.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdenum.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhandler.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhidkeyb.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhidmouse.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhid.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdmsc.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhaudio.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhidkeyboard.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhidmouse.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhid.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhub.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhmsc.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhostenum.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhscsi.o
+
 
 #
 # Include the automatically generated dependency files.

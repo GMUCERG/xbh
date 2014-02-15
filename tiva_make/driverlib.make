@@ -80,7 +80,7 @@ ${BUILDDIR}/driverlib/%.o: ${TIVA_ROOT}/driverlib/%.c | ${BUILDDIR}/driverlib
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
 	 else                                                 \
-	     echo ${CC} ${CFLAGS} -D${BUILDDIR}/driverlib -o ${@} ${<}; \
+	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}; \
 	 fi
 	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}
 ifneq ($(findstring CYGWIN, ${os}), )
