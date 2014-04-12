@@ -1,11 +1,16 @@
 PROJECT_ROOT   := ${shell pwd}
-TIVA_ROOT      := ../ext/tivaware
-TIVA_MAKE_ROOT := ${PROJECT_ROOT}/tiva_make
-INCLUDE        := $(TIVA_ROOT)/inc:$
 
+TIVA_ROOT      := ${PROJECT_ROOT}/../ext/tivaware
+TIVA_MAKE_ROOT := ${PROJECT_ROOT}/make/tivaware
 
-LIBDIR         := lib
-BUILDDIR       := build
+#LWIP_ROOT      := ${PROJECT_ROOT}/../ext/tivaware/third_party/lwip-1.4.1
+LWIP_ROOT      := ${PROJECT_ROOT}/deps/lwip
+LWIP_PORT      := ${PROJECT_ROOT}/lwip_port/tiva-tm4c129
+LWIP_MAKE_ROOT := ${PROJECT_ROOT}/make/lwip
 
+INCLUDE        += ${PROJECT_ROOT}
 
+LIBDIR         := ${PROJECT_ROOT}/lib
+BUILDDIR       := ${PROJECT_ROOT}/build
 
+PART           := TM4C129XNCZAD

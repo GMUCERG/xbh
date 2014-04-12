@@ -2,7 +2,7 @@
 #
 # makedefs - Definitions common to all makefiles.
 #
-# Copyright (c) 2005-2013 Texas Instruments Incorporated.  All rights reserved.
+# Copyright (c) 2005-2014 Texas Instruments Incorporated.  All rights reserved.
 # Software License Agreement
 # 
 #   Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
-# This is part of revision 1.0 of the Tiva Firmware Development Package.
+# This is part of revision 2.1.0.12573 of the Tiva Firmware Development Package.
 #
 #******************************************************************************
 
@@ -155,7 +155,7 @@ else
 CFLAGS+=-Os
 endif
 
-INCLUDE:=${INCLUDE}:${TIVA_ROOT}
+INCLUDE:=${INCLUDE}:${TIVA_ROOT}:$(TIVA_ROOT)/inc
 
 #
 # Add the tool specific CFLAGS.
@@ -171,7 +171,7 @@ CFLAGS+=${patsubst %,-I%,${subst :, ,${INCLUDE}}}
 #
 # The rule for building the object file from each C source file.
 #
-${BUILDDIR}${SUFFIX}/%.o: %.c
+${BUILDDIR}/%.o: %.c
 	@if [ 'x${VERBOSE}' = x ];                            \
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
@@ -180,13 +180,16 @@ ${BUILDDIR}${SUFFIX}/%.o: %.c
 	 fi
 	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}
 ifneq ($(findstring CYGWIN, ${os}), )
-	@sed -i -r 's/ ([A-Za-z]):/ \/cygdrive\/\1/g' ${@:.o=.d}
+	@if [ -e ${@:.o=.d} ];                                   \
+	then                                                     \
+		sed -i -r 's/ ([A-Za-z]):/ \/cygdrive\/\1/g' ${@:.o=.d} ; \
+	fi
 endif
 
 #
 # The rule for building the object file from each assembly source file.
 #
-${BUILDDIR}/${SUFFIX}/%.o: %.S
+${BUILDDIR}/%.o: %.S
 	@if [ 'x${VERBOSE}' = x ];                               \
 	 then                                                    \
 	     echo "  AS    ${<}";                                \
@@ -195,14 +198,17 @@ ${BUILDDIR}/${SUFFIX}/%.o: %.S
 	 fi
 	@${CC} ${AFLAGS} -D${COMPILER} -o ${@} -c ${<}
 ifneq ($(findstring CYGWIN, ${os}), )
-	@sed -i -r 's/ ([A-Za-z]):/ \/cygdrive\/\1/g' ${@:.o=.d}
+	@if [ -e ${@:.o=.d} ];                                   \
+	then                                                     \
+		sed -i -r 's/ ([A-Za-z]):/ \/cygdrive\/\1/g' ${@:.o=.d} ; \
+	fi
 endif
 
 #
 # The rule for creating an object library.
 #
-${LIBDIR}${SUFFIX}/%.a:
-	@mkdir -p ${LIBDIR}${SUFFIX}
+${LIBDIR}/%.a:
+	@mkdir -p ${LIBDIR}
 	@if [ 'x${VERBOSE}' = x ];     \
 	 then                          \
 	     echo "  AR    ${@}";      \
@@ -214,7 +220,7 @@ ${LIBDIR}${SUFFIX}/%.a:
 #
 # The rule for linking the application.
 #
-${BUILDDIR}${SUFFIX}/%.axf:
+${BUILDDIR}/%.axf:
 	@if [ 'x${SCATTERgcc_${notdir ${@:.axf=}}}' = x ];                    \
 	 then                                                                 \
 	     ldname="${TIVA_ROOT}/gcc/standalone.ld";                              \
@@ -239,3 +245,9 @@ ${BUILDDIR}${SUFFIX}/%.axf:
 	@${OBJCOPY} -O binary ${@} ${@:.axf=.bin}
 endif
 
+#
+# Include the automatically generated dependency files.
+#
+ifneq (${MAKECMDGOALS},clean)
+-include ${wildcard ${BUILDDIR}/*.d} __dummy__
+endif

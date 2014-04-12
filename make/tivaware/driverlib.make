@@ -45,7 +45,7 @@
 #
 # Include the common make definitions.
 #
-include ${TIVA_MAKE_ROOT}/tiva.makedefs
+#include ${TIVA_MAKE_ROOT}/tiva.makedefs
 
 #
 # Where to find header files that do not live in the source directory.
@@ -89,20 +89,28 @@ endif
 
 
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/adc.o
+${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/aes.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/can.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/comp.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/cpu.o
+${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/crc.o
+${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/des.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/eeprom.o
+${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/emac.o
+${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/epi.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/flash.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/fpu.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/gpio.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/hibernate.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/i2c.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/interrupt.o
+${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/lcd.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/mpu.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/pwm.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/qei.o
+${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/shamd5.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/ssi.o
+${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/sw_crc.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/sysctl.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/sysexc.o
 ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/systick.o
@@ -119,3 +127,4 @@ ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/watchdog.o
 ifneq (${MAKECMDGOALS},clean)
 -include ${wildcard ${COMPILER}/*.d} __dummy__
 endif
+

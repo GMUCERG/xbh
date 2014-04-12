@@ -2,7 +2,7 @@
 #
 # Makefile - Rules for building the USB library.
 #
-# Copyright (c) 2008-2013 Texas Instruments Incorporated.  All rights reserved.
+# Copyright (c) 2008-2014 Texas Instruments Incorporated.  All rights reserved.
 # Software License Agreement
 # 
 # Texas Instruments (TI) is supplying this software for use solely and
@@ -18,7 +18,7 @@
 # CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
 # DAMAGES, FOR ANY REASON WHATSOEVER.
 # 
-# This is part of revision 1.0 of the Tiva USB Library.
+# This is part of revision 2.1.0.12573 of the Tiva USB Library.
 #
 #******************************************************************************
 
@@ -30,12 +30,14 @@
 #
 # Include the common make definitions.
 #
-include ${TIVA_MAKE_ROOT}/tiva.makedefs
+#include ${TIVA_MAKE_ROOT}/tiva.makedefs
 
 #
 # Where to find source files that do not live in this directory.
 #
-vpath=./device
+#VPATH=${TIVA_ROOT}/usblib/device
+#VPATH+=${TIVA_ROOT}/usblib/host
+#VPATH+=${TIVA_ROOT}/usblib
 
 
 #
@@ -43,9 +45,9 @@ vpath=./device
 #
 #IPATH=..
 
-#
-# The rule to create the target directory.
-#
+##
+## The rule to create the target directory.
+##
 ${BUILDDIR}/usblib:
 	@mkdir -p ${BUILDDIR}/usblib/device
 	@mkdir -p ${BUILDDIR}/usblib/host
@@ -72,14 +74,8 @@ endif
 #
 # Rules for building the USB library.
 #
+
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbbuffer.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbdesc.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbdma.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbkeyboardmap.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbmode.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbringbuf.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbtick.o
-#
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdaudio.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdbulk.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdcdc.o
@@ -89,19 +85,26 @@ ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdconfig.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbddfu-rt.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdenum.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhandler.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhid.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhidgamepad.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhidkeyb.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhidmouse.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdhid.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/device/usbdmsc.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbdma.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbdesc.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhaudio.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhid.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhidkeyboard.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhidmouse.o
-${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhid.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhhub.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhmsc.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhostenum.o
 ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/host/usbhscsi.o
-
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbkeyboardmap.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbmode.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbringbuf.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbtick.o
+${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbulpi.o
 
 #
 # Include the automatically generated dependency files.

@@ -1,8 +1,9 @@
 //*****************************************************************************
 //
-// usb_serial_structs.h - Data structures defining this USB CDC device.
+// pinout.h - Prototype for the function to configure the device pins on the
+//            DK-TM4C129X.
 //
-// Copyright (c) 2012-2013 Texas Instruments Incorporated.  All rights reserved.
+// Copyright (c) 2013-2014 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
 // Texas Instruments (TI) is supplying this software for use solely and
@@ -18,32 +19,41 @@
 // CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
 // DAMAGES, FOR ANY REASON WHATSOEVER.
 // 
-// This is part of revision 1.0 of the EK-TM4C123GXL Firmware Package.
+// This is part of revision 2.1.0.12573 of the DK-TM4C129X Firmware Package.
 //
 //*****************************************************************************
 
-#ifndef _USB_SERIAL_STRUCTS_H_
-#define _USB_SERIAL_STRUCTS_H_
+#ifndef __DRIVERS_PINOUT_H__
+#define __DRIVERS_PINOUT_H__
 
 //*****************************************************************************
 //
-// The size of the transmit and receive buffers used for the redirected UART.
-// This number should be a power of 2 for best performance.  256 is chosen
-// pretty much at random though the buffer should be at least twice the size of
-// a maxmum-sized USB packet.
+// If building with a C++ compiler, make all of the definitions in this header
+// have a C binding.
 //
 //*****************************************************************************
-#define UART_BUFFER_SIZE 256
-
-extern uint32_t RxHandler(void *pvCBData, uint32_t ui32Event,
-                          uint32_t ui32MsgValue, void *pvMsgData);
-extern uint32_t TxHandler(void *pvi32CBData, uint32_t ui32Event,
-                          uint32_t ui32MsgValue, void *pvMsgData);
-
-extern const tUSBBuffer g_sTxBuffer;
-extern const tUSBBuffer g_sRxBuffer;
-extern tUSBDCDCDevice g_sCDCDevice;
-extern uint8_t g_pui8USBTxBuffer[];
-extern uint8_t g_pui8USBRxBuffer[];
-
+#ifdef __cplusplus
+extern "C"
+{
 #endif
+
+//*****************************************************************************
+//
+// Prototypes.
+//
+//*****************************************************************************
+extern void PinoutSet(void);
+#ifdef USE_ULPI
+extern void USBULPIPinoutSet(void);
+#endif
+
+//*****************************************************************************
+//
+// Mark the end of the C bindings section for C++ compilers.
+//
+//*****************************************************************************
+#ifdef __cplusplus
+}
+#endif
+
+#endif // __DRIVERS_PINOUT_H__
