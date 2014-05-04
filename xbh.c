@@ -220,13 +220,14 @@ main(void)
     //
     LocatorInit();
     LocatorMACAddrSet(pui8MACArray);
-    LocatorAppTitleSet("DK-TM4C129X enet_lwip");
+    LocatorAppTitleSet("DK-TM4C129X xbh");
 
     //
     // Initialize the sample httpd server.
     //
     //TODO Insert application code here
     //httpd_init();
+    xbh_comm_init();
 
     //
     // Set the interrupt priorities.  We set the SysTick interrupt to a higher
