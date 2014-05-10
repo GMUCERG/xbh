@@ -34,6 +34,7 @@
 #include "utils/ustdlib.h"
 #include "lwip_port/lwiplib.h"
 #include "pinout.h"
+#include "xbh_comm.h"
 
 //*****************************************************************************
 //

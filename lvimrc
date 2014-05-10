@@ -1,0 +1,3 @@
+let g:easytags_file="/home/john/thesis/xbh/tags"
+set pa=.,./deps/lwip/src/include
+set fileformat=unix
