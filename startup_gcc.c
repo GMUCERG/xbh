@@ -18,7 +18,7 @@
 // CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
 // DAMAGES, FOR ANY REASON WHATSOEVER.
 // 
-// This is part of revision 2.1.0.12573 of the DK-TM4C129X Firmware Package.
+// This is part of revision 2.1.0.12573 of the EK-TM4C1294XL Firmware Package.
 //
 //*****************************************************************************
 

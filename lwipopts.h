@@ -18,7 +18,7 @@
 // CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
 // DAMAGES, FOR ANY REASON WHATSOEVER.
 // 
-// This is part of revision 2.1.0.12573 of the DK-TM4C129X Firmware Package.
+// This is part of revision 2.1.0.12573 of the EK-TM4C1294XL Firmware Package.
 //
 //*****************************************************************************
 //
@@ -242,7 +242,8 @@
 //*****************************************************************************
 #define PBUF_LINK_HLEN                  16          // default is 14
 #define PBUF_POOL_BUFSIZE               512
-                                                    // default is LWIP_MEM_ALIGN_SIZE(TCP_MSS+40+PBUF_LINK_HLEN)
+                              // PBUF_POOL_BUFSIZE default is
+                              // LWIP_MEM_ALIGN_SIZE(TCP_MSS+40+PBUF_LINK_HLEN)
 #define ETH_PAD_SIZE                    0           // default is 0
 
 //*****************************************************************************
@@ -400,7 +401,8 @@ extern void UARTprintf(const char *pcString, ...);
 //#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_SEVERE
 
 //#define LWIP_DBG_TYPES_ON               LWIP_DBG_ON
-#define LWIP_DBG_TYPES_ON               (LWIP_DBG_ON|LWIP_DBG_TRACE|LWIP_DBG_STATE|LWIP_DBG_FRESH)
+#define LWIP_DBG_TYPES_ON               (LWIP_DBG_ON|LWIP_DBG_TRACE|          \
+                                         LWIP_DBG_STATE|LWIP_DBG_FRESH)
 
 //#define ETHARP_DEBUG                    LWIP_DBG_ON     // default is OFF
 //#define NETIF_DEBUG                     LWIP_DBG_ON     // default is OFF

@@ -1,7 +1,7 @@
 //*****************************************************************************
 //
 // pinout.h - Prototype for the function to configure the device pins on the
-//            DK-TM4C129X.
+//            EK-TM4C1294XL.
 //
 // Copyright (c) 2013-2014 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
@@ -19,7 +19,7 @@
 // CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
 // DAMAGES, FOR ANY REASON WHATSOEVER.
 // 
-// This is part of revision 2.1.0.12573 of the DK-TM4C129X Firmware Package.
+// This is part of revision 2.1.0.12573 of the EK-TM4C1294XL Firmware Package.
 //
 //*****************************************************************************
 
@@ -39,13 +39,34 @@ extern "C"
 
 //*****************************************************************************
 //
+// Define Board LED's
+//
+//*****************************************************************************
+#define CLP_D1              1
+#define CLP_D2              2
+#define CLP_D3              4
+#define CLP_D4              8
+
+#define CLP_D1_PORT         GPIO_PORTN_BASE
+#define CLP_D1_PIN          GPIO_PIN_1
+
+#define CLP_D2_PORT         GPIO_PORTN_BASE
+#define CLP_D2_PIN          GPIO_PIN_0
+
+#define CLP_D3_PORT         GPIO_PORTF_BASE
+#define CLP_D3_PIN          GPIO_PIN_4
+
+#define CLP_D4_PORT         GPIO_PORTF_BASE
+#define CLP_D4_PIN          GPIO_PIN_0
+
+//*****************************************************************************
+//
 // Prototypes.
 //
 //*****************************************************************************
-extern void PinoutSet(void);
-#ifdef USE_ULPI
-extern void USBULPIPinoutSet(void);
-#endif
+extern void PinoutSet(bool bEthernet, bool bUSB);
+extern void LEDWrite(uint32_t ui32LEDMask, uint32_t ui32LEDValue);
+extern void LEDRead(uint32_t *pui32LEDValue);
 
 //*****************************************************************************
 //

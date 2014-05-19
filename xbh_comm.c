@@ -1,5 +1,6 @@
 /**
  * XBH communications service
+ * Copyright (c) 2014 John Pham
  *
  * Loosely based off of httpd.c from lwip which has the following copyright notice:
  *
@@ -44,7 +45,7 @@
 #define XBH_COMM_DEBUG LWIP_DBG_OFF
 
 #define XBH_COMM_POLL_INTERVAL 4
-#define XBH_COMM_MAX_RETRIES                   4
+#define XBH_COMM_MAX_RETRIES   4
 
 struct xbh_comm_state{
     uint32_t retries;
@@ -52,19 +53,24 @@ struct xbh_comm_state{
 
 
 /*
- * Callbacks
+ * LWIP Callbacks
  */
 static err_t xbh_comm_accept(void *state, struct tcp_pcb *pcb, err_t err);
 static err_t xbh_comm_recv(void *state, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
 static err_t xbh_comm_poll(void *state, struct tcp_pcb *pcb);
 static err_t xbh_comm_sent(void *state, struct tcp_pcb *pcb, uint16_t sent);
 
+/*
+ * LWIP helper functions
+ */
 static err_t xbh_comm_close_conn(struct xbh_comm_state *state, struct tcp_pcb *pcb);
 static void xbh_comm_err(void *arg, err_t err);
 static struct xbh_comm_state* xbh_comm_alloc(void);
 static void  xbh_comm_free (struct xbh_comm_state* state);
 
-
+/*
+ * XBH functions
+ */
 
 static struct xbh_comm_state* xbh_comm_alloc(void){
     struct xbh_comm_state *ret;
@@ -214,12 +220,12 @@ static err_t xbh_comm_sent(void *state, struct tcp_pcb *pcb, uint16_t sent) {
 }
 
 static void xbh_comm_err(void *state, err_t err) {
-  struct xbh_comm_state *xcs = (struct xbh_comm_state *)state;
-  LWIP_UNUSED_ARG(err);
+    struct xbh_comm_state *xcs = (struct xbh_comm_state *)state;
+    LWIP_UNUSED_ARG(err);
 
-  LWIP_DEBUGF(XBH_COMMD_DEBUG, ("xbh_comm_err: %s", lwip_strerr(err)));
+    LWIP_DEBUGF(XBH_COMMD_DEBUG, ("xbh_comm_err: %s", lwip_strerr(err)));
 
-  if (xcs != NULL) {
-    xbh_comm_free(xcs);
-  }
+    if (xcs != NULL) {
+        xbh_comm_free(xcs);
+    }
 }
