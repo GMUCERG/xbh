@@ -44,7 +44,7 @@ ${BUILDDIR}/xbh.axf: ${LIBDIR}/liblwip.a
 ${BUILDDIR}/xbh.axf: xbh.ld
 SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
-CFLAGSgcc=-DTARGET_IS_TM4C129_RA0
+CFLAGSgcc=-DTARGET_IS_TM4C129_RA0 -std=c99
 
 #${BUILDDIR}/usb_dev_bulk.axf: |${BUILDDIR}
 #${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/startup_${COMPILER}.o

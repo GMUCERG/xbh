@@ -38,40 +38,41 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#define XBH_COMM_PORT 22505
-#define XBH_COMM_TCP_PRIO TCP_PRIO_MIN
-#define XBH_COMM_ADDR IP_ADDR_ANY
+#include "xbh_comm.h"
 
 #define XBH_COMM_DEBUG LWIP_DBG_OFF
-
+#define XBH_COMM_PORT 22505
 #define XBH_COMM_POLL_INTERVAL 4
 #define XBH_COMM_MAX_RETRIES   4
+
+#define XBH_COMM_ADDR IP_ADDR_ANY
+#define XBH_COMM_TCP_PRIO TCP_PRIO_MIN
+
+/* structs *//*{{{*/
+
+enum XBH_COMM_STATE {
+    START_CMD
+};
 
 struct xbh_comm_state{
     uint32_t retries;
 };
+/*}}}*/
+static uint8_t xbh_cmd_buf[XBH_COMM_MAX_CMD_LEN];
 
-
-/*
- * LWIP Callbacks
- */
+/* LWIP Callbacks */
 static err_t xbh_comm_accept(void *state, struct tcp_pcb *pcb, err_t err);
 static err_t xbh_comm_recv(void *state, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
 static err_t xbh_comm_poll(void *state, struct tcp_pcb *pcb);
 static err_t xbh_comm_sent(void *state, struct tcp_pcb *pcb, uint16_t sent);
 
-/*
- * LWIP helper functions
- */
+/* LWIP helper functions */
 static err_t xbh_comm_close_conn(struct xbh_comm_state *state, struct tcp_pcb *pcb);
 static void xbh_comm_err(void *arg, err_t err);
 static struct xbh_comm_state* xbh_comm_alloc(void);
 static void  xbh_comm_free (struct xbh_comm_state* state);
 
-/*
- * XBH functions
- */
-
+/* State struct alloc/dealloc */
 static struct xbh_comm_state* xbh_comm_alloc(void){
     struct xbh_comm_state *ret;
     ret = (struct xbh_comm_state *)mem_malloc(sizeof(struct xbh_comm_state));
@@ -81,6 +82,8 @@ static struct xbh_comm_state* xbh_comm_alloc(void){
 static void  xbh_comm_free (struct xbh_comm_state* state){
     mem_free(state);
 }
+
+/* LWIP functions *//*{{{*/
 
 void xbh_comm_init(){
     struct tcp_pcb *pcb;
@@ -148,6 +151,9 @@ static err_t xbh_comm_recv(void *state, struct tcp_pcb *pcb, struct pbuf *p, err
         xbh_comm_close_conn(xcs, pcb);
         return ERR_OK;
     }
+
+
+
     return ERR_OK;
 }
 
@@ -229,3 +235,4 @@ static void xbh_comm_err(void *state, err_t err) {
         xbh_comm_free(xcs);
     }
 }
+/*}}}*/
