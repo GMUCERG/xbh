@@ -2,15 +2,16 @@
 #include "stack.h"
 #include "xbh_utils.h"
 
-u08 XBHMultiPacketDecodeBuf[XBD_ANSWERLENG_MAX];
+static uint8_t XBHMultiPacketDecodeBuf[XBD_ANSWERLENG_MAX];
 
-u32 xbd_genmp_seqn,xbd_genmp_dataleft,xbd_genmp_datanext;
-u32 xbd_recmp_seqn,xbd_recmp_dataleft,xbd_recmp_datanext,xbd_recmp_type,xbd_recmp_addr;
+uint32_t xbd_genmp_datanext;
+uint32_t xbd_genmp_dataleft;
+static uint32_t xbd_genmp_seqn,xbd_genmp_dataleft;
+static uint32_t xbd_recmp_seqn,xbd_recmp_dataleft,xbd_recmp_datanext,xbd_recmp_type,xbd_recmp_addr;
 
-u32 XBD_genSucessiveMultiPacket(const u08* srcdata, u08* dstbuf, u32 dstlenmax, const prog_char *code)
-{
-	u32 offset=0;
-	u32 cpylen;
+uint32_t XBD_genSucessiveMultiPacket(const uint8_t* srcdata, uint8_t* dstbuf, uint32_t dstlenmax, const uint8_t *code) {
+	uint32_t offset=0;
+	uint32_t cpylen;
 
 	if(0 == xbd_genmp_dataleft)
 		return 0;
@@ -20,8 +21,8 @@ u32 XBD_genSucessiveMultiPacket(const u08* srcdata, u08* dstbuf, u32 dstlenmax, 
 
 
 	XBH_DEBUG("SQN: [%x\r\n",xbd_genmp_seqn);
-	*((u32*) (dstbuf + offset)) = HTONS32(xbd_genmp_seqn);
-	XBH_DEBUG("*xbd_genmp_seqn: [%x\r\n",	*((u32*) (dstbuf + offset)));
+	*((uint32_t*) (dstbuf + offset)) = htons(xbd_genmp_seqn);
+	XBH_DEBUG("*xbd_genmp_seqn: [%x\r\n", *((uint32_t*) (dstbuf + offset)));
 
 	xbd_genmp_seqn++;
 	offset+=SEQNSIZE;
@@ -38,9 +39,8 @@ u32 XBD_genSucessiveMultiPacket(const u08* srcdata, u08* dstbuf, u32 dstlenmax, 
 	return offset;
 }
 
-u32 XBD_genInitialMultiPacket(const u08* srcdata, u32 srclen, u08* dstbuf,const prog_char *code, u32 type, u32 addr)
-{
-	u32 offset=0;
+uint32_t XBD_genInitialMultiPacket(const uint8_t* srcdata, uint32_t srclen, uint8_t* dstbuf,const uint8_t *code, uint32_t type, uint32_t addr) {
+	uint32_t offset=0;
 
 	xbd_genmp_seqn=0;
 	xbd_genmp_datanext=0;
@@ -51,17 +51,17 @@ u32 XBD_genInitialMultiPacket(const u08* srcdata, u32 srclen, u08* dstbuf,const 
 
 	if(0xffffffff != type)
 	{
-		*((u32*) (dstbuf + offset)) = HTONS32(type);
+		*((uint32_t*) (dstbuf + offset)) = htons(type);
 		offset+=TYPESIZE;
 	}
 
 	if(0xffffffff != addr)
 	{
-		*((u32*) (dstbuf + offset)) = HTONS32(addr);
+		*((uint32_t*) (dstbuf + offset)) = htons(addr);
 		offset+=ADDRSIZE;
 	}
 
-	*((u32*) (dstbuf + offset)) = HTONS32(srclen);
+	*((uint32_t*) (dstbuf + offset)) = htons(srclen);
 	offset+=LENGSIZE;
 
 	/* obs since v03
@@ -70,11 +70,10 @@ u32 XBD_genInitialMultiPacket(const u08* srcdata, u32 srclen, u08* dstbuf,const 
 	return offset;
 }
 
-u08 XBD_recSucessiveMultiPacket(const u08* recdata, u32 reclen, u08* dstbuf, u32 dstlenmax, const prog_char *code)
-{
-	u32 offset=0;
-	u32 cpylen;
-	u08 strtmp[XBD_COMMAND_LEN+1];
+uint8_t XBD_recSucessiveMultiPacket(const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const uint8_t *code) {
+	uint32_t offset=0;
+	uint32_t cpylen;
+	uint8_t strtmp[XBD_COMMAND_LEN+1];
 
 	if(0 == xbd_recmp_dataleft)
 		return 0;
@@ -86,7 +85,7 @@ u08 XBD_recSucessiveMultiPacket(const u08* recdata, u32 reclen, u08* dstbuf, u32
 	if(offset > reclen)
 		return 2;	//rec'd packet too shor
 
-	if(xbd_recmp_seqn==NTOHS32(*((u32*) (recdata + offset))))
+	if(xbd_recmp_seqn==ntohs(*((uint32_t*) (recdata + offset))))
 	{
 		offset+=SEQNSIZE;
 		if(offset > reclen)
@@ -112,39 +111,36 @@ u08 XBD_recSucessiveMultiPacket(const u08* recdata, u32 reclen, u08* dstbuf, u32
 	return 0;
 }
 
-u08 XBD_recInitialMultiPacket(const u08* recdata, u32 reclen, const prog_char *code, u08 hastype, u08 hasaddr)
-{
-	u32 offset=0;
-	u08 strtmp[XBD_COMMAND_LEN+1];
+uint8_t XBD_recInitialMultiPacket(const uint8_t* recdata, uint32_t reclen, const uint8_t *code, uint8_t hastype, uint8_t hasaddr) {
+	uint32_t offset=0;
+	uint8_t strtmp[XBD_COMMAND_LEN+1];
 
 	xbd_recmp_seqn=0;
 	xbd_recmp_datanext=0;
 
-	constStringToBuffer(strtmp, code);
-	if(memcmp(strtmp,recdata,XBD_COMMAND_LEN))
+	if(memcmp(code,recdata,XBD_COMMAND_LEN)){
 		return 1;	//wrong command code
+    }
 
 	offset+=XBD_COMMAND_LEN;
 	if(offset > reclen)
 		return 2;	//rec'd packet too short
 
-	if(hastype)
-	{
-		xbd_recmp_type=NTOHS32(*((u32*) (recdata + offset)));
+	if(hastype) {
+		xbd_recmp_type=ntohs(*((uint32_t*) (recdata + offset)));
 		offset+=TYPESIZE;
 		if(offset > reclen)
 			return 2;	//rec'd packet too short
 	}
 
-	if(hasaddr)
-	{
-		xbd_recmp_addr=NTOHS32(*((u32*) (recdata + offset)));
+	if(hasaddr) {
+		xbd_recmp_addr=ntohs(*((uint32_t*) (recdata + offset)));
 		offset+=ADDRSIZE;
 		if(offset > reclen)
 			return 2;	//rec'd packet too short
 	}
 
-	xbd_recmp_dataleft=NTOHS32(*((u32*) (recdata + offset)));
+	xbd_recmp_dataleft=ntohs(*((uint32_t*) (recdata + offset)));
 	offset+=LENGSIZE;
 	if(offset > reclen)
 		return 2;	//rec'd packet too short
