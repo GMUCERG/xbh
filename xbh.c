@@ -1,5 +1,5 @@
 /**
- * XBH 
+ * XBH server firmware for connected TIVA-C w/ LWIP
  * (C) 2014, John Pham, George Mason University <jpham4@gmu.edu>
  * Based on XBH server firmware
  * (C) 2012, XBX Project <xbx@xbx.das-labor.org>
@@ -37,19 +37,17 @@ uint16_t resetTimerBase=10;	//10s is the initial base unit for resetTimer settin
 
 
 //TODO: Make these local variables
-uint8_t XBDCommandBuf[XBD_PACKET_SIZE_MAX];
-uint8_t XBDResponseBuf[XBD_ANSWERLENG_MAX];
+static uint8_t XBDCommandBuf[XBD_PACKET_SIZE_MAX];
+static uint8_t XBDResponseBuf[XBD_ANSWERLENG_MAX];
 
 
+// From xbd_multipacket.h
+// TODO Put these into a state struct
 extern uint32_t xbd_recmp_datanext;
 extern uint32_t xbd_recmp_dataleft;
 
 
-
-
-
 extern volatile unsigned int resetTimer;
-
 extern volatile unsigned long risingTimeStamp;
 extern volatile unsigned char risingIntCtr;
 extern volatile unsigned int  risingTime;
@@ -63,286 +61,6 @@ extern volatile unsigned char fallingSeen;
 
 
 /**
- * Decode commands
- * @input buffer containing commands 
- * @input_len length of buffer
- * @output Buffer containing output to return (MUST be greater or equal to XBH_COMMAND_LEN
- * @return Length of output containing return data
- */
-uint16_t XBH_handle(const uint8_t *input, uint16_t input_len, uint8_t* output) {/*{{{*/
-	uint8_t buf[XBH_COMMAND_LEN+1];
-	uint8_t ret;
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("XBH_handle()\n"));
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 'u'pload 'r'esults 'r'equest received\n"));
-
-		resetTimer=resetTimerBase*1;
-		
-		ret=XBH_HandleUploadResultsRequest(&output[XBH_COMMAND_LEN]);
-
-		resetTimer=0;		
-
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'u'pload 'r'esults 'o'kay sent\n"));
-			memcpy(output, XBH_CMD[XBH_CMD_uro], XBH_COMMAND_LEN);
-			return (uint16_t)XBH_COMMAND_LEN+xbd_recmp_datanext*2;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'u'pload 'r'esults 'f'ail sent\n"));
-			memcpy(output, XBH_CMD[XBH_CMD_urf], XBH_COMMAND_LEN);
-            // Append return value of XBH_HandleUploadResultsRequest 
-            
-            // TODO Find what return value actually means
-			output[XBH_COMMAND_LEN]= ntoa(ret>>4);
-			output[XBH_COMMAND_LEN+1]= ntoa(ret&0xf);
-			return (uint16_t) XBH_COMMAND_LEN+2;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_cdr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 'c'ode 'd'ownload 'r'equest received\n"));
-
-		resetTimer=resetTimerBase*1;
-
-		ret=XBH_HandleCodeDownloadRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN));
-
-		resetTimer=0;		
-
-		if(0 == ret)
-		{
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'c'ode 'd'ownload 'o'kay sent\n"));
-			memcpy(output, XBH_CMD[XBH_CMD_cdo], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'c'ode 'd'ownload 'f'ail sent\n"));
-			return (uint16_t) XBH_COMMAND_LEN;
-		}	
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_dpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 'd'ownload 'p'arameters 'r'equest received\n"));
-
-		resetTimer=resetTimerBase*1;
-
-		//prepare TWI transmission to XBD here
-        //TODO Find parameter requirements 
-		ret=XBH_HandleDownloadParametersRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN)/2);
-
-		resetTimer=0;		
-
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'d'ownload 'p'arameters 'o'kay sent\n"));
-			memcpy(output, XBH_CMD[XBH_CMD_dpo], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'d'ownload 'p'arameters 'f'ail sent\n"));
-			memcpy(output, XBH_CMD[XBH_CMD_dpf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_scr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 's'et 'c'ommunication 'r'equest received\n"));
-
-		resetTimer=resetTimerBase*1;
-		ret=XBH_HandleSetCommunicationRequest(input[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		
-		if(ret==0)	{
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'et 'c'ommunication 'o'kay sent\n"));
-			memcpy(output, XBH_CMD[XBH_CMD_sco], XBH_COMMAND_LEN);
-        }else{
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'et 'c'ommunication 'f'ail sent\n"));
-			memcpy(output, XBH_CMD[XBH_CMD_scf], XBH_COMMAND_LEN);
-        }
-		return (uint16_t) XBH_COMMAND_LEN;
-	}	/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 'r'e'p'ort timestamp 'r'equest received\n"));
-
-		resetTimer=resetTimerBase*1;
-		XBH_HandleRePorttimestampRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'r'e'p'ort timestamp 'o'kay sent\n"));
-        memcpy(output, XBH_CMD[XBH_CMD_rpo], XBH_COMMAND_LEN);
-		return (uint16_t) XBH_COMMAND_LEN+(3*TIMESIZE*2);
-	}/*}}}*/
-	
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_str],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 'st'atus 'r'equest received\n"));
-		resetTimer=resetTimerBase*1;
-		XBH_HandleSTatusRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		
-        memcpy(output, XBH_CMD[XBH_CMD_sto], XBH_COMMAND_LEN);
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'st'atus 'o'kay sent\n"));
-		return (uint16_t) 2*XBH_COMMAND_LEN;
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rcr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 'r'eset 'c'ontrol 'r'equest received\n"));
-		resetTimer=resetTimerBase*1;
-		ret=XBH_HandleResetControlRequest(input[XBH_COMMAND_LEN]);
-		resetTimer=0;		
-		
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'r'eset 'c'ontrol 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_rco], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'r'eset 'c'ontrol 'f'ail sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_rcf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sar],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 's'tart 'a'pplication 'r'equest received\n"));
-		resetTimer=resetTimerBase*2;		
-		ret=XBH_HandleStartApplicationRequest();
-		resetTimer=0;
-		
-		if(0 == ret)
-		{
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'tart 'a'pplication 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_sao], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'tart 'a'pplication 'f'ail sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_saf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sur],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 's'tack 'u'sage 'r'equest received\n"));
-		resetTimer=resetTimerBase*1;
-		ret=XBH_HandleStackUsageRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'tack 'u'sage 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_suo], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'tack 'u'sage 'f'ail sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_suf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_tcr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 't'iming 'c'alibration 'r'equest received\n"));
-		resetTimer=resetTimerBase*2;		
-		ret=XBH_HandleTimingCalibrationRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'t'iming 'c'alibration 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_tco], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'t'iming 'c'alibration 'f'ail sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_tcf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sbr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 's'tart 'b'ootloader 'r'equest received\n"));
-		resetTimer=resetTimerBase*2;	
-		ret=XBH_HandleStartBootloaderRequest();
-		resetTimer=0;
-		
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'tart 'b'ootloader 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_sbo], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'tart 'b'ootloader 'f'ail sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_sbf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_exr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper handle 'ex'ecution 'r'equest received\n"));
-		resetTimer=resetTimerBase*12;
-		ret=XBH_HandleEXecutionRequest();
-		resetTimer=0;
-
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Handle 'ex'ecution 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_exo], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Handle 'ex'ecution 'f'ail sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_exf], XBH_COMMAND_LEN);
-			constStringToBuffer (output, XBHexf);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_ccr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 'c'hecksum 'c'alc 'r'equest received\n"));
-		resetTimer=resetTimerBase*60;
-		ret=XBH_HandleChecksumCalcRequest();
-		resetTimer=0;
-
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Handle 'c'hecksum 'c'alc 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_cco], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Handle 'c'hecksum 'c'alc 'f'ail sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_ccf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_srr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 's'ubversion/git 'r'evision 'r'equest received\n"));
-		resetTimer=resetTimerBase;
-		XBH_HandleSubversionRevisionRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'s'ubversion/git 'r'evision 'o'kay sent\n"));
-        memcpy(output, XBH_CMD[XBH_CMD_sro], XBH_COMMAND_LEN);
-		return (uint16_t) XBH_COMMAND_LEN+5+1+12;		// 5 chars SVN Rev, ',' , 6*2 chars MAC address
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_trr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Proper 't'arget 'r'evision 'r'equest received\n"));
-		resetTimer=resetTimerBase*2;
-		ret = XBH_HandleTargetRevisionRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		if(0 == ret) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'t'arget 'r'evision 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_tro], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN+REVISIZE;
-		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'t'arget 'r'evision 'o'kay sent\n"));
-            memcpy(output, XBH_CMD[XBH_CMD_trf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-    memcpy(output, XBH_CMD[XBH_CMD_unk], XBH_COMMAND_LEN);
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("'un'known command 'r'eceived (len: %d)\n", input_len));
-    for(uint8_t u=0;u<input_len;++u) {
-        if(u % 32 == 0){ 
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("\n"));
-        }
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("%x",input[u]));
-    }
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("\n"));
-	
-	return (uint16_t) XBH_COMMAND_LEN;
-}/*}}}*/
-
-/**
  * Program XBD
  * TODO Clean up code, minimize scope of variables and document them.
  * @param input_buf Code buffer containing code in ascii hex format, prefixed by
@@ -351,7 +69,7 @@ uint16_t XBH_handle(const uint8_t *input, uint16_t input_len, uint8_t* output) {
  * @return 0 if success, 1 if fails during program flash request to XBD, 2 if
  * fails during flash download request to XBD
  */
-uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
+static uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
 	uint32_t *cmd_ptr = (uint32_t*)(XBDCommandBuf+XBD_COMMAND_LEN);
 	uint32_t seqn=0,addr=0;
     uint32_t byte_len = len/2; //byte length of len which is  ascii hex length in nybbles
@@ -375,16 +93,16 @@ uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/
 	++cmd_ptr; //ADDRSIZE == sizeof(uint32_t)
 	*cmd_ptr = htons((uint32_t)(byte_len-ADDRSIZE));
 
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Sending 'p'rogram 'f'lash 'r'equest to XBD\n"));
+    XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
 	xbdSend(XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
 
 	
 	if(0 != memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN)) {
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD!\n"));
+        XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD!\n");
 		return 1;
 	}else{
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Received 'p'rogram 'f'lash 'o'kay from XBD\n"));
+        XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
     }
 
 
@@ -406,16 +124,16 @@ uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/
 				htoi(input_buf[((fd_idx+i)*2)+1]);
 		}
 		numbytes=i;
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Sending 'f'lash 'd'ownload 'r'equest to XBD\n"));
+        XBH_DEBUG("Sending 'f'lash 'd'ownload 'r'equest to XBD\n");
 		xbdSend(XBD_COMMAND_LEN+SEQNSIZE+numbytes, XBDCommandBuf);
 		xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
 				
 		if(0 == memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN)) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Received 'p'rogram 'f'lash 'o'kay from XBD\n"));
+            XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
 			len_remaining-=numbytes;
 			fd_idx+=numbytes;
 		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD\n"));
+            XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD\n");
 			return 2;
 		}	
 	}
@@ -429,7 +147,7 @@ uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/
  * overdriven UART, 'I' for I2C, 'E' for ethernet.
  * @return 0 if successful, 2 if invalid
  */
-uint8_t XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/*{{{*/
+static uint8_t XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/*{{{*/
     switch(requestedComm) {
         case 'U':
             xbdCommExit();
@@ -448,7 +166,7 @@ uint8_t XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/*{{{*/
             xbdCommInit(COMM_ETHERNET);
             break;
         default:
-            LWIP_DEBUGF(XBH_DEBUG|LWIP_DBG_TRACE, ("Invalid set communication request %c\r\n",requestedComm));
+            XBH_DEBUG("Invalid set communication request %c\r\n",requestedComm);
             return 2;
             break;
     }
@@ -463,7 +181,7 @@ uint8_t XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/*{{{*/
  * @return 0 if success, 1 if fails during program parameter request to XBD, 2 if
  * fails during program download request to XBD
  */
-uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
+static uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
 	uint32_t *cmd_ptr = (uint32_t*)(XBDCommandBuf+XBD_COMMAND_LEN);//+TYPESIZE+ADDRSIZE);
 	uint32_t seqn=0,temp=0;
     uint32_t byte_len = len/2; //byte length of len which is  ascii hex length in nybbles
@@ -498,16 +216,16 @@ uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t l
 	*cmd_ptr =  htons((uint32_t)(byte_len-ADDRSIZE-TYPESIZE));
 
 
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Sending 'p'rogram 'p'arameters 'r'equest to XBD\n"));
+    XBH_DEBUG("Sending 'p'rogram 'p'arameters 'r'equest to XBD\n");
 	xbdSend(XBD_COMMAND_LEN+TYPESIZE+ADDRSIZE+LENGSIZE, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
 
 	
 	if(0 != memcmp(XBD_CMD[XBD_CMD_ppo],XBDResponseBuf,XBH_COMMAND_LEN)) {
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Did not receive 'p'rogram 'p'arameters 'o'kay from XBD\n"));
+        XBH_DEBUG("Did not receive 'p'rogram 'p'arameters 'o'kay from XBD\n");
 		return 1;
 	}
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Received 'p'rogram 'p'arameters 'o'kay from XBD\n"));
+    XBH_DEBUG("Received 'p'rogram 'p'arameters 'o'kay from XBD\n");
 
 
     memcpy(XBDCommandBuf,XBD_CMD[XBD_CMD_pdr], XBD_COMMAND_LEN);
@@ -524,16 +242,16 @@ uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t l
 				htoi(input_buf[((fd_idx+i)*2)+1]);
 		}
 		numbytes=i;
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Sending 'p'rogram 'd'ownload 'r'equest to XBD\n"));
+        XBH_DEBUG("Sending 'p'rogram 'd'ownload 'r'equest to XBD\n");
 		xbdSend(byte_len=XBD_COMMAND_LEN+SEQNSIZE+numbytes, XBDCommandBuf);
 		xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
 
 		if(0 == memcmp(XBD_CMD[XBD_CMD_pdo],XBDResponseBuf,XBH_COMMAND_LEN)) {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Received 'p'rogram 'd'ownload 'o'kay from XBD\n"));
+            XBH_DEBUG("Received 'p'rogram 'd'ownload 'o'kay from XBD\n");
 			len_remaining-=numbytes;
 			fd_idx+=numbytes;
 		} else {
-            LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Did not recieve 'p'rogram 'd'ownload 'o'kay from XBD\n"));
+            XBH_DEBUG("Did not recieve 'p'rogram 'd'ownload 'o'kay from XBD\n");
 			return 2;
 		}	
 	}
@@ -544,21 +262,21 @@ uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t l
  * Asks XBD to execute
  * @return 0 if success, 1 if fail.
  */
-uint8_t XBH_HandleEXecutionRequest() {/*{{{*/
+static uint8_t XBH_HandleEXecutionRequest() {/*{{{*/
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_exr], XBD_COMMAND_LEN);
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Sending 'ex'ecution  'r'equest to XBD\n"));
+    XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
 	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
 	
 	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_exo], XBD_COMMAND_LEN)) {	
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Received 'ex'ection 'o'kay from XBD\n"));
+        XBH_DEBUG("Received 'ex'ection 'o'kay from XBD\n");
 /*		XBH_DEBUG("Took %d s, %d IRQs, %d clocks\r\n",
 						risingTimeStamp-fallingTimeStamp,
 						risingIntCtr-fallingIntCtr,
 						risingTime-fallingTime);
 */		return 0;
 	} else {
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Did not receive 'ex'ection 'o'kay from XBD\n"));
+        XBH_DEBUG("Did not receive 'ex'ection 'o'kay from XBD\n");
 		return 1;
 	}
 }/*}}}*/
@@ -567,32 +285,37 @@ uint8_t XBH_HandleEXecutionRequest() {/*{{{*/
  * Asks XBD to calculate checksum
  * @return 0 if success, 1 if fail.
  */
-int8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
+static uint8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_ccr], XBD_COMMAND_LEN);
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Sending 'c'hecksum 'c'alc 'r'equest to XBD\n"));
+    XBH_DEBUG("Sending 'c'hecksum 'c'alc 'r'equest to XBD\n");
 	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
 	
 
 	if(0 == memcmp_P(XBDResponseBuf,XBD_CMD[XBD_CMD_cco],XBD_COMMAND_LEN)) {	
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Received 'c'hecksum 'c'alc 'o'kay from XBD\n"));
+        XBH_DEBUG("Received 'c'hecksum 'c'alc 'o'kay from XBD\n");
 /*		XBH_DEBUG("Took %d s, %d IRQs, %d clocks\r\n",
 				risingTimeStamp-fallingTimeStamp,
 				risingIntCtr-fallingIntCtr,
 				risingTime-fallingTime);
 */		return 0;
 	} else {
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Did not receive 'c'hecksum 'c'alc 'o'kay from XBD\n"));
+        XBH_DEBUG("Did not receive 'c'hecksum 'c'alc 'o'kay from XBD\n");
 		return 1;
 	}
 }/*}}}*/
 
 
-static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {
+/**
+ * Retrieve value of computation
+ * @param p_answer Buffer to write answer to 
+ * @return 0 if success
+ */
+static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 	uint8_t ret;
 
-    LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("XBH_HandleUploadResultsRequest()\n"));
-	constStringToBuffer (XBDCommandBuf, XBDurr);
+    XBH_DEBUG("Sending 'u'pload 'r'esults 'r'equest to XBD\n");
+	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_urr], XBD_COMMAND_LEN);
 
 /*	for(uint8_t u=0;u<XBD_COMMAND_LEN;++u)
 	{
@@ -606,7 +329,13 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {
 
 	xbdReceive(XBD_ANSWERLENG_MAX-CRC16SIZE, XBDResponseBuf);
 	
-	XBD_recInitialMultiPacket(XBDResponseBuf,XBD_ANSWERLENG_MAX-CRC16SIZE,XBDuro, 1 /*hastype*/, 0/*hasaddr*/);
+	if(0 == XBD_recInitialMultiPacket(XBDResponseBuf,XBD_ANSWERLENG_MAX-CRC16SIZE, XBD_CMD[XBD_CMD_uro], 1 /*hastype*/, 0/*hasaddr*/)){
+        XBH_DEBUG("Received 'u'pload 'r'esults 'o'kay from XBD\n");
+    }else{
+        XBH_DEBUG("Error with 'u'pload 'r'esults 'o'kay from XBD\n");
+    }
+        
+
 
 /*
 	uint8_t XBDResponseBuf[XBD_ANSWERLENG_MAX];
@@ -619,14 +348,12 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {
 	XBH_DEBUG("\r\n");
 */
 
-	constStringToBuffer (XBDCommandBuf, XBDrdr);
-
-	do
-	{
+	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_rdr], XBD_COMMAND_LEN);
+	do {
+        XBH_DEBUG("Sending 'r'esult 'd'ata 'r'equest to XBD\n");
 		xbdSend(XBD_COMMAND_LEN, XBD_CMD[XBD_CMD_rdr]);
 //		_delay_ms(100);
 
-        LWIP_DEBUGF(XBH_DEBUG | LWIP_DBG_TRACE, ("Sending 'r'esult 'd'ata 'r'equest to XBD\n"));
 	//	XBH_DEBUG("1.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
 		xbdReceive(XBD_ANSWERLENG_MAX-CRC16SIZE, XBDResponseBuf);
 		ret=XBD_recSucessiveMultiPacket(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE, p_answer, MTU_SIZE/2, XBDrdo);
@@ -635,98 +362,89 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {
 	} while(xbd_recmp_dataleft != 0 && 0 == ret); 
 
 
-	if(ret==0 && 0 == memcmp_P(XBDResponseBuf,XBDrdo,XBD_COMMAND_LEN))
-	{	
-		s16 i;
-		
-		
-		for(i=xbd_recmp_datanext-1;i>=0; --i)
+	if(ret==0 && 0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_rdo],XBD_COMMAND_LEN)) {	
+		for(int32_t i=xbd_recmp_datanext-1;i>=0; --i)
 		{
 			p_answer[2*i] = ntoa(p_answer[i]>>4);
 			p_answer[2*i+1] = ntoa(p_answer[i]&0xf);
 		}
 		return 0;
-	}
-	else
-	{
-		XBH_ERROR("RDR fai\r\n");
+	} else {
+        XBH_DEBUG("'r'esult 'd'ata 'r'equest to XBD failed\n");
 		return 0x80+ret;
 	}
-}
+}/*}}}*/
 
 
-uint8_t XBH_HandleStartApplicationRequest()
-{
-        uint16_t trys;
+/**
+ * Switches from bootloader to application mode
+ * @return 0 if success
+ */
+static uint8_t XBH_HandleStartApplicationRequest() {/*{{{*/
+    uint16_t trys;
+    //TODO replace w/ C99 bool
 	volatile uint8_t yes='y';
 	volatile uint8_t no='n';
 
 	trys=0;
-	while(trys<3)
-	{
-
-		constStringToBuffer (XBDCommandBuf, XBDsar);
+	while(trys<3) {
+        XBH_DEBUG("Sending 's'tart 'a'pplication 'r'equest to XBD\n");
+		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sar], XBD_COMMAND_LEN);
 		xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
+        //TODO Replace _delay_ms w/ ARM-specific function
 		_delay_ms(100);
-		XBH_DEBUG("sar\r\n");
 
-		constStringToBuffer (XBDCommandBuf, XBDvir);
+        XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
+		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir], XBD_COMMAND_LEN);
 		xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
-
-		XBH_DEBUG("vir\n");
-
 		xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
 	
 
-		if(0 == memcmp_P(XBDResponseBuf,XBDviAF,XBD_COMMAND_LEN))
-		{	
-			return 0;
-		}	
-		else
-		{
-   		        XBH_WARN("Try %d: [%s]",trys,((uint8_t*)XBDResponseBuf));
-			++trys;
-			XBH_HandleResetControlRequest(yes);
-			_delay_ms(100);
-			XBH_HandleResetControlRequest(no);
-			_delay_ms(1000);
+        if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_AFo],XBD_COMMAND_LEN)) {	
+            XBH_DEBUG("Recieved 'A'pplication 'F' version 'o'kay from XBD\n");
+            return 0;
+        }	else {
+            XBH_DEBUG("Try %d: [%s]",trys,((uint8_t*)XBDResponseBuf));
+            ++trys;
+            XBH_HandleResetControlRequest(yes);
+            _delay_ms(100);
+            XBH_HandleResetControlRequest(no);
+            _delay_ms(1000);
 		}
 	}
 
+    XBH_DEBUG("AF 'v'ersion 'i'nformation 'r'equest to XBD failed\n");
 
-	XBH_ERROR("vir fai\r\n");
 	return 1;
 
-}
+}/*}}}*/
 
-uint8_t XBH_HandleStartBootloaderRequest()
-{
+/**
+ * Switches from application to bootloader mode
+ * @return 0 if success
+ */
+static uint8_t XBH_HandleStartBootloaderRequest() {/*{{{*/
 	uint16_t trys;
 	volatile uint8_t yes='y';
 	volatile uint8_t no='n';
 
 	trys=0;
-	while(trys<3)
-	{
+	while(trys<3) {
 
-		constStringToBuffer (XBDCommandBuf, XBDsbr);
+		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sbr], XBD_COMMAND_LEN);
 		xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
 
 		_delay_ms(100);
 
-		constStringToBuffer (XBDCommandBuf, XBDvir);
+		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir], XBD_COMMAND_LEN);
+        XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
 		xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
-
-
-		XBH_DEBUG("vir\r\n");
 		xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
-		if(0 == memcmp_P(XBDResponseBuf,XBDviBL,XBD_COMMAND_LEN))
-		{	
+		if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_BLo],XBD_COMMAND_LEN)) {	
+            XBH_DEBUG("Recieved 'B'oot'L'oader version 'o'kay from XBD\n");
 			return 0;
-		}
-		else
-		{
-        		XBH_WARN("Try %d: [%s]\r\n",trys,((uint8_t*)XBDResponseBuf));
+		} else {
+            XBH_DEBUG("Try %d: [%s]",trys,((uint8_t*)XBDResponseBuf));
 			++trys;
 			XBH_HandleResetControlRequest(yes);
 			_delay_ms(100);
@@ -734,20 +452,29 @@ uint8_t XBH_HandleStartBootloaderRequest()
 			_delay_ms(1000);
 		}
 	}
-	XBH_WARN("bl vir fai\r\n");
+    XBH_DEBUG("BL 'v'ersion 'i'nformation 'r'equest to XBD failed\n");
 	return 1;
 	
-}
+}/*}}}*/
 
-void XBH_HandleSTatusRequest(uint8_t* p_answer)
-{
-	constStringToBuffer (XBDCommandBuf, XBDvir);
+/**
+ * Returns bootloader/application status in p_answer
+ * @param p_answer pointer to buffer to receive status
+ */
+static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
+	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir],XBD_COMMAND_LEN);
 	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN, p_answer);
-}
+}/*}}}*/
 
-uint8_t XBH_HandleResetControlRequest(uint8_t param)
-{
+/**
+ * Sets reset pin depending on value of param
+ * TODO Change to use c99 bool
+ * TODO Actually implement
+ * @return 0 if valid parameter, 1 if not
+ */
+uint8_t XBH_HandleResetControlRequest(uint8_t param) {
+#if 0
 	//Disable pull-up in input, set to low level if output
 	PORTB &= ~(_BV(PB0));
 
@@ -770,36 +497,37 @@ uint8_t XBH_HandleResetControlRequest(uint8_t param)
 
 	XBH_ERROR("Invalid Reset Reques\r\n");
 	return 1;
+#endif
+    return 1;
 }	
 
-uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer)
-{
+/**
+ * Retrieves stack usage information from XBD
+ */
+uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {
+    XBH_DEBUG("Sending 's'tack 'r'equest to XBD\n");
 
-	uint8_t i;
-
-	constStringToBuffer (XBDCommandBuf, XBDsur);
+    memcpy(output, XBH_CMD[XBD_CMD_sur], XBH_COMMAND_LEN);
 //	XBH_DEBUG("sur\n");
 
 	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+NUMBSIZE);
+
+
 	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN+NUMBSIZE, XBDResponseBuf);
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
-	if(0 == memcmp_P(XBDResponseBuf,XBDsuo,XBD_COMMAND_LEN))
-	{	
-
+	if(0 == memcmp_P(XBDResponseBuf,XBDsuo,XBD_COMMAND_LEN)) {	
+        XBH_DEBUG("'s'tack 'u'sage 'o'kay received from XBD\n");
 		//Copy to Stack Usage information for transmission to the XBS
-		for(i=0;i<4;++i)
-		{
+		for(uint32_t i=0;i<4;++i) {
 			p_answer[2*i] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]>>4);
 			p_answer[2*i+1] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]&0xf);
 		}
 		return 0;
-	}
-	else
-	{
-		XBH_ERROR("sur response wrong [%s\r\n",XBDResponseBuf);
+	} else {
+        XBH_DEBUG("'s'tack 'u'sage 'o'kay not received from XBD\n");
 		return 1;
 	}
 }
@@ -836,38 +564,42 @@ uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer)
 
 }
 
-void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	
-{
+
+//TODO Redefine OCRVAL
+//TODO Counting cycles probably not accurate on ARM
+
+void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{
+    return;
+#if 0
 
 	uint32_t tmpvar;
-	uint8_t i;
 	int32_t rising_fract, falling_fract;
 	
 
-#ifdef XBH_DEBUG_TIMING
-	XBH_DEBUG("\nRP, rising: %d s, %d IRQs, clocks:",
-						risingTimeStamp,
-						risingIntCtr);
-	XBD_debugOutHex32Bit(risingTime);
-
-	XBH_DEBUG("\nRP, falling: %d s, %d IRQs, clocks:",
-						fallingTimeStamp,
-						fallingIntCtr);
-	XBD_debugOutHex32Bit(fallingTime);
-#endif
+//#ifdef XBH_DEBUG_TIMING
+//	XBH_DEBUG("\nRP, rising: %d s, %d IRQs, clocks:",
+//						risingTimeStamp,
+//						risingIntCtr);
+//	XBD_debugOutHex32Bit(risingTime);
+//
+//	XBH_DEBUG("\nRP, falling: %d s, %d IRQs, clocks:",
+//						fallingTimeStamp,
+//						fallingIntCtr);
+//	XBD_debugOutHex32Bit(fallingTime);
+//#endif
 
 	rising_fract=risingIntCtr*OCRVAL+risingTime;
 
-#ifdef XBH_DEBUG_TIMING
-	XBH_DEBUG("\nrising_fract:");
-	XBD_debugOutHex32Bit(rising_fract);
-#endif
+//#ifdef XBH_DEBUG_TIMING
+//	XBH_DEBUG("\nrising_fract:");
+//	XBD_debugOutHex32Bit(rising_fract);
+//#endif
 
 	falling_fract=fallingIntCtr*OCRVAL+fallingTime;
-#ifdef XBH_DEBUG_TIMING
-	XBH_DEBUG("\nfalling_fract:");
-	XBD_debugOutHex32Bit(falling_fract);
-#endif
+//#ifdef XBH_DEBUG_TIMING
+//	XBH_DEBUG("\nfalling_fract:");
+//	XBD_debugOutHex32Bit(falling_fract);
+//#endif
 
 	if(rising_fract < falling_fract)
 	{
@@ -875,19 +607,19 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)
 		--risingTimeStamp;
 	}
 
-#ifdef XBH_DEBUG_TIMING
-	XBH_DEBUG("\nrising_fract:");
-	XBD_debugOutHex32Bit(rising_fract);
-
-	XBH_DEBUG("RP, rising: %d s, %d IRQs, %d clocks\r\n",
-						risingTimeStamp,
-						risingIntCtr,
-						risingTime);
-#endif
+//#ifdef XBH_DEBUG_TIMING
+//	XBH_DEBUG("\nrising_fract:");
+//	XBD_debugOutHex32Bit(rising_fract);
+//
+//	XBH_DEBUG("RP, rising: %d s, %d IRQs, %d clocks\r\n",
+//						risingTimeStamp,
+//						risingIntCtr,
+//						risingTime);
+//#endif
 
 
 	tmpvar = (risingTimeStamp-fallingTimeStamp);
-	for(i=0;i<8;++i)
+	for(uint32_t i=0;i<8;++i)
 	{
 		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
 	}
@@ -898,7 +630,7 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)
 #endif
 					
 	tmpvar = (rising_fract - falling_fract);
-	for(i=0;i<8;++i)
+	for(uint32_t i=0;i<8;++i)
 	{
 		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
 	}
@@ -919,12 +651,15 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)
 	XBH_DEBUG("\ntmpvar:");
 	XBD_debugOutHex32Bit(tmpvar);
 #endif
+#endif
 }
 
 
 
+//TODO implement
 void XBH_HandleSubversionRevisionRequest(uint8_t* p_answer)	
 {
+#if 0
 	uint8_t i;
 	uint8_t svnRevLen = strlen(XBH_Rev);
 
@@ -945,11 +680,17 @@ void XBH_HandleSubversionRevisionRequest(uint8_t* p_answer)
 	}
 	p_answer[6+2*6+1]=0;
 	return;
+#endif
 
 }
 
+
+
+//TODO Implement 
 uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer)
 {
+    return 1;
+#if 0
 
 	uint8_t i;
 
@@ -976,14 +717,15 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer)
 		return 1;
 	}
 
+#endif
 }
 
-uint8_t XBH_HandleLOopbackRequest(uint8_t* p_answer)
-{
+#if 0/*{{{*/
+uint8_t XBH_HandleLOopbackRequest(uint8_t* p_answer) {
 
 	uint8_t i;
 
-	constStringToBuffer (XBDCommandBuf, XBDtrr);
+	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_trr], XBD_COMMAND_LEN);
 	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+REVISIZE);
 	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN+REVISIZE, XBDResponseBuf);
@@ -1008,3 +750,284 @@ uint8_t XBH_HandleLOopbackRequest(uint8_t* p_answer)
 
 }
 
+#endif/*}}}*/
+
+/**
+ * Decode commands
+ * @input buffer containing commands 
+ * @input_len length of buffer
+ * @output Buffer containing output to return (MUST be greater or equal to XBH_COMMAND_LEN
+ * @return Length of output containing return data
+ */
+uint32_t XBH_handle(const uint8_t *input, uint16_t input_len, uint8_t* output) {/*{{{*/
+	uint8_t buf[XBH_COMMAND_LEN+1];
+	uint8_t ret;
+    XBH_DEBUG("XBH_handle()\n");
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'u'pload 'r'esults 'r'equest received\n");
+
+		resetTimer=resetTimerBase*1;
+		
+		ret=XBH_HandleUploadResultsRequest(&output[XBH_COMMAND_LEN]);
+
+		resetTimer=0;		
+
+		if(0 == ret) {
+            XBH_DEBUG("'u'pload 'r'esults 'o'kay sent\n");
+			memcpy(output, XBH_CMD[XBH_CMD_uro], XBH_COMMAND_LEN);
+			return (uint16_t)XBH_COMMAND_LEN+xbd_recmp_datanext*2;
+		} else {
+            XBH_DEBUG("'u'pload 'r'esults 'f'ail sent\n");
+			memcpy(output, XBH_CMD[XBH_CMD_urf], XBH_COMMAND_LEN);
+            // Append return value of XBH_HandleUploadResultsRequest 
+            
+            // TODO Find what return value actually means
+			output[XBH_COMMAND_LEN]= ntoa(ret>>4);
+			output[XBH_COMMAND_LEN+1]= ntoa(ret&0xf);
+			return (uint16_t) XBH_COMMAND_LEN+2;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_cdr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'c'ode 'd'ownload 'r'equest received\n");
+
+		resetTimer=resetTimerBase*1;
+
+		ret=XBH_HandleCodeDownloadRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN));
+
+		resetTimer=0;		
+
+		if(0 == ret)
+		{
+            XBH_DEBUG("'c'ode 'd'ownload 'o'kay sent\n");
+			memcpy(output, XBH_CMD[XBH_CMD_cdo], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("'c'ode 'd'ownload 'f'ail sent\n");
+			return (uint16_t) XBH_COMMAND_LEN;
+		}	
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_dpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'd'ownload 'p'arameters 'r'equest received\n");
+
+		resetTimer=resetTimerBase*1;
+
+		//prepare TWI transmission to XBD here
+        //TODO Find parameter requirements 
+		ret=XBH_HandleDownloadParametersRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN)/2);
+
+		resetTimer=0;		
+
+		if(0 == ret) {
+            XBH_DEBUG("'d'ownload 'p'arameters 'o'kay sent\n");
+			memcpy(output, XBH_CMD[XBH_CMD_dpo], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("'d'ownload 'p'arameters 'f'ail sent\n");
+			memcpy(output, XBH_CMD[XBH_CMD_dpf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_scr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 's'et 'c'ommunication 'r'equest received\n");
+
+		resetTimer=resetTimerBase*1;
+		ret=XBH_HandleSetCommunicationRequest(input[XBH_COMMAND_LEN]);
+		resetTimer=0;
+		
+		if(ret==0)	{
+            XBH_DEBUG("'s'et 'c'ommunication 'o'kay sent\n");
+			memcpy(output, XBH_CMD[XBH_CMD_sco], XBH_COMMAND_LEN);
+        }else{
+            XBH_DEBUG("'s'et 'c'ommunication 'f'ail sent\n");
+			memcpy(output, XBH_CMD[XBH_CMD_scf], XBH_COMMAND_LEN);
+        }
+		return (uint16_t) XBH_COMMAND_LEN;
+	}	/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'r'e'p'ort timestamp 'r'equest received\n");
+
+		resetTimer=resetTimerBase*1;
+		XBH_HandleRePorttimestampRequest(&output[XBH_COMMAND_LEN]);
+		resetTimer=0;
+		
+        XBH_DEBUG("'r'e'p'ort timestamp 'o'kay sent\n");
+        memcpy(output, XBH_CMD[XBH_CMD_rpo], XBH_COMMAND_LEN);
+		return (uint16_t) XBH_COMMAND_LEN+(3*TIMESIZE*2);
+	}/*}}}*/
+	
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_str],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'st'atus 'r'equest received\n");
+		resetTimer=resetTimerBase*1;
+		XBH_HandleSTatusRequest(&output[XBH_COMMAND_LEN]);
+		resetTimer=0;
+		
+        memcpy(output, XBH_CMD[XBH_CMD_sto], XBH_COMMAND_LEN);
+        XBH_DEBUG("'st'atus 'o'kay sent\n");
+		return (uint16_t) 2*XBH_COMMAND_LEN;
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rcr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'r'eset 'c'ontrol 'r'equest received\n");
+		resetTimer=resetTimerBase*1;
+		ret=XBH_HandleResetControlRequest(input[XBH_COMMAND_LEN]);
+		resetTimer=0;		
+		
+		if(0 == ret) {
+            XBH_DEBUG("'r'eset 'c'ontrol 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_rco], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("'r'eset 'c'ontrol 'f'ail sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_rcf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sar],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 's'tart 'a'pplication 'r'equest received\n");
+		resetTimer=resetTimerBase*2;		
+		ret=XBH_HandleStartApplicationRequest();
+		resetTimer=0;
+		
+		if(0 == ret)
+		{
+            XBH_DEBUG("'s'tart 'a'pplication 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_sao], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("'s'tart 'a'pplication 'f'ail sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_saf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sur],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 's'tack 'u'sage 'r'equest received\n");
+		resetTimer=resetTimerBase*1;
+		ret=XBH_HandleStackUsageRequest(&output[XBH_COMMAND_LEN]);
+		resetTimer=0;
+		
+		if(0 == ret) {
+            XBH_DEBUG("'s'tack 'u'sage 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_suo], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
+		} else {
+            XBH_DEBUG("'s'tack 'u'sage 'f'ail sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_suf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_tcr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 't'iming 'c'alibration 'r'equest received\n");
+		resetTimer=resetTimerBase*2;		
+		ret=XBH_HandleTimingCalibrationRequest(&output[XBH_COMMAND_LEN]);
+		resetTimer=0;
+		
+		if(0 == ret) {
+            XBH_DEBUG("'t'iming 'c'alibration 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_tco], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
+		} else {
+            XBH_DEBUG("'t'iming 'c'alibration 'f'ail sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_tcf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sbr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 's'tart 'b'ootloader 'r'equest received\n");
+		resetTimer=resetTimerBase*2;	
+		ret=XBH_HandleStartBootloaderRequest();
+		resetTimer=0;
+		
+		if(0 == ret) {
+            XBH_DEBUG("'s'tart 'b'ootloader 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_sbo], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("'s'tart 'b'ootloader 'f'ail sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_sbf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_exr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper handle 'ex'ecution 'r'equest received\n");
+		resetTimer=resetTimerBase*12;
+		ret=XBH_HandleEXecutionRequest();
+		resetTimer=0;
+
+		if(0 == ret) {
+            XBH_DEBUG("Handle 'ex'ecution 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_exo], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("Handle 'ex'ecution 'f'ail sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_exf], XBH_COMMAND_LEN);
+			constStringToBuffer (output, XBHexf);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_ccr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'c'hecksum 'c'alc 'r'equest received\n");
+		resetTimer=resetTimerBase*60;
+		ret=XBH_HandleChecksumCalcRequest();
+		resetTimer=0;
+
+		if(0 == ret) {
+            XBH_DEBUG("Handle 'c'hecksum 'c'alc 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_cco], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("Handle 'c'hecksum 'c'alc 'f'ail sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_ccf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_srr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 's'ubversion/git 'r'evision 'r'equest received\n");
+		resetTimer=resetTimerBase;
+		XBH_HandleSubversionRevisionRequest(&output[XBH_COMMAND_LEN]);
+		resetTimer=0;
+
+        XBH_DEBUG("'s'ubversion/git 'r'evision 'o'kay sent\n");
+        memcpy(output, XBH_CMD[XBH_CMD_sro], XBH_COMMAND_LEN);
+		return (uint16_t) XBH_COMMAND_LEN+5+1+12;		// 5 chars SVN Rev, ',' , 6*2 chars MAC address
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_trr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 't'arget 'r'evision 'r'equest received\n");
+		resetTimer=resetTimerBase*2;
+		ret = XBH_HandleTargetRevisionRequest(&output[XBH_COMMAND_LEN]);
+		resetTimer=0;
+		if(0 == ret) {
+            XBH_DEBUG("'t'arget 'r'evision 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_tro], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN+REVISIZE;
+		} else {
+            XBH_DEBUG("'t'arget 'r'evision 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_trf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+    memcpy(output, XBH_CMD[XBH_CMD_unk], XBH_COMMAND_LEN);
+    XBH_DEBUG("'un'known command 'r'eceived (len: %d)\n", input_len);
+    for(uint8_t u=0;u<input_len;++u) {
+        if(u % 32 == 0){ 
+            XBH_DEBUG("\n");
+        }
+        XBH_DEBUG("%x",input[u]);
+    }
+    XBH_DEBUG("\n");
+	
+	return (uint16_t) XBH_COMMAND_LEN;
+}/*}}}*/
