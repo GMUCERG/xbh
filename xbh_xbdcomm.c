@@ -8,7 +8,7 @@
 #include "config.h"
 #include "stack.h"
 
-#define I2C_BAUDRATE 100
+#define I2C_BAUDRATE 400
 //Address must be shifted in by 1
 #define SLAVE_ADR (0x75<<1)
 
@@ -18,12 +18,12 @@
 
 #define UDP_CONN_WRITEOP	'W'
 #define UDP_CONN_READOP		'R'
-#define UDP_CONN_NOOP			'0'
+#define UDP_CONN_NOOP		'0'
 
 //#define XBD_UDP_DEBUG
 
 
-const char XBHcrcFail[] PROGMEM = "XBHcrcFL";
+//const char XBHcrcFail[] PROGMEM = "XBHcrcFL";
 
 u32 xbd_ip=DEFAULT_XBD_IP;
 unsigned char * xbd_ip_bytes=(unsigned char *)&xbd_ip;
@@ -81,15 +81,15 @@ void xbdCommUdpGet(unsigned char index)
 		ip_byte[1]=((ip->IP_Srcaddr)>>8)&0xff;
 		ip_byte[2]=((ip->IP_Srcaddr)>>16)&0xff;
 		ip_byte[3]=((ip->IP_Srcaddr)>>24)&0xff;	
-		XBH_ERROR("xbdCommUdpGet srcPort: %i *\r\n",src_port);
-		XBH_ERROR("xbdCommUdpGet SrcIP: %i.%i.%i.%i *\r\n",ip_byte[0],ip_byte[1],ip_byte[2],ip_byte[3]);	
+		XBH_ERROR("xbdCommUdpGet srcPort: %i *\n",src_port);
+		XBH_ERROR("xbdCommUdpGet SrcIP: %i.%i.%i.%i *\n",ip_byte[0],ip_byte[1],ip_byte[2],ip_byte[3]);	
 		return;
 	}
 
 
 
 #ifdef XBD_UDP_DEBUG
-	XBH_DEBUG("xbdCommUdpGet Bytes: %\r\n",udp_data_len);
+	XBH_DEBUG("xbdCommUdpGet Bytes: %\n",udp_data_len);
 	XBD_debugOutBuffer("xbdCommUdpGet data", &eth_buffer[UDP_DATA_START],udp_data_len);
 #endif
 
@@ -97,20 +97,20 @@ void xbdCommUdpGet(unsigned char index)
 	{
 		case UDP_CONN_WRITEOP:
 			#ifdef XBD_UDP_DEBUG
-					XBH_DEBUG("UDP_CONN_WRITEOP, answer len=%d\r\n",udp_data_len);
+					XBH_DEBUG("UDP_CONN_WRITEOP, answer len=%d\n",udp_data_len);
 			#endif
 
 			switch(ce_state)
 			{
 				case CE_ACK_WAIT:
-				//XBH_DEBUG("WR len=\r\n");
+				//XBH_DEBUG("WR len=\n");
 				if(	//UDP ACK Rec'd
 						(0xAC == eth_buffer[UDP_DATA_START]) &&
 						(ce_seqnum == eth_buffer[UDP_DATA_START+1]) &&
 						(2==udp_data_len)	
 					)
 				{
-					//XBH_DEBUG("WR ce_state=CE_ANSWER_WAIT\r\n");
+					//XBH_DEBUG("WR ce_state=CE_ANSWER_WAIT\n");
 					inc_ce_seqnum();
 					ce_timeouts=0;
 					ce_timeout_at=time+CE_TIMEOUT_SECS;
@@ -118,13 +118,13 @@ void xbdCommUdpGet(unsigned char index)
 				}
 				else
 				{
-					XBH_WARN("WR case CE_ACK_WAIT els\r\n");
-					XBH_WARN("Bytes: %\r\n",udp_data_len);
+					XBH_WARN("WR case CE_ACK_WAIT els\n");
+					XBH_WARN("Bytes: %\n",udp_data_len);
 					XBD_debugOutBuffer("WR case CE_ACK_WAIT else data", &eth_buffer[UDP_DATA_START],udp_data_len);
 					//In case the XBD has not seen my last UDP ack:
 					if(ce_last_ackd == eth_buffer[UDP_DATA_START+1])
 					{
-						XBH_WARN("WR AW ACK re-tx\r\n");
+						XBH_WARN("WR AW ACK re-tx\n");
 						// Send the UDP ACK 
 						eth_buffer[UDP_DATA_START]=0xAC;
 						create_new_udp_packet(	(unsigned int) 2,
@@ -135,7 +135,7 @@ void xbdCommUdpGet(unsigned char index)
 					else
 					{
 					        // this may happen after an reset if xbd did not reset and has data waiting
-						XBH_WARN("WR AW ACK unknown seq nu\r\n");
+						XBH_WARN("WR AW ACK unknown seq nu\n");
 						// Send the UDP ACK anyway
 						eth_buffer[UDP_DATA_START]=0xAC;
 						create_new_udp_packet(	(unsigned int) 2,
@@ -153,9 +153,9 @@ void xbdCommUdpGet(unsigned char index)
 						(3==udp_data_len)
                                   )
 				{							
-                                        //XBH_DEBUG("WR AnswW 'A' ACKe\r\n");
+                                        //XBH_DEBUG("WR AnswW 'A' ACKe\n");
                                         if((ce_last_ackd==eth_buffer[UDP_DATA_START+1]) && (0 !=ce_last_ackd) )
-                                                XBH_WARN(" but it was already ACKe\r\n");
+                                                XBH_WARN(" but it was already ACKe\n");
                                         // Send the UDP ACK and set CE state machine to idle
                                         eth_buffer[UDP_DATA_START]=0xAC;
                                         ce_last_ackd=eth_buffer[UDP_DATA_START+1];					
@@ -168,20 +168,20 @@ void xbdCommUdpGet(unsigned char index)
                                 }
                                 else
                                 {
-                                        XBH_ERROR("WR case CE_ANSWER_WAIT els\r\n");
-                                        XBH_ERROR("Bytes: %\r\n",udp_data_len);
+                                        XBH_ERROR("WR case CE_ANSWER_WAIT els\n");
+                                        XBH_ERROR("Bytes: %\n",udp_data_len);
                                         XBD_debugOutBuffer("WR case CE_ANSWER_WAIT else data", &eth_buffer[UDP_DATA_START],udp_data_len);
                                 }
         			break;
 
 				case CE_IDLE:
 				#ifdef XBD_UDP_DEBUG
-					XBH_DEBUG("WR case CE_IDLE: Bytes: %\r\n",udp_data_len);
+					XBH_DEBUG("WR case CE_IDLE: Bytes: %\n",udp_data_len);
 					XBD_debugOutBuffer("xbdCommUdpGet data", &eth_buffer[UDP_DATA_START],udp_data_len);
 				#endif
 				
                                         // TODO: Remove this block, it may not be necessary anymore
-                                        XBH_WARN("WR IDLE ACK re-tx\r\n");
+                                        XBH_WARN("WR IDLE ACK re-tx\n");
                                         // Send the UDP ACK 
                                         eth_buffer[UDP_DATA_START]=0xAC;
                                         ce_last_ackd=eth_buffer[UDP_DATA_START+1];				
@@ -192,17 +192,17 @@ void xbdCommUdpGet(unsigned char index)
 				break;
 
 				default:
-				XBH_ERROR("\nBad ce_state [%d] at xbdCommUdpGet WO!\r\n",ce_state);
+				XBH_ERROR("\nBad ce_state [%d] at xbdCommUdpGet WO!\n",ce_state);
 				ce_state=CE_FAILURE;
 			}//switch(ce_state)
 		break;//case UDP_CONN_WRITEOP:
 		
 		case UDP_CONN_READOP:
 		#ifdef XBD_UDP_DEBUG
-				  XBH_DEBUG("UDP_CONN_READOP, len=%d\r\n",udp_data_len);
+				  XBH_DEBUG("UDP_CONN_READOP, len=%d\n",udp_data_len);
 		#endif
 		if((udp_data_len-2) > I2C_RECEIVE_DATA_BUFFER_SIZE) {
-			XBH_ERROR("Received packet too large for buffer! (%d bytes\r\n",udp_data_len);
+			XBH_ERROR("Received packet too large for buffer! (%d bytes\n",udp_data_len);
 			XBD_debugOutBuffer("too large packet", &eth_buffer[UDP_DATA_START],udp_data_len);
 		}
 		else
@@ -220,15 +220,15 @@ void xbdCommUdpGet(unsigned char index)
 					ce_timeouts=0;
 					ce_timeout_at=time+CE_TIMEOUT_SECS;
 					ce_state=CE_ANSWER_WAIT;
-					//XBH_DEBUG("RE ce_state=CE_ANSWER_WAIT\r\n");
+					//XBH_DEBUG("RE ce_state=CE_ANSWER_WAIT\n");
 				}
 				else
 				{
 					XBH_WARN("RE case CE_ACK_WAIT else ");
-					XBH_WARN("Bytes: %\r\n",udp_data_len);
+					XBH_WARN("Bytes: %\n",udp_data_len);
 					XBD_debugOutBuffer("RE case CE_ACK_WAIT else data", &eth_buffer[UDP_DATA_START],udp_data_len);
 					
-					XBH_WARN("RE AW ACK re-tx\r\n");
+					XBH_WARN("RE AW ACK re-tx\n");
 					//In case the XBD has not seen my last UDP ack:
 					if(ce_last_ackd == eth_buffer[UDP_DATA_START+1])
 					{
@@ -241,7 +241,7 @@ void xbdCommUdpGet(unsigned char index)
 					}
 					else
 					{
-						XBH_ERROR("RD AW ACK Arsc\r\n");
+						XBH_ERROR("RD AW ACK Arsc\n");
 						// Re-Send the UDP ACK anyway
 						eth_buffer[UDP_DATA_START]=0xAC;
 						create_new_udp_packet(	(unsigned int) 2,
@@ -279,24 +279,24 @@ void xbdCommUdpGet(unsigned char index)
 													(unsigned long) xbd_ip);
 					ce_state=CE_IDLE;
 					udp_conn_lastop = UDP_CONN_NOOP;
-					//XBH_DEBUG("RE ce_state=CE_IDLE\r\n");
+					//XBH_DEBUG("RE ce_state=CE_IDLE\n");
 				}
 				else
 				{
-					XBH_WARN("RE case CE_ANSWER_WAIT els\r\n");
-					XBH_WARN("Bytes: %\r\n",udp_data_len);
+					XBH_WARN("RE case CE_ANSWER_WAIT els\n");
+					XBH_WARN("Bytes: %\n",udp_data_len);
 					XBD_debugOutBuffer("RE case CE_ANSWER_WAIT else data", &eth_buffer[UDP_DATA_START],udp_data_len);
-					XBH_ERROR("RD AnswW ACK Arsc\r\n");
+					XBH_ERROR("RD AnswW ACK Arsc\n");
 				}
 				break;
 
 				
 				case CE_IDLE:
 				#ifdef XBD_UDP_DEBUG
-				XBH_DEBUG("RE case CE_IDLE: Bytes: %\r\n",udp_data_len);
+				XBH_DEBUG("RE case CE_IDLE: Bytes: %\n",udp_data_len);
 				XBD_debugOutBuffer("xbdCommUdpGet data", &eth_buffer[UDP_DATA_START],udp_data_len);
 				#endif
-				XBH_WARN("WR IDLE ACK re-tx\r\n");
+				XBH_WARN("WR IDLE ACK re-tx\n");
 				// Send the UDP ACK 
 				eth_buffer[UDP_DATA_START]=0xAC;				
 				ce_last_ackd=eth_buffer[UDP_DATA_START+1];	
@@ -308,7 +308,7 @@ void xbdCommUdpGet(unsigned char index)
 			
 			
 				default:
-				XBH_ERROR("\nBad ce_state [%d] at xbdCommUdpGet RO!\r\n",ce_state);
+				XBH_ERROR("\nBad ce_state [%d] at xbdCommUdpGet RO!\n",ce_state);
 				ce_state=CE_FAILURE;
 			}//switch(ce_state)
 		
@@ -316,12 +316,12 @@ void xbdCommUdpGet(unsigned char index)
 		break;//case UDP_CONN_READOP:
 
 		case UDP_CONN_NOOP:
-		  XBH_WARN("UDP_CONN_NOOP, len=%d\r\n",udp_data_len);
+		  XBH_WARN("UDP_CONN_NOOP, len=%d\n",udp_data_len);
 			//In case the XBD has not seen my last UDP ack:
 			if(	(ce_last_ackd == eth_buffer[UDP_DATA_START+1]) &&
 					('D' == eth_buffer[UDP_DATA_START]))
 			{
-			XBH_WARN("NOOP ACK re-tx\r\n");
+			XBH_WARN("NOOP ACK re-tx\n");
 			// Send the UDP ACK 
 			eth_buffer[UDP_DATA_START]=0xAC;
 			create_new_udp_packet(	(unsigned int) 2,
@@ -355,7 +355,7 @@ void xbdCommUdpInit()
 {
 	static uint8_t app_added=0;
 	
-	//XBH_DEBUG("\nce_state=CE_IDLE @ xbdCommUdpInit(\r\n");
+	//XBH_DEBUG("\nce_state=CE_IDLE @ xbdCommUdpInit(\n");
 	ce_state=CE_IDLE;
 	if(!app_added)
 	{
@@ -380,7 +380,7 @@ void xbdCommInit(uint8_t commMode)
     usart_init(UART_DEBUG_BAUDRATE);
     usart_status.usart_ignore = 0;
     _delay_ms(100);
-    XBH_DEBUG("...I2\r\n");
+    XBH_DEBUG("...I2\n");
     break;
   case COMM_UART:
     usart_init(UART_COMM_BAUDRATE);
@@ -393,12 +393,12 @@ void xbdCommInit(uint8_t commMode)
   case COMM_ETHERNET:
     usart_init(UART_DEBUG_BAUDRATE);
     usart_status.usart_ignore = 0;
-    XBH_DEBUG("\nEthernet XB\r\n");
+    XBH_DEBUG("\nEthernet XB\n");
     xbdCommUdpInit();
     break;
 
   default:
-    XBH_ERROR("HURTZ!\r\n");
+    XBH_ERROR("HURTZ!\n");
   }
 }
 
@@ -426,11 +426,11 @@ void xbdSend(uint8_t length, uint8_t *buf) {
     usart_write_char(length);
     for(i=0;i<length;i++) usart_write_char(buf[i]);
     ch=usart_read_char(0);
-    if('A' != ch) XBH_ERROR("ACK was not an 'A\r\n");
+    if('A' != ch) XBH_ERROR("ACK was not an 'A\n");
     break;
   case COMM_ETHERNET:
 	
-	//XBH_DEBUG("\nce_state=CE_ACK_WAI\r\n");
+	//XBH_DEBUG("\nce_state=CE_ACK_WAI\n");
 	ce_state=CE_ACK_WAIT;
 	ce_timeouts=0;
 
@@ -444,7 +444,7 @@ void xbdSend(uint8_t length, uint8_t *buf) {
 #ifdef XBD_UDP_DEBUG 
 
 	XBD_debugOutBuffer("udp_data", &eth_buffer[UDP_DATA_START],length+3);
-	XBH_DEBUG("----------UDP send-----------\r\n");		
+	XBH_DEBUG("----------UDP send-----------\n");		
 #endif
 
 	create_new_udp_packet(  (unsigned int)  length+3,
@@ -469,11 +469,11 @@ void xbdSend(uint8_t length, uint8_t *buf) {
 				eth_buffer[UDP_DATA_START+2]='W';
 				memcpy(&eth_buffer[UDP_DATA_START+3],buf,length);
 
-				//XBH_DEBUG("\n*** ce_timeout **\r\n");
+				//XBH_DEBUG("\n*** ce_timeout **\n");
 				#ifdef XBD_UDP_DEBUG
 
 					XBD_debugOutBuffer("CE_ACK_WAIT udp_data", &eth_buffer[UDP_DATA_START],length+3);
-					XBH_DEBUG("----------UDP retransmit-----------\r\n");		
+					XBH_DEBUG("----------UDP retransmit-----------\n");		
 				#endif				
 
 				create_new_udp_packet(  (unsigned int)  length+3,
@@ -485,7 +485,7 @@ void xbdSend(uint8_t length, uint8_t *buf) {
 			}
 			if(ce_timeouts >= CE_MAX_TIMEOUTS)
 			{
-				XBH_WARN("ce_state=CE_FAILURE, timeout limi\r\n");
+				XBH_WARN("ce_state=CE_FAILURE, timeout limi\n");
 				ce_state=CE_FAILURE;
 				udp_conn_lastop = UDP_CONN_NOOP;	
 			}
@@ -499,7 +499,7 @@ void xbdSend(uint8_t length, uint8_t *buf) {
 			break;
 
 			default:
-			XBH_ERROR("\nBad ce_state [%d] at xbdSend!\r\n",ce_state);
+			XBH_ERROR("\nBad ce_state [%d] at xbdSend!\n",ce_state);
 			ce_state=CE_FAILURE;
 			udp_conn_lastop = UDP_CONN_NOOP;	
 		
@@ -515,11 +515,10 @@ void xbdSend(uint8_t length, uint8_t *buf) {
 }
 
 
-void xbdReceive(uint8_t length, uint8_t *buf)
-{
+void xbdReceive(uint8_t length, uint8_t *buf) {
   int i;
 	u16 *p_crc;
-  //XBH_DEBUG("XBD: Waiting for %d byte\r\n",length);
+  //XBH_DEBUG("XBD: Waiting for %d byte\n",length);
 
 	length+=CRC16SIZE;
 
@@ -527,7 +526,7 @@ void xbdReceive(uint8_t length, uint8_t *buf)
   case COMM_I2C:
     i=i2cMasterReceiveNI(SLAVE_ADR, length, buf);
     if( i != 0 ) {
-      XBH_ERROR("I2C Receive error: %d\r\n",i);
+      XBH_ERROR("I2C Receive error: %d\n",i);
     }
     break;
     case COMM_UART:
@@ -545,7 +544,7 @@ void xbdReceive(uint8_t length, uint8_t *buf)
 
 	case COMM_ETHERNET:
 
-	//XBH_DEBUG("\nce_state=CE_ACK_WAI\r\n");
+	//XBH_DEBUG("\nce_state=CE_ACK_WAI\n");
 	ce_state=CE_ACK_WAIT;
 	ce_timeouts=0;
 
@@ -558,7 +557,7 @@ void xbdReceive(uint8_t length, uint8_t *buf)
 
 #ifdef XBD_UDP_DEBUG
 	XBD_debugOutBuffer("COMM_ETHERNET udp_data", &eth_buffer[UDP_DATA_START],4);
-	XBH_DEBUG("----------UDP receive-----------\r\n");		
+	XBH_DEBUG("----------UDP receive-----------\n");		
 #endif
 
 	create_new_udp_packet(  (unsigned int)  4,
@@ -593,12 +592,12 @@ void xbdReceive(uint8_t length, uint8_t *buf)
 				eth_buffer[UDP_DATA_START+2]='R';
 				eth_buffer[UDP_DATA_START+3]=length;
 
-				//XBH_DEBUG("\n*** ce_timeout **\r\n");
+				//XBH_DEBUG("\n*** ce_timeout **\n");
 				#ifdef XBD_UDP_DEBUG	
 					#endif
 
 					XBD_debugOutBuffer("CE_ACK_WAIT udp_data", &eth_buffer[UDP_DATA_START],4);
-					XBH_DEBUG("----------UDP retransmit-----------\r\n");		
+					XBH_DEBUG("----------UDP retransmit-----------\n");		
 				
 
 				create_new_udp_packet(  (unsigned int)  4,
@@ -610,7 +609,7 @@ void xbdReceive(uint8_t length, uint8_t *buf)
 			}
 			if(ce_timeouts >= CE_MAX_TIMEOUTS)
 			{
-				XBH_ERROR("\nce_state=CE_FAILURE, timeout limi\r\n");
+				XBH_ERROR("\nce_state=CE_FAILURE, timeout limi\n");
 				ce_state=CE_FAILURE;
 				udp_conn_lastop = UDP_CONN_NOOP;	
 			}
@@ -623,7 +622,7 @@ void xbdReceive(uint8_t length, uint8_t *buf)
 			break;
 
 			default:
-			XBH_ERROR("\nBad ce_state [%d] at xbdSend!\r\n",ce_state);
+			XBH_ERROR("\nBad ce_state [%d] at xbdSend!\n",ce_state);
 			ce_state=CE_FAILURE;
 			udp_conn_lastop = UDP_CONN_NOOP;	
 		
@@ -646,10 +645,9 @@ void xbdReceive(uint8_t length, uint8_t *buf)
 	//Check CRC
 	p_crc=(u16 *)&buf[length-CRC16SIZE];
 
-  if( ! (crc16check(buf, length-CRC16SIZE, p_crc)) )
-	{
+    if( ! (crc16check(buf, length-CRC16SIZE, p_crc)) ) {
 		XBD_debugOutBuffer("wrong CRC", buf, length);
-		constStringToBuffer (buf, XBHcrcFail);
+		memcpy(buf, XBD_CMD[XBD_CMD_ccf], XBD_COMMAND_LEN);
 		return;
 	}
 
