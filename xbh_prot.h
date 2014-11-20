@@ -38,6 +38,8 @@
     GEN(tco) \
     GEN(suo) \
     GEN(tro) \
+/* CRC Fail */ \
+    GEN(ccf) \
 /* Version Information OK Responses */ \
     GEN(BLo) \
     GEN(AFo) 
