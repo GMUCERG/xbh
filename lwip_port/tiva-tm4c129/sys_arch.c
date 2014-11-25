@@ -42,6 +42,10 @@
 #include "lwip/opt.h"
 #include "lwip/sys.h"
 
+#if SYS_STATS
+#include <lwip/stats.h>
+#endif
+
 #if NO_SYS
 
 #if SYS_LIGHTWEIGHT_PROT
