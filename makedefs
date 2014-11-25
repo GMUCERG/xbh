@@ -1,11 +1,16 @@
 PROJECT_ROOT   := ${shell pwd}
 
+PART           := TM4C129XNCZAD
+CFLAGSgcc      += -DTARGET_IS_TM4C129_RA0
+
 TIVA_ROOT      := ${PROJECT_ROOT}/../ext/tivaware
 TIVA_MAKE_ROOT := ${PROJECT_ROOT}/make/tivaware
 
-#LWIP_ROOT      := ${PROJECT_ROOT}/../ext/tivaware/third_party/lwip-1.4.1
+FREERTOS_ROOT      := ${PROJECT_ROOT}/../ext/FreeRTOSV8.1.2/FreeRTOS
+FREERTOS_MAKE_ROOT := ${PROJECT_ROOT}/make/freertos
+
 LWIP_ROOT      := ${PROJECT_ROOT}/deps/lwip
-LWIP_PORT      := ${PROJECT_ROOT}/lwip_port/tiva-tm4c129
+LWIP_PORT      := ${PROJECT_ROOT}/lwip_ports/tiva-tm4c129
 LWIP_MAKE_ROOT := ${PROJECT_ROOT}/make/lwip
 
 INCLUDE        += ${PROJECT_ROOT}
@@ -13,4 +18,3 @@ INCLUDE        += ${PROJECT_ROOT}
 LIBDIR         := ${PROJECT_ROOT}/lib
 BUILDDIR       := ${PROJECT_ROOT}/build
 
-PART           := TM4C129XNCZAD
