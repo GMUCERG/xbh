@@ -1,3 +1,9 @@
+/**
+ * Hardware-specific startup code for XBH running on Connected Tiva-C
+ * (C) 2014, John Pham, George Mason University <jpham4@gmu.edu>
+ *
+ * Based on startup_gcc.c from TI project examples from Tivaware
+ */
 //*****************************************************************************
 //
 // startup_gcc.c - Startup code for use with GNU tools.
@@ -5,20 +11,35 @@
 // Copyright (c) 2013-2014 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
-// Texas Instruments (TI) is supplying this software for use solely and
-// exclusively on TI's microcontroller products. The software is owned by
-// TI and/or its suppliers, and is protected under applicable copyright
-// laws. You may not combine this software with "viral" open-source
-// software in order to form a larger program.
+//   Redistribution and use in source and binary forms, with or without
+//   modification, are permitted provided that the following conditions
+//   are met:
 // 
-// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
-// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
-// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
-// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-// DAMAGES, FOR ANY REASON WHATSOEVER.
+//   Redistributions of source code must retain the above copyright
+//   notice, this list of conditions and the following disclaimer.
 // 
-// This is part of revision 2.1.0.12573 of the EK-TM4C1294XL Firmware Package.
+//   Redistributions in binary form must reproduce the above copyright
+//   notice, this list of conditions and the following disclaimer in the
+//   documentation and/or other materials provided with the  
+//   distribution.
+// 
+//   Neither the name of Texas Instruments Incorporated nor the names of
+//   its contributors may be used to endorse or promote products derived
+//   from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// 
+// This is part of revision 2.1.0.12573 of the Tiva Firmware Development Package.
 //
 //*****************************************************************************
 
@@ -38,14 +59,6 @@ static void IntDefaultHandler(void);
 
 //*****************************************************************************
 //
-// External declarations for the interrupt handlers used by the application.
-//
-//*****************************************************************************
-extern void lwIPEthernetIntHandler(void);
-extern void SysTickIntHandler(void);
-
-//*****************************************************************************
-//
 // The entry point for the application.
 //
 //*****************************************************************************
@@ -56,146 +69,147 @@ extern int main(void);
 // Reserve space for the system stack.
 //
 //*****************************************************************************
-static uint32_t pui32Stack[512];
+static uint32_t pui32Stack[64];
 
 //*****************************************************************************
 //
 // The vector table.  Note that the proper constructs must be placed on this to
 // ensure that it ends up at physical address 0x0000.0000.
+// 
+// Comments pulled from inc/hw_ints.h
 //
 //*****************************************************************************
 __attribute__ ((section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
 {
-    (void (*)(void))((uint32_t)pui32Stack + sizeof(pui32Stack)),
-                                            // The initial stack pointer
-    ResetISR,                               // The reset handler
-    NmiSR,                                  // The NMI handler
-    FaultISR,                               // The hard fault handler
-    IntDefaultHandler,                      // The MPU fault handler
-    IntDefaultHandler,                      // The bus fault handler
-    IntDefaultHandler,                      // The usage fault handler
-    0,                                      // Reserved
-    0,                                      // Reserved
-    0,                                      // Reserved
-    0,                                      // Reserved
-    IntDefaultHandler,                      // SVCall handler
-    IntDefaultHandler,                      // Debug monitor handler
-    0,                                      // Reserved
-    IntDefaultHandler,                      // The PendSV handler
-    SysTickIntHandler,                      // The SysTick handler
-    IntDefaultHandler,                      // GPIO Port A
-    IntDefaultHandler,                      // GPIO Port B
-    IntDefaultHandler,                      // GPIO Port C
-    IntDefaultHandler,                      // GPIO Port D
-    IntDefaultHandler,                      // GPIO Port E
-    IntDefaultHandler,                      // UART0 Rx and Tx
-    IntDefaultHandler,                      // UART1 Rx and Tx
-    IntDefaultHandler,                      // SSI0 Rx and Tx
-    IntDefaultHandler,                      // I2C0 Master and Slave
-    IntDefaultHandler,                      // PWM Fault
-    IntDefaultHandler,                      // PWM Generator 0
-    IntDefaultHandler,                      // PWM Generator 1
-    IntDefaultHandler,                      // PWM Generator 2
-    IntDefaultHandler,                      // Quadrature Encoder 0
-    IntDefaultHandler,                      // ADC Sequence 0
-    IntDefaultHandler,                      // ADC Sequence 1
-    IntDefaultHandler,                      // ADC Sequence 2
-    IntDefaultHandler,                      // ADC Sequence 3
-    IntDefaultHandler,                      // Watchdog timer
-    IntDefaultHandler,                      // Timer 0 subtimer A
-    IntDefaultHandler,                      // Timer 0 subtimer B
-    IntDefaultHandler,                      // Timer 1 subtimer A
-    IntDefaultHandler,                      // Timer 1 subtimer B
-    IntDefaultHandler,                      // Timer 2 subtimer A
-    IntDefaultHandler,                      // Timer 2 subtimer B
-    IntDefaultHandler,                      // Analog Comparator 0
-    IntDefaultHandler,                      // Analog Comparator 1
-    IntDefaultHandler,                      // Analog Comparator 2
-    IntDefaultHandler,                      // System Control (PLL, OSC, BO)
-    IntDefaultHandler,                      // FLASH Control
-    IntDefaultHandler,                      // GPIO Port F
-    IntDefaultHandler,                      // GPIO Port G
-    IntDefaultHandler,                      // GPIO Port H
-    IntDefaultHandler,                      // UART2 Rx and Tx
-    IntDefaultHandler,                      // SSI1 Rx and Tx
-    IntDefaultHandler,                      // Timer 3 subtimer A
-    IntDefaultHandler,                      // Timer 3 subtimer B
-    IntDefaultHandler,                      // I2C1 Master and Slave
-    IntDefaultHandler,                      // CAN0
-    IntDefaultHandler,                      // CAN1
-    lwIPEthernetIntHandler,                 // Ethernet
-    IntDefaultHandler,                      // Hibernate
-    IntDefaultHandler,                      // USB0
-    IntDefaultHandler,                      // PWM Generator 3
-    IntDefaultHandler,                      // uDMA Software Transfer
-    IntDefaultHandler,                      // uDMA Error
-    IntDefaultHandler,                      // ADC1 Sequence 0
-    IntDefaultHandler,                      // ADC1 Sequence 1
-    IntDefaultHandler,                      // ADC1 Sequence 2
-    IntDefaultHandler,                      // ADC1 Sequence 3
-    IntDefaultHandler,                      // External Bus Interface 0
-    IntDefaultHandler,                      // GPIO Port J
-    IntDefaultHandler,                      // GPIO Port K
-    IntDefaultHandler,                      // GPIO Port L
-    IntDefaultHandler,                      // SSI2 Rx and Tx
-    IntDefaultHandler,                      // SSI3 Rx and Tx
-    IntDefaultHandler,                      // UART3 Rx and Tx
-    IntDefaultHandler,                      // UART4 Rx and Tx
-    IntDefaultHandler,                      // UART5 Rx and Tx
-    IntDefaultHandler,                      // UART6 Rx and Tx
-    IntDefaultHandler,                      // UART7 Rx and Tx
-    IntDefaultHandler,                      // I2C2 Master and Slave
-    IntDefaultHandler,                      // I2C3 Master and Slave
-    IntDefaultHandler,                      // Timer 4 subtimer A
-    IntDefaultHandler,                      // Timer 4 subtimer B
-    IntDefaultHandler,                      // Timer 5 subtimer A
-    IntDefaultHandler,                      // Timer 5 subtimer B
-    IntDefaultHandler,                      // FPU
-    0,                                      // Reserved
-    0,                                      // Reserved
-    IntDefaultHandler,                      // I2C4 Master and Slave
-    IntDefaultHandler,                      // I2C5 Master and Slave
-    IntDefaultHandler,                      // GPIO Port M
-    IntDefaultHandler,                      // GPIO Port N
-    0,                                      // Reserved
-    IntDefaultHandler,                      // Tamper
-    IntDefaultHandler,                      // GPIO Port P (Summary or P0)
-    IntDefaultHandler,                      // GPIO Port P1
-    IntDefaultHandler,                      // GPIO Port P2
-    IntDefaultHandler,                      // GPIO Port P3
-    IntDefaultHandler,                      // GPIO Port P4
-    IntDefaultHandler,                      // GPIO Port P5
-    IntDefaultHandler,                      // GPIO Port P6
-    IntDefaultHandler,                      // GPIO Port P7
-    IntDefaultHandler,                      // GPIO Port Q (Summary or Q0)
-    IntDefaultHandler,                      // GPIO Port Q1
-    IntDefaultHandler,                      // GPIO Port Q2
-    IntDefaultHandler,                      // GPIO Port Q3
-    IntDefaultHandler,                      // GPIO Port Q4
-    IntDefaultHandler,                      // GPIO Port Q5
-    IntDefaultHandler,                      // GPIO Port Q6
-    IntDefaultHandler,                      // GPIO Port Q7
-    IntDefaultHandler,                      // GPIO Port R
-    IntDefaultHandler,                      // GPIO Port S
-    IntDefaultHandler,                      // SHA/MD5 0
-    IntDefaultHandler,                      // AES 0
-    IntDefaultHandler,                      // DES3DES 0
-    IntDefaultHandler,                      // LCD Controller 0
-    IntDefaultHandler,                      // Timer 6 subtimer A
-    IntDefaultHandler,                      // Timer 6 subtimer B
-    IntDefaultHandler,                      // Timer 7 subtimer A
-    IntDefaultHandler,                      // Timer 7 subtimer B
-    IntDefaultHandler,                      // I2C6 Master and Slave
-    IntDefaultHandler,                      // I2C7 Master and Slave
-    IntDefaultHandler,                      // HIM Scan Matrix Keyboard 0
-    IntDefaultHandler,                      // One Wire 0
-    IntDefaultHandler,                      // HIM PS/2 0
-    IntDefaultHandler,                      // HIM LED Sequencer 0
-    IntDefaultHandler,                      // HIM Consumer IR 0
-    IntDefaultHandler,                      // I2C8 Master and Slave
-    IntDefaultHandler,                      // I2C9 Master and Slave
-    IntDefaultHandler                       // GPIO Port T
+    (void (*)(void))((uint32_t)pui32Stack + sizeof(pui32Stack)), // The initial stack pointer // O
+    ResetISR,                               // The reset handler                              // 1
+    NmiSR,                                  // The NMI handler                                // 2
+    FaultISR,                               // The hard fault handler                         // 3
+    IntDefaultHandler,                      // The MPU fault handler                          // 4
+    IntDefaultHandler,                      // The bus fault handler                          // 5
+    IntDefaultHandler,                      // The usage fault handler                        // 6
+    0,                                      // Reserved                                       // 7
+    0,                                      // Reserved                                       // 8
+    0,                                      // Reserved                                       // 9
+    0,                                      // Reserved                                       // 10
+    IntDefaultHandler,                      // SVCall handler                                 // 11
+    IntDefaultHandler,                      // Debug monitor handler                          // 12
+    0,                                      // Reserved                                       // 13
+    IntDefaultHandler,                      // The PendSV handler                             // 14
+    IntDefaultHandler,                      // The SysTick handler                            // 15
+    IntDefaultHandler,                      // 16  // GPIO Port A
+    IntDefaultHandler,                      // 17  // GPIO Port B
+    IntDefaultHandler,                      // 18  // GPIO Port C
+    IntDefaultHandler,                      // 19  // GPIO Port D
+    IntDefaultHandler,                      // 20  // GPIO Port E
+    IntDefaultHandler,                      // 21  // UART0
+    IntDefaultHandler,                      // 22  // UART1
+    IntDefaultHandler,                      // 23  // SSI0
+    IntDefaultHandler,                      // 24  // I2C0
+    IntDefaultHandler,                      // 25  // PWM Fault
+    IntDefaultHandler,                      // 26  // PWM Generator 0
+    IntDefaultHandler,                      // 27  // PWM Generator 1
+    IntDefaultHandler,                      // 28  // PWM Generator 2
+    IntDefaultHandler,                      // 29  // QEI0
+    IntDefaultHandler,                      // 30  // ADC0 Sequence 0
+    IntDefaultHandler,                      // 31  // ADC0 Sequence 1
+    IntDefaultHandler,                      // 32  // ADC0 Sequence 2
+    IntDefaultHandler,                      // 33  // ADC0 Sequence 3
+    IntDefaultHandler,                      // 34  // Watchdog Timers 0 and 1
+    IntDefaultHandler,                      // 35  // 16/32-Bit Timer 0A
+    IntDefaultHandler,                      // 36  // 16/32-Bit Timer 0B
+    IntDefaultHandler,                      // 37  // 16/32-Bit Timer 1A
+    IntDefaultHandler,                      // 38  // 16/32-Bit Timer 1B
+    IntDefaultHandler,                      // 39  // 16/32-Bit Timer 2A
+    IntDefaultHandler,                      // 40  // 16/32-Bit Timer 2B
+    IntDefaultHandler,                      // 41  // Analog Comparator 0
+    IntDefaultHandler,                      // 42  // Analog Comparator 1
+    IntDefaultHandler,                      // 43  // Analog Comparator 2
+    IntDefaultHandler,                      // 44  // System Control
+    IntDefaultHandler,                      // 45  // Flash Memory Control
+    IntDefaultHandler,                      // 46  // GPIO Port F
+    IntDefaultHandler,                      // 47  // GPIO Port G
+    IntDefaultHandler,                      // 48  // GPIO Port H
+    IntDefaultHandler,                      // 49  // UART2
+    IntDefaultHandler,                      // 50  // SSI1
+    IntDefaultHandler,                      // 51  // 16/32-Bit Timer 3A
+    IntDefaultHandler,                      // 52  // 16/32-Bit Timer 3B
+    IntDefaultHandler,                      // 53  // I2C1
+    IntDefaultHandler,                      // 54  // CAN 0
+    IntDefaultHandler,                      // 55  // CAN1
+    IntDefaultHandler,                      // 56  // Ethernet MAC
+    IntDefaultHandler,                      // 57  // HIB
+    IntDefaultHandler,                      // 58  // USB MAC
+    IntDefaultHandler,                      // 59  // PWM Generator 3
+    IntDefaultHandler,                      // 60  // uDMA 0 Software
+    IntDefaultHandler,                      // 61  // uDMA 0 Error
+    IntDefaultHandler,                      // 62  // ADC1 Sequence 0
+    IntDefaultHandler,                      // 63  // ADC1 Sequence 1
+    IntDefaultHandler,                      // 64  // ADC1 Sequence 2
+    IntDefaultHandler,                      // 65  // ADC1 Sequence 3
+    IntDefaultHandler,                      // 66  // EPI 0
+    IntDefaultHandler,                      // 67  // GPIO Port J
+    IntDefaultHandler,                      // 68  // GPIO Port K
+    IntDefaultHandler,                      // 69  // GPIO Port L
+    IntDefaultHandler,                      // 70  // SSI 2
+    IntDefaultHandler,                      // 71  // SSI 3
+    IntDefaultHandler,                      // 72  // UART 3
+    IntDefaultHandler,                      // 73  // UART 4
+    IntDefaultHandler,                      // 74  // UART 5
+    IntDefaultHandler,                      // 75  // UART 6
+    IntDefaultHandler,                      // 76  // UART 7
+    IntDefaultHandler,                      // 77  // I2C 2
+    IntDefaultHandler,                      // 78  // I2C 3
+    IntDefaultHandler,                      // 79  // Timer 4A
+    IntDefaultHandler,                      // 80  // Timer 4B
+    IntDefaultHandler,                      // 81  // Timer 5A
+    IntDefaultHandler,                      // 82  // Timer 5B
+    IntDefaultHandler,                      // 83  // Floating-Point Exception (imprecise)
+    0,                                      // 84  // Reserved
+    IntDefaultHandler,                      // 85  // Reserved
+    IntDefaultHandler,                      // 86  // I2C 4
+    IntDefaultHandler,                      // 87  // I2C 5
+    IntDefaultHandler,                      // 88  // GPIO Port M
+    IntDefaultHandler,                      // 89  // GPIO Port N
+    0,                                      // 90  // Reserved
+    IntDefaultHandler,                      // 91  // Tamper
+    IntDefaultHandler,                      // 92  // GPIO Port P (Summary or P0)
+    IntDefaultHandler,                      // 93  // GPIO Port P1
+    IntDefaultHandler,                      // 94  // GPIO Port P2
+    IntDefaultHandler,                      // 95  // GPIO Port P3
+    IntDefaultHandler,                      // 96  // GPIO Port P4
+    IntDefaultHandler,                      // 97  // GPIO Port P5
+    IntDefaultHandler,                      // 98  // GPIO Port P6
+    IntDefaultHandler,                      // 99  // GPIO Port P7
+    IntDefaultHandler,                      // 100 // GPIO Port Q (Summary or Q0)
+    IntDefaultHandler,                      // 101 // GPIO Port Q1
+    IntDefaultHandler,                      // 102 // GPIO Port Q2
+    IntDefaultHandler,                      // 103 // GPIO Port Q3
+    IntDefaultHandler,                      // 104 // GPIO Port Q4
+    IntDefaultHandler,                      // 105 // GPIO Port Q5
+    IntDefaultHandler,                      // 106 // GPIO Port Q6
+    IntDefaultHandler,                      // 107 // GPIO Port Q7
+    IntDefaultHandler,                      // 108 // GPIO Port R
+    IntDefaultHandler,                      // 109 // GPIO Port S
+    IntDefaultHandler,                      // 110 // SHA/MD5
+    IntDefaultHandler,                      // 111 // AES
+    IntDefaultHandler,                      // 112 // DES
+    IntDefaultHandler,                      // 113 // LCD
+    IntDefaultHandler,                      // 114 // 16/32-Bit Timer 6A
+    IntDefaultHandler,                      // 115 // 16/32-Bit Timer 6B
+    IntDefaultHandler,                      // 116 // 16/32-Bit Timer 7A
+    IntDefaultHandler,                      // 117 // 16/32-Bit Timer 7B
+    IntDefaultHandler,                      // 118 // I2C 6
+    IntDefaultHandler,                      // 119 // I2C 7
+    0,                                      // 120 // Reserved
+    IntDefaultHandler,                      // 121 // 1-Wire
+    0,                                      // 122 // Reserved
+    0,                                      // 123 // Reserved
+    0,                                      // 124 // Reserved
+    IntDefaultHandler,                      // 125 // I2C 8
+    IntDefaultHandler,                      // 126 // I2C 9
+    IntDefaultHandler                       // 127 // GPIO T
 };
 
 //*****************************************************************************
