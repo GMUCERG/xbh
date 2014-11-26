@@ -1449,7 +1449,7 @@
  * LWIP_NETCONN==1: Enable Netconn API (require to use api_lib.c)
  */
 //#ifndef LWIP_NETCONN
-#define LWIP_NETCONN                    0
+#define LWIP_NETCONN                    1
 //#endif
 
 /** LWIP_TCPIP_TIMEOUT==1: Enable tcpip_timeout/tcpip_untimeout tod create
@@ -1467,7 +1467,7 @@
 /**
  * LWIP_SOCKET==1: Enable Socket API (require to use sockets.c)
  */
-#define LWIP_SOCKET                     0
+#define LWIP_SOCKET                     1
 
 /* LWIP_SOCKET_SET_ERRNO==1: Set errno when socket functions cannot complete
  * successfully, as required by POSIX. Default is POSIX-compliant.
