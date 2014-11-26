@@ -29,6 +29,7 @@ ifneq ($(findstring CYGWIN, ${os}), )
 	@sed -i -r 's/ ([A-Za-z]):/ \/cygdrive\/\1/g' ${@:.o=.d}
 endif
 
+
 ${BUILDDIR}/lwip/port/%.o: ${LWIP_PORT}/%.c | ${BUILDDIR}/lwip
 	@if [ 'x${VERBOSE}' = x ];                            \
 	 then                                                 \
@@ -43,7 +44,6 @@ endif
 
 
 
-
 LWIP_SOURCES := $(wildcard ${LWIP_ROOT}/src/core/*.c) \
 	$(wildcard ${LWIP_ROOT}/src/core/ipv4/*.c) \
 	$(wildcard src/api/*.c) \
@@ -54,7 +54,10 @@ LWIP_OBJECTS := $(LWIP_SOURCES:%.c=%.o)
 LWIP_OBJECTS := $(subst ${LWIP_ROOT},${BUILDDIR}/lwip,${LWIP_OBJECTS})
 LWIP_OBJECTS := $(subst ${LWIP_PORT},${BUILDDIR}/lwip/port,${LWIP_OBJECTS})
 
-
+ifneq (${MAKECMDGOALS},clean)
+LWIP_DEPS := $(LWIP_OBJECTS:%.o=%.d)
+-include ${LWIP_DEPS} __dummy__
+endif
 
 
 ${LIBDIR}/liblwip.a: $(LWIP_OBJECTS)

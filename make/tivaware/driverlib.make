@@ -125,6 +125,6 @@ ${LIBDIR}/libdriver.a: ${BUILDDIR}/driverlib/watchdog.o
 # Include the automatically generated dependency files.
 #
 ifneq (${MAKECMDGOALS},clean)
--include ${wildcard ${COMPILER}/*.d} __dummy__
+-include ${wildcard ${BUILDDIR}/driverlib/*.d} __dummy__
 endif
 

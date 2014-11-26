@@ -110,5 +110,7 @@ ${LIBDIR}/libusb.a: ${BUILDDIR}/usblib/usbulpi.o
 # Include the automatically generated dependency files.
 #
 ifneq (${MAKECMDGOALS},clean)
--include ${wildcard ${COMPILER}/*.d} __dummy__
+-include ${wildcard ${BUILDDIR}/usblib/*.d} __dummy__
+-include ${wildcard ${BUILDDIR}/usblib/host/*.d} __dummy__
+-include ${wildcard ${BUILDDIR}/usblib/device/*.d} __dummy__
 endif
