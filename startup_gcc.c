@@ -71,6 +71,15 @@ extern int main(void);
 //*****************************************************************************
 static uint32_t pui32Stack[64];
 
+
+/*
+ * Interrupt handlers from FreeRTOS
+ */
+extern void xPortPendSVHandler(void);
+extern void vPortSVCHandler(void);
+extern void xPortSysTickHandler(void);
+
+
 //*****************************************************************************
 //
 // The vector table.  Note that the proper constructs must be placed on this to
@@ -83,21 +92,21 @@ __attribute__ ((section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
 {
     (void (*)(void))((uint32_t)pui32Stack + sizeof(pui32Stack)), // The initial stack pointer // O
-    ResetISR,                               // The reset handler                              // 1
-    NmiSR,                                  // The NMI handler                                // 2
-    FaultISR,                               // The hard fault handler                         // 3
-    IntDefaultHandler,                      // The MPU fault handler                          // 4
-    IntDefaultHandler,                      // The bus fault handler                          // 5
-    IntDefaultHandler,                      // The usage fault handler                        // 6
-    0,                                      // Reserved                                       // 7
-    0,                                      // Reserved                                       // 8
-    0,                                      // Reserved                                       // 9
-    0,                                      // Reserved                                       // 10
-    IntDefaultHandler,                      // SVCall handler                                 // 11
-    IntDefaultHandler,                      // Debug monitor handler                          // 12
-    0,                                      // Reserved                                       // 13
-    IntDefaultHandler,                      // The PendSV handler                             // 14
-    IntDefaultHandler,                      // The SysTick handler                            // 15
+    ResetISR,                               // The reset handler        // 1
+    NmiSR,                                  // The NMI handler          // 2
+    FaultISR,                               // The hard fault handler   // 3
+    IntDefaultHandler,                      // The MPU fault handler    // 4
+    IntDefaultHandler,                      // The bus fault handler    // 5
+    IntDefaultHandler,                      // The usage fault handler  // 6
+    0,                                      // Reserved                 // 7
+    0,                                      // Reserved                 // 8
+    0,                                      // Reserved                 // 9
+    0,                                      // Reserved                 // 10
+    vPortSVCHandler,                        // SVCall handler           // 11  // Handles system calls
+    IntDefaultHandler,                      // Debug monitor handler    // 12
+    0,                                      // Reserved                 // 13
+    xPortPendSVHandler,                     // The PendSV handler       // 14
+    xPortSysTickHandler,                    // The SysTick handler      // 15
     IntDefaultHandler,                      // 16  // GPIO Port A
     IntDefaultHandler,                      // 17  // GPIO Port B
     IntDefaultHandler,                      // 18  // GPIO Port C
