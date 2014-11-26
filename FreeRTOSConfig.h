@@ -85,11 +85,11 @@
 #define configUSE_RECURSIVE_MUTEXES             0
 #define configUSE_COUNTING_SEMAPHORES           0
 #define configUSE_ALTERNATIVE_API               0 /* Deprecated! */
-#define configQUEUE_REGISTRY_SIZE               0 // Not using RTOS aware debugger. TODO: Look this up
+#define configQUEUE_REGISTRY_SIZE               0 // Not using RTOS aware debugger. TODO: Look this up. Default 10
 #define configUSE_QUEUE_SETS                    0
 #define configUSE_TIME_SLICING                  0
 #define configUSE_NEWLIB_REENTRANT              0
-#define configENABLE_BACKWARD_COMPATIBILITY     0
+#define configENABLE_BACKWARD_COMPATIBILITY     0 //TODO Modify lwIP port to use new definitions. See http://www.freertos.org/upgrading-to-FreeRTOS-V8.html
 
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK                     0
@@ -122,8 +122,13 @@
 #define configKERNEL_INTERRUPT_PRIORITY         ( 7 << 5 )    /* Priority 7, or 0xE0 as only the top three bits are implemented.  This is the lowest priority. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY     ( 5 << 5 )  /* Priority 5, or 0xA0 as only the top three bits are implemented. */
 
+#ifdef DEBUG
+extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName );
 /* Define to trap errors during development. */
 #define configASSERT(x)     if( ( x ) == 0 ) vAssertCalled( __FILE__, __LINE__ )
+#else
+#define configASSERT(x)
+#endif
 
 /* FreeRTOS MPU specific definitions. */
 #define configINCLUDE_APPLICATION_DEFINED_PRIVILEGED_FUNCTIONS 0
