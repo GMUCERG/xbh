@@ -117,7 +117,7 @@ typedef struct {
   void (*thread)(void *arg);
   void *arg;
 #if RTOS_FREERTOS
-  xTaskHandle taskhandle;
+  TaskHandle_t taskhandle;
 #endif /* RTOS_FREERTOS */
 } thread_t;
 
@@ -257,7 +257,7 @@ sys_sem_signal(sys_sem_t *sem)
 u32_t
 sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 {
-  portTickType starttime;
+  TickType_t starttime;
   void *msg = 0;
 
   /* Get the starting time. */
@@ -266,10 +266,10 @@ sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
   /* See if there is a timeout. */
   if(timeout != 0) {
     /* Send a message to the queue. */
-    if(xQueueSend(sem->queue, &msg, timeout / portTICK_RATE_MS) == pdPASS) {
+    if(xQueueSend(sem->queue, &msg, timeout / portTICK_PERIOD_MS) == pdPASS) {
       /* Return the amount of time it took for the semaphore to be
          signalled. */
-      return (xTaskGetTickCount() - starttime) * portTICK_RATE_MS;
+      return (xTaskGetTickCount() - starttime) * portTICK_PERIOD_MS;
     } else {
       /* The semaphore failed to signal in the allotted time. */
       return SYS_ARCH_TIMEOUT;
@@ -279,7 +279,7 @@ sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
     while(xQueueSend(sem->queue, &msg, portMAX_DELAY) != pdPASS);
 
     /* Return the amount of time it took for the semaphore to be signalled. */
-    return (xTaskGetTickCount() - starttime) * portTICK_RATE_MS;
+    return (xTaskGetTickCount() - starttime) * portTICK_PERIOD_MS;
   }
 }
 
@@ -411,7 +411,7 @@ sys_mbox_trypost(sys_mbox_t *mbox, void *msg)
 u32_t
 sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
 {
-  portTickType starttime;
+  TickType_t starttime;
   void *dummyptr;
 
   /* If the actual message contents are not required, provide a local variable
@@ -426,9 +426,9 @@ sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
   /* See if there is a timeout. */
   if(timeout != 0) {
     /* Receive a message from the queue. */
-    if(xQueueReceive(mbox->queue, msg, timeout / portTICK_RATE_MS) == pdPASS) {
+    if(xQueueReceive(mbox->queue, msg, timeout / portTICK_PERIOD_MS) == pdPASS) {
       /* Return the amount of time it took for the message to be received. */
-      return (xTaskGetTickCount() - starttime) * portTICK_RATE_MS;
+      return (xTaskGetTickCount() - starttime) * portTICK_PERIOD_MS;
     } else {
       /* No message arrived in the allotted time. */
       *msg = NULL;
@@ -439,7 +439,7 @@ sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
     while(xQueueReceive(mbox->queue, msg, portMAX_DELAY) != pdPASS);
 
     /* Return the amount of time it took for the message to be received. */
-    return (xTaskGetTickCount() - starttime) * portTICK_RATE_MS;
+    return (xTaskGetTickCount() - starttime) * portTICK_PERIOD_MS;
   }
 }
 

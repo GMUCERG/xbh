@@ -52,20 +52,20 @@
 
 ///* A structure to hold the variables for a sys_sem_t. */
 typedef struct {
-  xQueueHandle queue;
+  QueueHandle_t queue;
   signed char buffer[sizeof(void *) + portQUEUE_OVERHEAD_BYTES];
 } sem_t;
 
 /* A structure to hold the variables for a sys_mbox_t. */
 typedef struct {
-  xQueueHandle queue;
+  QueueHandle_t queue;
   signed char buffer[(sizeof(void *) * MBOX_MAX) + portQUEUE_OVERHEAD_BYTES];
 } mbox_t;
 
 /* Typedefs for the various port-specific types. */
 typedef mbox_t sys_mbox_t;
 typedef sem_t sys_sem_t;
-typedef xTaskHandle sys_thread_t;
+typedef TaskHandle_t sys_thread_t;
 
 /* The value for an unallocated mbox. */
 #define SYS_MBOX_NULL       0
