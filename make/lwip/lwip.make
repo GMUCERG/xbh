@@ -46,7 +46,7 @@ endif
 
 LWIP_SOURCES := $(wildcard ${LWIP_ROOT}/src/core/*.c) \
 	$(wildcard ${LWIP_ROOT}/src/core/ipv4/*.c) \
-	$(wildcard src/api/*.c) \
+	$(wildcard ${LWIP_ROOT}/src/api/*.c) \
 	${LWIP_ROOT}/src/netif/etharp.c \
 	$(wildcard ${LWIP_PORT}/*.c) \
 	$(wildcard ${LWIP_PORT}/netif/*.c)

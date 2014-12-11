@@ -13,19 +13,10 @@ include ${LWIP_MAKE_ROOT}/lwip.make
 
 
 XBH_SOURCES := $(PROJECT_ROOT)/startup_gcc.c
-XBH_SOURCES += $(PROJECT_ROOT)/hal.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c
 XBH_SOURCES += $(PROJECT_ROOT)/main.c
-
-
-
-
-
-
-
-
-
-
-
+XBH_SOURCES += $(PROJECT_ROOT)/util.c
 
 
 
@@ -38,7 +29,12 @@ XBH_OBJECTS := $(subst ${PROJECT_ROOT},${BUILDDIR}/xbh,${XBH_OBJECTS})
 ${BUILDDIR}/xbh: 
 	@mkdir -p ${BUILDDIR}/xbh
 
-${BUILDDIR}/xbh/%.o: ${PROJECT_ROOT}/%.c | ${BUILDDIR}/xbh
+${BUILDDIR}/xbh/hal: 
+	@mkdir -p ${BUILDDIR}/xbh/hal
+
+
+
+${BUILDDIR}/xbh/%.o: ${PROJECT_ROOT}/%.c | ${BUILDDIR}/xbh ${BUILDDIR}/xbh/hal
 	@if [ 'x${VERBOSE}' = x ];                            \
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
@@ -51,17 +47,17 @@ ifneq ($(findstring CYGWIN, ${os}), )
 endif
 
 
-
 ${BUILDDIR}/xbh.axf: ${XBH_OBJECTS}
 ${BUILDDIR}/xbh.axf: ${LIBDIR}/freertos.a
-${BUILDDIR}/xbh.axf: ${LIBDIR}/libusb.a
+#${BUILDDIR}/xbh.axf: ${LIBDIR}/libusb.a
+#${BUILDDIR}/xbh.axf: ${LIBDIR}/libutils.a
 ${BUILDDIR}/xbh.axf: ${LIBDIR}/libdriver.a
-${BUILDDIR}/xbh.axf: ${LIBDIR}/libutils.a
 ${BUILDDIR}/xbh.axf: ${LIBDIR}/liblwip.a
 ${BUILDDIR}/xbh.axf: xbh.ld
 SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
-CFLAGSgcc=-DTARGET_IS_TM4C129_RA0 -std=c99
+#CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -DDEBUG_STACK -g -O0
+CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -g -O0
 
 #${BUILDDIR}/usb_dev_bulk.axf: |${BUILDDIR}
 #${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/startup_${COMPILER}.o
@@ -77,11 +73,30 @@ CFLAGSgcc=-DTARGET_IS_TM4C129_RA0 -std=c99
 #CFLAGSgcc=-DTARGET_IS_BLIZZARD_RB1 -DUART_BUFFERED
 
 
+ifneq (${MAKECMDGOALS},clean)
+XBH_DEPS := $(XBH_OBJECTS:%.o=%.d)
+-include ${XBH_DEPS} __dummy__
+endif
+
+
 distclean: clean
 	rm -rf build lib
 clean:
 	rm -rf build/*.o build/*.d build/*.bin build/*.axf tags
 tags: 
-	ctags -R . ${TIVA_ROOT}
+	ctags -R . ${TIVA_ROOT} \
+		${LWIP_ROOT} \
+		${FREERTOS_ROOT}/Source/include \
+		${FREERTOS_ROOT}/Source/*.c \
+		${FREERTOS_ROOT}/Source/portable/MemMang \
+		${FREERTOS_ROOT}/Source/portable/GCC/ARM_CM4F
 
-.PHONY: clean
+KEYWORDS=TODO:|FIXME:|\?\?\?:|\!\!\!:
+todo: 
+	@find "${PROJECT_ROOT}" \( -name "*.h" -or -name "*.c" \) -and \( ! -path "${PROJECT_ROOT}/examples/*" -and ! -path "${PROJECT_ROOT}/deps/*" \) -print0 \
+	| xargs -0 egrep --with-filename --line-number --only-matching "(${KEYWORDS}).*$"" \
+	| perl -p -e 's/(${KEYWORDS})/ warning:  $$1/'
+
+.PHONY: clean tags
+
+

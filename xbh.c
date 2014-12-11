@@ -1,4 +1,5 @@
 /**
+ * @file
  * XBH server firmware for connected TIVA-C w/ LWIP
  * (C) 2014, John Pham, George Mason University <jpham4@gmu.edu>
  * Based on XBH server firmware

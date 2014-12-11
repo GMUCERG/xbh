@@ -44,6 +44,12 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
+#include "util.h"
+
+#define XBH_HOSTNAME "xbh"
+
+#define LWIP_PLATFORM_DIAG(msg) uart_writeP msg
+
 /*
  * Stellaris/lwIP port options
  * Use default options
@@ -53,9 +59,14 @@
 //#define NUM_TX_DESCRIPTORS 24
 //#define NUM_RX_DESCRIPTORS 8
 
+// Needed to enable socket API
+#define LWIP_PROVIDE_ERRNO
 
 
+// Required by TI's driver implementation
 #define LWIP_COMPAT_MUTEX               1
+
+// Use FreeRTOS
 #define RTOS_FREERTOS                   1
 
 
@@ -1166,32 +1177,24 @@
  * LWIP_NETIF_HOSTNAME==1: use DHCP_OPTION_HOSTNAME with netif's hostname
  * field.
  */
-//#ifndef LWIP_NETIF_HOSTNAME
-//#define LWIP_NETIF_HOSTNAME             0
-//#endif
+#define LWIP_NETIF_HOSTNAME             1
 
 /**
  * LWIP_NETIF_API==1: Support netif api (in netifapi.c)
  */
-//#ifndef LWIP_NETIF_API
-//#define LWIP_NETIF_API                  0
-//#endif
+#define LWIP_NETIF_API                  0
 
 /**
  * LWIP_NETIF_STATUS_CALLBACK==1: Support a callback function whenever an interface
  * changes its up/down status (i.e., due to DHCP IP acquistion)
  */
-//#ifndef LWIP_NETIF_STATUS_CALLBACK
-//#define LWIP_NETIF_STATUS_CALLBACK      0
-//#endif
+#define LWIP_NETIF_STATUS_CALLBACK      1
 
 /**
  * LWIP_NETIF_LINK_CALLBACK==1: Support a callback function from an interface
  * whenever the link changes (i.e., link down)
  */
-//#ifndef LWIP_NETIF_LINK_CALLBACK
-//#define LWIP_NETIF_LINK_CALLBACK        0
-//#endif
+#define LWIP_NETIF_LINK_CALLBACK        0
 
 /**
  * LWIP_NETIF_REMOVE_CALLBACK==1: Support a callback function that is called
@@ -1297,7 +1300,7 @@
  * The stack size value itself is platform-dependent, but is passed to
  * sys_thread_new() when the thread is created.
  */
-#define TCPIP_THREAD_STACKSIZE          1024
+#define TCPIP_THREAD_STACKSIZE          2048
 
 /**
  * TCPIP_THREAD_PRIO: The priority assigned to the main tcpip thread.
@@ -1480,18 +1483,14 @@
  * LWIP_COMPAT_SOCKETS==1: Enable BSD-style sockets functions names.
  * (only used if you use sockets.c)
  */
-//#ifndef LWIP_COMPAT_SOCKETS
-//#define LWIP_COMPAT_SOCKETS             1
-//#endif
+#define LWIP_COMPAT_SOCKETS             1
 
 /**
  * LWIP_POSIX_SOCKETS_IO_NAMES==1: Enable POSIX-style sockets functions names.
  * Disable this option if you use a POSIX operating system that uses the same
  * names (read, write & close). (only used if you use sockets.c)
  */
-//#ifndef LWIP_POSIX_SOCKETS_IO_NAMES
-//#define LWIP_POSIX_SOCKETS_IO_NAMES     1
-//#endif
+#define LWIP_POSIX_SOCKETS_IO_NAMES     1
 
 /**
  * LWIP_TCP_KEEPALIVE==1: Enable TCP_KEEPIDLE, TCP_KEEPINTVL and TCP_KEEPCNT
@@ -2244,8 +2243,8 @@
  * compared against this value. If it is smaller, then debugging
  * messages are written.
  */
-//#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
 #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_OFF
+//#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_OFF
 
 /**
  * LWIP_DBG_TYPES_ON: A mask that can be used to globally enable/disable
@@ -2263,6 +2262,7 @@
 /**
  * NETIF_DEBUG: Enable debugging in netif.c.
  */
+#//define NETIF_DEBUG LWIP_DBG_ON
 //#ifndef NETIF_DEBUG
 //#define NETIF_DEBUG                     LWIP_DBG_OFF
 //#endif
@@ -2461,7 +2461,7 @@
  * DHCP_DEBUG: Enable debugging in dhcp.c.
  */
 //#ifndef DHCP_DEBUG
-//#define DHCP_DEBUG                      LWIP_DBG_OFF
+//#define DHCP_DEBUG                      LWIP_DBG_ON
 //#endif
 
 /**

@@ -79,6 +79,11 @@ extern void xPortPendSVHandler(void);
 extern void vPortSVCHandler(void);
 extern void xPortSysTickHandler(void);
 
+/*
+ * Interrupt handlers from hal/lwip_eth.c
+ */
+extern void lwIP_eth_isr(void);
+
 
 //*****************************************************************************
 //
@@ -147,7 +152,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // 53  // I2C1
     IntDefaultHandler,                      // 54  // CAN 0
     IntDefaultHandler,                      // 55  // CAN1
-    IntDefaultHandler,                      // 56  // Ethernet MAC
+    lwIP_eth_isr,                           // 56  // Ethernet MAC
     IntDefaultHandler,                      // 57  // HIB
     IntDefaultHandler,                      // 58  // USB MAC
     IntDefaultHandler,                      // 59  // PWM Generator 3

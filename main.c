@@ -1,358 +1,163 @@
+/* @file
+ * main.c for XBH Server on Tiva-C
+ * (C) 2014, John Pham, George Mason University <jpham4@gmu.edu>
+ *
+ * Based on project.c from TI Tiva Firmware Development Package (2.1.0.12573)
+ * Copyright (c) 2013-2014 Texas Instruments Incorporated.
+ *
+ * Also based on main.c from FreeRTOS Demo v7.6.0 (C) 2013
+ */
+//
 //*****************************************************************************
-// XBH application entry point
-// Copyright (c) 2014 John Pham
 //
-// Modified from:
-//
-// enet_lwip.c - Sample WebServer Application using lwIP.
+// project.c - Simple project to use as a starting point for more complex
+//             projects.
 //
 // Copyright (c) 2013-2014 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
 // 
-// Texas Instruments (TI) is supplying this software for use solely and
-// exclusively on TI's microcontroller products. The software is owned by
-// TI and/or its suppliers, and is protected under applicable copyright
-// laws. You may not combine this software with "viral" open-source
-// software in order to form a larger program.
+//   Redistribution and use in source and binary forms, with or without
+//   modification, are permitted provided that the following conditions
+//   are met:
 // 
-// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
-// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
-// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
-// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-// DAMAGES, FOR ANY REASON WHATSOEVER.
+//   Redistributions of source code must retain the above copyright
+//   notice, this list of conditions and the following disclaimer.
 // 
-// This is part of revision 2.1.0.12573 of the EK-TM4C1294XL Firmware Package.
+//   Redistributions in binary form must reproduce the above copyright
+//   notice, this list of conditions and the following disclaimer in the
+//   documentation and/or other materials provided with the  
+//   distribution.
+// 
+//   Neither the name of Texas Instruments Incorporated nor the names of
+//   its contributors may be used to endorse or promote products derived
+//   from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// 
+// This is part of revision 2.1.0.12573 of the Tiva Firmware Development Package.
 //
 //*****************************************************************************
 
+//Std C lib
 #include <stdbool.h>
 #include <stdint.h>
-#include "inc/hw_ints.h"
-#include "inc/hw_memmap.h"
-#include "driverlib/flash.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/gpio.h"
-#include "driverlib/rom_map.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/systick.h"
-#include "utils/locator.h"
-#include "utils/lwiplib.h"
-#include "utils/ustdlib.h"
-#include "utils/uartstdio.h"
-#include "xbh_comm.h"
-#include "pinout.h"
+#include <inc/hw_memmap.h>
+#include <driverlib/debug.h>
+#include <driverlib/gpio.h>
+#include <driverlib/rom.h>
+#include <driverlib/rom_map.h>
+#include <driverlib/sysctl.h>
 
-//*****************************************************************************
-//
-//! \addtogroup example_list
-//! <h1>Ethernet with lwIP (enet_lwip)</h1>
-//!
-//! This example application demonstrates the operation of the Tiva
-//! Ethernet controller using the lwIP TCP/IP Stack.  DHCP is used to obtain
-//! an Ethernet address.  If DHCP times out without obtaining an address,
-//! AutoIP will be used to obtain a link-local address.  The address that is
-//! selected will be shown on the UART.
-//!
-//! UART0, connected to the ICDI virtual COM port and running at 115,200,
-//! 8-N-1, is used to display messages from this application. Use the
-//! following command to re-build the any file system files that change.
-//!
-//!     ../../../../tools/bin/makefsfile -i fs -o enet_fsdata.h -r -h -q
-//!
-//! For additional details on lwIP, refer to the lwIP web page at:
-//! http://savannah.nongnu.org/projects/lwip/
-//
-//*****************************************************************************
+// FreeRTOS includes
+#include "FreeRTOSConfig.h"
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
+#include <semphr.h>
 
-//*****************************************************************************
-//
-// Defines for setting up the system clock.
-//
-//*****************************************************************************
-#define SYSTICKHZ               100
-#define SYSTICKMS               (1000 / SYSTICKHZ)
+// Hardware abstraction layer
+#include "hal/hal.h"
+#include "util.h"
 
-//*****************************************************************************
-//
-// Interrupt priority definitions.  The top 3 bits of these values are
-// significant with lower values indicating higher priority interrupts.
-//
-//*****************************************************************************
-#define SYSTICK_INT_PRIORITY    0x80
-#define ETHERNET_INT_PRIORITY   0xC0
+/* Delay between cycles of the 'check' task. */
+// Make it 30s
+#define mainCHECK_DELAY						( ( portTickType ) 30000 / portTICK_RATE_MS )
 
-//*****************************************************************************
-//
-// The current IP address.
-//
-//*****************************************************************************
-uint32_t g_ui32IPAddress;
 
-//*****************************************************************************
-//
-// The system clock frequency.
-//
-//*****************************************************************************
-uint32_t g_ui32SysClock;
+/**
+ * Clock rate in HZ
+ */
+uint32_t g_syshz;
 
-//*****************************************************************************
+/* From FreeRTOS demo main.
+ * A 'check' task.  The check task only executes every 30 seconds but has a
+ * high priority so is guaranteed to get processor time.  Its function is to
+ * check that all the other tasks are still operational and that no errors have
+ * been detected at any time.  If no errors have every been detected 'PASS' is
+ * written to the display (via the print task) - if an error has ever been
+ * detected the message is changed to 'FAIL'.  The position of the message is
+ * changed for each write.
+ */
+//static void vCheckTask( void *pvParameters ) {/*{{{*/
+//    portBASE_TYPE xErrorOccurred = pdFALSE;
+//    portTickType xLastExecutionTime;
+//    const portCHAR *pcPassMessage = "PASS";
+//    const portCHAR *pcFailMessage = "FAIL";
 //
-// The error routine that is called if the driver library encounters an error.
+//    /* Initialise xLastExecutionTime so the first call to vTaskDelayUntil()
+//       works correctly. */
+//    xLastExecutionTime = xTaskGetTickCount();
 //
-//*****************************************************************************
-#ifdef DEBUG
-void
-__error__(char *pcFilename, uint32_t ui32Line)
-{
-}
-#endif
+//    for( ;; )
+//    {
+//        /* Perform this check every mainCHECK_DELAY milliseconds. */
+//        vTaskDelayUntil( &xLastExecutionTime, mainCHECK_DELAY );
+//
+//        /* Has an error been found in any task? */
+//
+//        if( xAreIntegerMathsTaskStillRunning() != pdTRUE )
+//        {
+//            xErrorOccurred = pdTRUE;
+//        }
+//
+//        if( xArePollingQueuesStillRunning() != pdTRUE )
+//        {
+//            xErrorOccurred = pdTRUE;
+//        }
+//
+//        if( xAreSemaphoreTasksStillRunning() != pdTRUE )
+//        {
+//            xErrorOccurred = pdTRUE;
+//        }
+//
+//        if( xAreBlockingQueuesStillRunning() != pdTRUE )
+//        {
+//            xErrorOccurred = pdTRUE;
+//        }
+//
+//        /* Send either a pass or fail message.  If an error is found it is
+//           never cleared again.  We do not write directly to the LCD, but instead
+//           queue a message for display by the print task. */
+//        if( xErrorOccurred == pdTRUE )
+//        {
+//            xQueueSend( xPrintQueue, &pcFailMessage, portMAX_DELAY );
+//        }
+//        else
+//        {
+//            xQueueSend( xPrintQueue, &pcPassMessage, portMAX_DELAY );
+//        }
+//    }
+//}/*}}}*/
 
-//*****************************************************************************
-//
-// Display an lwIP type IP Address.
-//
-//*****************************************************************************
-void
-DisplayIPAddress(uint32_t ui32Addr)
-{
-    char pcBuf[16];
-
-    //
-    // Convert the IP Address into a string.
-    //
-    usprintf(pcBuf, "%d.%d.%d.%d", ui32Addr & 0xff, (ui32Addr >> 8) & 0xff,
-            (ui32Addr >> 16) & 0xff, (ui32Addr >> 24) & 0xff);
-
-    //
-    // Display the string.
-    //
-    UARTprintf(pcBuf);
+void vApplicationStackOverflowHook(TaskHandle_t *pxTask, char *pcTaskName){
+    while(1);
 }
 
-//*****************************************************************************
-//
-// Required by lwIP library to support any host-related timer functions.
-//
-//*****************************************************************************
-void
-lwIPHostTimerHandler(void)
-{
-    uint32_t ui32Idx, ui32NewIPAddress;
 
-    //
-    // Get the current IP address.
-    //
-    ui32NewIPAddress = lwIPLocalIPAddrGet();
+int main(void) {
+    HAL_setup();
 
-    //
-    // See if the IP address has changed.
-    //
-    if(ui32NewIPAddress != g_ui32IPAddress)
-    {
-        //
-        // See if there is an IP address assigned.
-        //
-        if(ui32NewIPAddress == 0xffffffff)
-        {
-            //
-            // Indicate that there is no link.
-            //
-            UARTprintf("Waiting for link.\n");
-        }
-        else if(ui32NewIPAddress == 0)
-        {
-            //
-            // There is no IP address, so indicate that the DHCP process is
-            // running.
-            //
-            UARTprintf("Waiting for IP address.\n");
-        }
-        else
-        {
-            //
-            // Display the new IP address.
-            //
-            UARTprintf("IP Address: ");
-            DisplayIPAddress(ui32NewIPAddress);
-        }
+    DEBUG_OUT("Starting Scheduler\n");
 
-        //
-        // Save the new IP address.
-        //
-        g_ui32IPAddress = ui32NewIPAddress;
+	/* Start the scheduler. */
+	vTaskStartScheduler();
 
-        //
-        // Turn GPIO off.
-        //
-        MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, ~GPIO_PIN_1);
-    }
+	/* Will only get here if there was insufficient heap to start the
+	scheduler. */
+    return 0;
 
-    //
-    // If there is not an IP address.
-    //
-    if((ui32NewIPAddress == 0) || (ui32NewIPAddress == 0xffffffff))
-    {
-        //
-        // Loop through the LED animation.
-        //
-
-        for(ui32Idx = 1; ui32Idx < 17; ui32Idx++)
-        {
-
-            //
-            // Toggle the GPIO
-            //
-            MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1,
-                    (MAP_GPIOPinRead(GPIO_PORTN_BASE, GPIO_PIN_1) ^
-                     GPIO_PIN_1));
-
-            SysCtlDelay(g_ui32SysClock/(ui32Idx << 1));
-        }
-    }
 }
 
-//*****************************************************************************
-//
-// The interrupt handler for the SysTick interrupt.
-//
-//*****************************************************************************
-void
-SysTickIntHandler(void)
-{
-    //
-    // Call the lwIP timer handler.
-    //
-    lwIPTimer(SYSTICKMS);
-}
+    
 
-//*****************************************************************************
-//
-// This example demonstrates the use of the Ethernet Controller.
-//
-//*****************************************************************************
-int
-main(void)
-{
-    uint32_t ui32User0, ui32User1;
-    uint8_t pui8MACArray[8];
 
-    //
-    // Make sure the main oscillator is enabled because this is required by
-    // the PHY.  The system must have a 25MHz crystal attached to the OSC
-    // pins. The SYSCTL_MOSC_HIGHFREQ parameter is used when the crystal
-    // frequency is 10MHz or higher.
-    //
-    SysCtlMOSCConfigSet(SYSCTL_MOSC_HIGHFREQ);
-
-    //
-    // Run from the PLL at 120 MHz.
-    //
-    g_ui32SysClock = MAP_SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
-                                             SYSCTL_OSC_MAIN |
-                                             SYSCTL_USE_PLL |
-                                             SYSCTL_CFG_VCO_480), 120000000);
-
-    //
-    // Configure the device pins.
-    //
-    PinoutSet(true, false);
-
-    //
-    // Configure UART.
-    //
-    UARTStdioConfig(0, 115200, g_ui32SysClock);
-
-    //
-    // Clear the terminal and print banner.
-    //
-    UARTprintf("\033[2J\033[H");
-    UARTprintf("Ethernet lwIP example\n\n");
-
-    //
-    // Configure Port N1 for as an output for the animation LED.
-    //
-    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_1);
-
-    //
-    // Initialize LED to OFF (0)
-    //
-    MAP_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_1, ~GPIO_PIN_1);
-
-    //
-    // Configure SysTick for a periodic interrupt.
-    //
-    MAP_SysTickPeriodSet(g_ui32SysClock / SYSTICKHZ);
-    MAP_SysTickEnable();
-    MAP_SysTickIntEnable();
-
-    //
-    // Configure the hardware MAC address for Ethernet Controller filtering of
-    // incoming packets.  The MAC address will be stored in the non-volatile
-    // USER0 and USER1 registers.
-    //
-    MAP_FlashUserGet(&ui32User0, &ui32User1);
-    if((ui32User0 == 0xffffffff) || (ui32User1 == 0xffffffff))
-    {
-        //
-        // We should never get here.  This is an error if the MAC address has
-        // not been programmed into the device.  Exit the program.
-        // Let the user know there is no MAC address
-        //
-        UARTprintf("No MAC programmed!\n");
-        while(1)
-        {
-        }
-    }
-
-    //
-    // Tell the user what we are doing just now.
-    //
-    UARTprintf("Waiting for IP.\n");
-
-    //
-    // Convert the 24/24 split MAC address from NV ram into a 32/16 split MAC
-    // address needed to program the hardware registers, then program the MAC
-    // address into the Ethernet Controller registers.
-    //
-    pui8MACArray[0] = ((ui32User0 >>  0) & 0xff);
-    pui8MACArray[1] = ((ui32User0 >>  8) & 0xff);
-    pui8MACArray[2] = ((ui32User0 >> 16) & 0xff);
-    pui8MACArray[3] = ((ui32User1 >>  0) & 0xff);
-    pui8MACArray[4] = ((ui32User1 >>  8) & 0xff);
-    pui8MACArray[5] = ((ui32User1 >> 16) & 0xff);
-
-    //
-    // Initialze the lwIP library, using DHCP.
-    //
-    lwIPInit(g_ui32SysClock, pui8MACArray, 0, 0, 0, IPADDR_USE_DHCP);
-
-    //
-    // Setup the device locator service.
-    //
-    LocatorInit();
-    LocatorMACAddrSet(pui8MACArray);
-    LocatorAppTitleSet("EK-TM4C1294XL xbh");
-
-    //
-    // Initialize xbh
-    //
-    xbh_comm_init();
-
-    //
-    // Set the interrupt priorities.  We set the SysTick interrupt to a higher
-    // priority than the Ethernet interrupt to ensure that the file system
-    // tick is processed if SysTick occurs while the Ethernet handler is being
-    // processed.  This is very likely since all the TCP/IP and HTTP work is
-    // done in the context of the Ethernet interrupt.
-    //
-    MAP_IntPrioritySet(INT_EMAC0, ETHERNET_INT_PRIORITY);
-    MAP_IntPrioritySet(FAULT_SYSTICK, SYSTICK_INT_PRIORITY);
-
-    //
-    // Loop forever.  All the work is done in interrupt handlers.
-    //
-    while(1)
-    {
-    }
-}

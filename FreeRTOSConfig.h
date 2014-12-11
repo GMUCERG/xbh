@@ -89,12 +89,12 @@
 #define configUSE_QUEUE_SETS                    0
 #define configUSE_TIME_SLICING                  0
 #define configUSE_NEWLIB_REENTRANT              0
-#define configENABLE_BACKWARD_COMPATIBILITY     0 //TODO Modify lwIP port to use new definitions. See http://www.freertos.org/upgrading-to-FreeRTOS-V8.html
+#define configENABLE_BACKWARD_COMPATIBILITY     0 //TODO: Modify lwIP port to use new definitions. See http://www.freertos.org/upgrading-to-FreeRTOS-V8.html
 
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK                     0
 #define configUSE_TICK_HOOK                     0
-#define configCHECK_FOR_STACK_OVERFLOW          0
+#define configCHECK_FOR_STACK_OVERFLOW          2
 #define configUSE_MALLOC_FAILED_HOOK            0
 
 /* Run time and task stats gathering related definitions. */
@@ -120,12 +120,12 @@
 //#define configMAX_SYSCALL_INTERRUPT_PRIORITY    [dependent on processor and application]
 //#define configMAX_API_CALL_INTERRUPT_PRIORITY   [dependent on processor and application]
 #define configKERNEL_INTERRUPT_PRIORITY         ( 7 << 5 )    /* Priority 7, or 0xE0 as only the top three bits are implemented.  This is the lowest priority. */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY     ( 5 << 5 )  /* Priority 5, or 0xA0 as only the top three bits are implemented. */
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY     ( 2 << 5 )  /* Priority 5, or 0xA0 as only the top three bits are implemented. */
 
 #ifdef DEBUG
-extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName );
+extern void assert_called(const char * const filename, uint32_t line);
 /* Define to trap errors during development. */
-#define configASSERT(x)     if( ( x ) == 0 ) vAssertCalled( __FILE__, __LINE__ )
+#define configASSERT(x)     if( ( x ) == 0 ) assert_called( __FILE__, __LINE__ )
 #else
 #define configASSERT(x)
 #endif
@@ -136,14 +136,14 @@ extern void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 /* Optional functions - most linkers will remove unused functions anyway. */
 #define INCLUDE_vTaskPrioritySet                0
 #define INCLUDE_uxTaskPriorityGet               0
-#define INCLUDE_vTaskDelete                     0
-#define INCLUDE_vTaskSuspend                    0
+#define INCLUDE_vTaskDelete                     1
+#define INCLUDE_vTaskSuspend                    1
 #define INCLUDE_xResumeFromISR                  0
 #define INCLUDE_vTaskDelayUntil                 0
 #define INCLUDE_vTaskDelay                      0
 #define INCLUDE_xTaskGetSchedulerState          0
 #define INCLUDE_xTaskGetCurrentTaskHandle       0
-#define INCLUDE_uxTaskGetStackHighWaterMark     0
+#define INCLUDE_uxTaskGetStackHighWaterMark     1
 #define INCLUDE_xTaskGetIdleTaskHandle          0
 #define INCLUDE_xTimerGetTimerDaemonTaskHandle  0
 #define INCLUDE_pcTaskGetTaskName               0
