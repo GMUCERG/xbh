@@ -2,3 +2,7 @@ build
 lib
 tags
 *.o
+*.sw*
+examples
+trash
+*.d

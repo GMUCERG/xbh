@@ -214,40 +214,6 @@ static void link_status(struct netif *arg){/*{{{*/
     arg->name[0], arg->name[1], arg->hostname);
 }/*}}}*/
 
-#if 0
-//    uint32_t ephybmsr = MAP_EMACPHYRead(EMAC0_BASE, 0, EPHY_BMSR);
-//    if(ephybmsr & EPHY_BMSR_LINKSTAT){
-//        dhcp_start(&lwip_netif);
-//    }
-    static bool link_was_up = false;
-
-    if(ephybmsr & EPHY_BMSR_LINKSTAT){
-        if(!link_was_up){
-            //Fire off DHCP 
-            netifapi_dhcp_start(&lwip_netif);
-
-            link_was_up = true;
-        }
-        //Else link already up, do nothing
-    }else{
-        if(link_was_up){
-            ip_addr_t ip_addr;
-            ip_addr_t netmask;
-            ip_addr_t gw_addr;
-
-            // stop dhcp, clear out address
-            netifapi_dhcp_stop(&lwip_netif);
-            ip_addr.addr = 0;
-            netmask.addr = 0;
-            gw_addr.addr = 0;
-            netifapi_netif_set_addr(&lwip_netif, &ip_addr, &netmask, &gw_addr);
-        }
-        //Else link already down, do nothing
-    }
-    return;
-}/*}}}*/
-
-#endif
 
 
 
