@@ -79,6 +79,8 @@
  */
 uint32_t g_syshz;
 
+
+/*{{{*/
 /* From FreeRTOS demo main.
  * A 'check' task.  The check task only executes every 30 seconds but has a
  * high priority so is guaranteed to get processor time.  Its function is to
@@ -138,7 +140,9 @@ uint32_t g_syshz;
 //        }
 //    }
 //}/*}}}*/
+/*}}}*/
 
+// Loop forever if stack overflow happens for preserving state for debugging
 void vApplicationStackOverflowHook(TaskHandle_t *pxTask, char *pcTaskName){
     while(1);
 }
@@ -146,6 +150,8 @@ void vApplicationStackOverflowHook(TaskHandle_t *pxTask, char *pcTaskName){
 
 int main(void) {
     HAL_setup();
+
+    //start_xbh_task();
 
     DEBUG_OUT("Starting Scheduler\n");
 
