@@ -57,7 +57,7 @@ ${BUILDDIR}/xbh.axf: xbh.ld
 SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
 #CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -DDEBUG_STACK -g -O0
-CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -g -O0
+CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -DDEBUG_STACK -g -O0
 
 #${BUILDDIR}/usb_dev_bulk.axf: |${BUILDDIR}
 #${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/startup_${COMPILER}.o
@@ -84,12 +84,17 @@ distclean: clean
 clean:
 	rm -rf build/*.o build/*.d build/*.bin build/*.axf tags
 tags: 
-	ctags -R . ${TIVA_ROOT} \
+	ctags -R . \
+		${TIVA_ROOT}/driverlib \
+		${TIVA_ROOT}/inc \
 		${LWIP_ROOT} \
 		${FREERTOS_ROOT}/Source/include \
 		${FREERTOS_ROOT}/Source/*.c \
 		${FREERTOS_ROOT}/Source/portable/MemMang \
-		${FREERTOS_ROOT}/Source/portable/GCC/ARM_CM4F
+		${FREERTOS_ROOT}/Source/portable/GCC/ARM_CM4F \
+		$(shell echo| `arm-stellaris-eabi-gcc -print-prog-name=cc1` -v 2>&1| awk '/#include <...>/ {flag=1;next} /End of search list/{flag=0} flag {print $$0 " "}')
+		
+		
 
 KEYWORDS=TODO:|FIXME:|\?\?\?:|\!\!\!:
 todo: 

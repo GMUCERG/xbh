@@ -46,13 +46,14 @@ endif
 
 LWIP_SOURCES := $(wildcard ${LWIP_ROOT}/src/core/*.c) \
 	$(wildcard ${LWIP_ROOT}/src/core/ipv4/*.c) \
+	$(wildcard ${LWIP_ROOT}/src/core/ipv6/*.c) \
 	$(wildcard ${LWIP_ROOT}/src/api/*.c) \
 	${LWIP_ROOT}/src/netif/etharp.c \
 	$(wildcard ${LWIP_PORT}/*.c) \
 	$(wildcard ${LWIP_PORT}/netif/*.c)
 LWIP_OBJECTS := $(LWIP_SOURCES:%.c=%.o) 
-LWIP_OBJECTS := $(subst ${LWIP_ROOT},${BUILDDIR}/lwip,${LWIP_OBJECTS})
 LWIP_OBJECTS := $(subst ${LWIP_PORT},${BUILDDIR}/lwip/port,${LWIP_OBJECTS})
+LWIP_OBJECTS := $(subst ${LWIP_ROOT},${BUILDDIR}/lwip,${LWIP_OBJECTS})
 
 ifneq (${MAKECMDGOALS},clean)
 LWIP_DEPS := $(LWIP_OBJECTS:%.o=%.d)

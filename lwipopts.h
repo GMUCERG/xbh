@@ -69,6 +69,9 @@
 // Use FreeRTOS
 #define RTOS_FREERTOS                   1
 
+// Needed for IPv6
+#include <stdlib.h>
+#define LWIP_RAND rand
 
 /*
    -----------------------------------------------
@@ -1959,9 +1962,7 @@
 /**
  * LWIP_IPV6==1: Enable IPv6
  */
-//#ifndef LWIP_IPV6
-//#define LWIP_IPV6                       0
-//#endif
+#define LWIP_IPV6                       0
 
 /**
  * LWIP_IPV6_NUM_ADDRESSES: Number of IPv6 addresses per netif.
@@ -2165,9 +2166,8 @@
 /**
  * LWIP_IPV6_DHCP6==1: enable DHCPv6 stateful address autoconfiguration.
  */
-//#ifndef LWIP_IPV6_DHCP6
-//#define LWIP_IPV6_DHCP6                 0
-//#endif
+//TODO: Revisit when this is implemented in LWIP
+#define LWIP_IPV6_DHCP6                 0
 
 /*
    ---------------------------------------

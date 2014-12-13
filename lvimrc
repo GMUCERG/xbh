@@ -1,3 +1,4 @@
-"let g:easytags_file="/home/john/thesis/xbh/tags"
-set pa=.,./deps/lwip/src/include,lwip_port/tiva-tm4c129/include
+let g:easytags_auto_update = 0
+let g:easytags_file="/home/john/thesis/xbh/tags"
+set pa=.,./deps/lwip/src/include,desp/lwip_port/tiva-tm4c129/include
 set fileformat=unix

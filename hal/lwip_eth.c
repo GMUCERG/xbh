@@ -32,6 +32,7 @@
 
 
 #define LINK_POLL_MSEC 2000
+#define ETH_INT_STACK 256
 
 
 /*
@@ -156,13 +157,12 @@ static void tcpip_init_cb(void *args){/*{{{*/
     ip_addr_t ip_addr;
     ip_addr_t netmask;
     ip_addr_t gw_addr;
-    const uint16_t eth_int_task_stack_depth = 256;
     BaseType_t retval;
     eth_int_q_handle = xQueueCreate(1, sizeof(uint32_t));
 
     retval = xTaskCreate( eth_int_task,
             "eth_int",
-            eth_int_task_stack_depth,
+            ETH_INT_STACK,
             NULL,
             tskIDLE_PRIORITY+1,
             &eth_int_task_handle);
