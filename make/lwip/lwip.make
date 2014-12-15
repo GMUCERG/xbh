@@ -1,13 +1,11 @@
 INCLUDE += ${LWIP_ROOT}/src/include
-INCLUDE += ${LWIP_ROOT}/src/include/ipv4
-INCLUDE += ${LWIP_ROOT}/src/include/ipv6
-INCLUDE += ${LWIP_ROOT}/apps
 INCLUDE += ${LWIP_PORT}/include
 
 
 ${BUILDDIR}/lwip:
 	@mkdir -p ${BUILDDIR}/lwip/src/core/ipv4
 	@mkdir -p ${BUILDDIR}/lwip/src/core/ipv6
+	@mkdir -p ${BUILDDIR}/lwip/src/core/snmp
 	@mkdir -p ${BUILDDIR}/lwip/src/api
 	@mkdir -p ${BUILDDIR}/lwip/src/netif
 	@mkdir -p ${BUILDDIR}/lwip/port/netif

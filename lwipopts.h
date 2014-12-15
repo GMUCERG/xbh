@@ -44,11 +44,8 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
-#include "util.h"
+#include "xbh.h"
 
-#define XBH_HOSTNAME "xbh"
-
-#define LWIP_PLATFORM_DIAG(msg) uart_writeP msg
 
 /*
  * Stellaris/lwIP port options
@@ -59,8 +56,6 @@
 //#define NUM_TX_DESCRIPTORS 24
 //#define NUM_RX_DESCRIPTORS 8
 
-// Needed to enable socket API
-#define LWIP_PROVIDE_ERRNO
 
 
 // Required by TI's driver implementation
@@ -214,7 +209,7 @@
  * MEMP_USE_CUSTOM_POOLS==1: whether to include a user file lwippools.h
  * that defines additional pools beyond the "standard" ones required
  * by lwIP. If you set this to 1, you must have lwippools.h in your 
- * inlude path somewhere. 
+ * include path somewhere.
  */
 //#ifndef MEMP_USE_CUSTOM_POOLS
 //#define MEMP_USE_CUSTOM_POOLS           0
@@ -272,7 +267,7 @@
 //#endif
 
 /**
- * MEMP_NUM_TCP_PCB: the number of simulatenously active TCP connections.
+ * MEMP_NUM_TCP_PCB: the number of simultaneously active TCP connections.
  * (requires the LWIP_TCP option)
  */
 //#ifndef MEMP_NUM_TCP_PCB
@@ -313,7 +308,7 @@
 //#endif
 
 /**
- * MEMP_NUM_ARP_QUEUE: the number of simulateously queued outgoing
+ * MEMP_NUM_ARP_QUEUE: the number of simultaneously queued outgoing
  * packets (pbufs) that are waiting for an ARP request (to resolve
  * their destination address) to finish.
  * (requires the ARP_QUEUEING option)
@@ -324,7 +319,7 @@
 
 /**
  * MEMP_NUM_IGMP_GROUP: The number of multicast groups whose network interfaces
- * can be members et the same time (one per netif - allsystems group -, plus one
+ * can be members at the same time (one per netif - allsystems group -, plus one
  * per netif membership).
  * (requires the LWIP_IGMP option)
  */
@@ -333,8 +328,7 @@
 //#endif
 
 /**
- * MEMP_NUM_SYS_TIMEOUT: the number of simulateously active timeouts.
- * (requires NO_SYS==0)
+ * MEMP_NUM_SYS_TIMEOUT: the number of simultaneously active timeouts.
  * The default number of timeouts is calculated here for all enabled modules.
  * The formula expects settings to be either '0' or '1'.
  */
@@ -426,11 +420,27 @@
 //#endif
 
 /**
+ * MEMP_NUM_PPP_PCB: the number of simultaneously active PPP
+ * connections (requires the PPP_SUPPORT option)
+ */
+//#ifndef MEMP_NUM_PPP_PCB
+//#define MEMP_NUM_PPP_PCB       1
+//#endif
+
+/**
  * MEMP_NUM_PPPOE_INTERFACES: the number of concurrently active PPPoE
  * interfaces (only used with PPPOE_SUPPORT==1)
  */
 //#ifndef MEMP_NUM_PPPOE_INTERFACES
 //#define MEMP_NUM_PPPOE_INTERFACES       1
+//#endif
+
+/**
+ * MEMP_NUM_PPPOL2TP_INTERFACES: the number of concurrently active PPPoL2TP
+ * interfaces (only used with PPPOL2TP_SUPPORT==1)
+ */
+//#ifndef MEMP_NUM_PPPOL2TP_INTERFACES
+//#define MEMP_NUM_PPPOL2TP_INTERFACES       1
 //#endif
 
 /**
@@ -500,7 +510,7 @@
  *  Old packets are dropped, new packets are queued.
  */ 
 //#ifndef ARP_QUEUE_LEN
-//#define ARP_QUEUE_LEN 3
+//#define ARP_QUEUE_LEN                   3
 //#endif
 
 /**
@@ -543,7 +553,9 @@
  * without this padding e.g. addresses in the IP header will not be aligned
  * on a 32-bit boundary, so setting this to 2 can speed up 32-bit-platforms.
  */
-#define ETH_PAD_SIZE                    0
+//#ifndef ETH_PAD_SIZE
+//#define ETH_PAD_SIZE                    0
+//#endif
 
 /** ETHARP_SUPPORT_STATIC_ENTRIES==1: enable code to support static ARP table
  * entries (using etharp_add_static_entry/etharp_remove_static_entry).
@@ -681,7 +693,9 @@
  * LWIP_ICMP==1: Enable ICMP module inside the IP stack.
  * Be careful, disable that make your product non-compliant to RFC1122
  */
-#define LWIP_ICMP                       1
+//#ifndef LWIP_ICMP
+//#define LWIP_ICMP                       1
+//#endif
 
 /**
  * ICMP_TTL: Default value for Time-To-Live used by ICMP packets.
@@ -738,6 +752,13 @@
  */
 //#ifndef DHCP_DOES_ARP_CHECK
 //#define DHCP_DOES_ARP_CHECK             ((LWIP_DHCP) && (LWIP_ARP))
+//#endif
+
+/**
+ * LWIP_DHCP_BOOTP_FILE==1: Store offered_si_addr and boot_file_name.
+ */
+//#ifndef LWIP_DHCP_BOOTP_FILE
+//#define LWIP_DHCP_BOOTP_FILE            0
 //#endif
 
 /*
@@ -889,11 +910,6 @@
 //#define DNS_DOES_NAME_CHECK             1
 //#endif
 
-/** DNS message max. size. Default value is RFC compliant. */
-//#ifndef DNS_MSG_SIZE
-//#define DNS_MSG_SIZE                    512
-//#endif
-
 /** DNS_LOCAL_HOSTLIST: Implements a local host-to-address list. If enabled,
  *  you have to define
  *    #define DNS_LOCAL_HOSTLIST_INIT {{"host1", 0x123}, {"host2", 0x234}}
@@ -970,6 +986,7 @@
  * TCP_WND: The size of a TCP window.  This must be at least 
  * (2 * TCP_MSS) for things to work well
  */
+//#ifndef TCP_WND
 //#define TCP_WND                         (4 * TCP_MSS)
 //#endif 
 
@@ -1164,7 +1181,7 @@
 
 /**
  * PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. The default is
- * designed to accomodate single full size TCP frame in one pbuf, including
+ * designed to accommodate single full size TCP frame in one pbuf, including
  * TCP_MSS, IP header, and link header.
  */
 //#ifndef PBUF_POOL_BUFSIZE
@@ -1296,7 +1313,9 @@
 /**
  * TCPIP_THREAD_NAME: The name assigned to the main tcpip thread.
  */
-#define TCPIP_THREAD_NAME              "tcpip_thread"
+//#ifndef TCPIP_THREAD_NAME
+//#define TCPIP_THREAD_NAME              "tcpip_thread"
+//#endif
 
 /**
  * TCPIP_THREAD_STACKSIZE: The stack size used by the main tcpip thread.
@@ -1310,7 +1329,7 @@
  * The priority value itself is platform-dependent, but is passed to
  * sys_thread_new() when the thread is created.
  */
-#define TCPIP_THREAD_PRIO               3
+#define TCPIP_THREAD_PRIO               TCP_PRIO
 
 /**
  * TCPIP_MBOX_SIZE: The mailbox size for the tcpip thread messages
@@ -1340,34 +1359,9 @@
  * The priority value itself is platform-dependent, but is passed to
  * sys_thread_new() when the thread is created.
  */
-//#ifndef SLIPIF_THREAD_PRIO
-//#define SLIPIF_THREAD_PRIO              1
-//#endif
-
-/**
- * PPP_THREAD_NAME: The name assigned to the pppInputThread.
- */
-//#ifndef PPP_THREAD_NAME
-//#define PPP_THREAD_NAME                "pppInputThread"
-//#endif
-
-/**
- * PPP_THREAD_STACKSIZE: The stack size used by the pppInputThread.
- * The stack size value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-//#ifndef PPP_THREAD_STACKSIZE
-//#define PPP_THREAD_STACKSIZE            0
-//#endif
-
-/**
- * PPP_THREAD_PRIO: The priority assigned to the pppInputThread.
- * The priority value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-//#ifndef PPP_THREAD_PRIO
-//#define PPP_THREAD_PRIO                 1
-//#endif
+#ifndef SLIPIF_THREAD_PRIO
+#define SLIPIF_THREAD_PRIO              1
+#endif
 
 /**
  * DEFAULT_THREAD_NAME: The name assigned to any other lwIP thread.
@@ -1461,9 +1455,23 @@
 /** LWIP_TCPIP_TIMEOUT==1: Enable tcpip_timeout/tcpip_untimeout tod create
  * timers running in tcpip_thread from another thread.
  */
-//#ifndef LWIP_TCPIP_TIMEOUT
-//#define LWIP_TCPIP_TIMEOUT              1
-//#endif
+#ifndef LWIP_TCPIP_TIMEOUT
+#define LWIP_TCPIP_TIMEOUT              1
+#endif
+
+/** LWIP_NETCONN_SEM_PER_THREAD==1: Use one (thread-local) semaphore per
+ * thread calling socket/netconn functions instead of allocating one
+ * semaphore per netconn (and per select etc.)
+ * ATTENTION: a thread-local semaphore for API calls is needed:
+ * - LWIP_NETCONN_THREAD_SEM_GET() returning a sys_sem_t*
+ * - LWIP_NETCONN_THREAD_SEM_ALLOC() creating the semaphore
+ * - LWIP_NETCONN_THREAD_SEM_FREE() freeing the semaphore
+ * The latter 2 can be invoked up by calling netconn_thread_init()/netconn_thread_cleanup().
+ * Ports may call these for threads created with sys_thread_new().
+ */
+#ifndef LWIP_NETCONN_SEM_PER_THREAD
+#define LWIP_NETCONN_SEM_PER_THREAD     0
+#endif
 
 /*
    ------------------------------------
@@ -1478,9 +1486,7 @@
 /* LWIP_SOCKET_SET_ERRNO==1: Set errno when socket functions cannot complete
  * successfully, as required by POSIX. Default is POSIX-compliant.
  */
-//#ifndef LWIP_SOCKET_SET_ERRNO
-//#define LWIP_SOCKET_SET_ERRNO           1
-//#endif
+#define LWIP_SOCKET_SET_ERRNO           1
 
 /**
  * LWIP_COMPAT_SOCKETS==1: Enable BSD-style sockets functions names.
@@ -1518,6 +1524,14 @@
  */
 //#ifndef LWIP_SO_RCVTIMEO
 //#define LWIP_SO_RCVTIMEO                0
+//#endif
+
+/**
+ * LWIP_SO_SNDRCVTIMEO_NONSTANDARD==1: SO_RCVTIMEO/SO_SNDTIMEO take an int
+ * (milliseconds, much like winsock does) instead of a struct timeval (default).
+ */
+//#ifndef LWIP_SO_SNDRCVTIMEO_NONSTANDARD
+//#define LWIP_SO_SNDRCVTIMEO_NONSTANDARD 0
 //#endif
 
 /**
@@ -1739,13 +1753,86 @@
 //#endif
 
 /**
+ * PPPOL2TP_SUPPORT==1: Enable PPP Over L2TP
+ */
+//#ifndef PPPOL2TP_SUPPORT
+//#define PPPOL2TP_SUPPORT                0
+//#endif
+
+/**
+ * PPPOL2TP_AUTH_SUPPORT==1: Enable PPP Over L2TP Auth (enable MD5 support)
+ */
+//#ifndef PPPOL2TP_AUTH_SUPPORT
+//#define PPPOL2TP_AUTH_SUPPORT           PPPOL2TP_SUPPORT
+//#endif
+
+/**
  * PPPOS_SUPPORT==1: Enable PPP Over Serial
  */
 //#ifndef PPPOS_SUPPORT
 //#define PPPOS_SUPPORT                   PPP_SUPPORT
 //#endif
 
+/**
+ * LWIP_PPP_API==1: Enable PPP API (in pppapi.c)
+ */
+//#ifndef LWIP_PPP_API
+//#define LWIP_PPP_API                    0
+//#endif
+//
 //#if PPP_SUPPORT
+
+/**
+ * PPP_INPROC_MULTITHREADED==1 call ppp_input() using tcpip_callback().
+ * Set this to 0 if pppos_input() is called inside tcpip_thread or with NO_SYS==1.
+ * Default is 1 for NO_SYS==0 (multithreaded) and 0 for NO_SYS==1 (single-threaded).
+ */
+//#ifndef PPP_INPROC_MULTITHREADED
+//#define PPP_INPROC_MULTITHREADED (NO_SYS==0)
+//#endif
+
+/**
+ * PRINTPKT_SUPPORT==1: Enable PPP print packet support
+ *
+ * Mandatory for debugging, it displays exchanged packet content in debug trace.
+ */
+//#ifndef PRINTPKT_SUPPORT
+//#define PRINTPKT_SUPPORT                0
+//#endif
+
+/**
+ * PPP_IPV6_SUPPORT==1: Enable PPP IPv6 support
+ */
+//#ifndef PPP_IPV6_SUPPORT
+//#define PPP_IPV6_SUPPORT                0
+//#endif
+
+/**
+ * PPP_NOTIFY_PHASE==1: Support PPP notify phase support
+ *
+ * PPP notify phase support allows you to set a callback which is
+ * called on change of the internal PPP state machine.
+ *
+ * This can be used for example to set a LED pattern depending on the
+ * current phase of the PPP session.
+ */
+#ifndef PPP_NOTIFY_PHASE
+#define PPP_NOTIFY_PHASE                0
+#endif
+
+/**
+ * pbuf_type PPP is using for LCP, PAP, CHAP, EAP, IPCP and IP6CP packets.
+ *
+ * Memory allocated must be single buffered for PPP to works, it requires pbuf
+ * that are not going to be chained when allocated. This requires setting
+ * PBUF_POOL_BUFSIZE to at least 512 bytes, which is quite huge for small systems.
+ *
+ * Setting PPP_USE_PBUF_RAM to 1 makes PPP use memory from heap where continuous
+ * buffers are required, allowing you to use a smaller PBUF_POOL_BUFSIZE.
+ */
+#ifndef PPP_USE_PBUF_RAM
+#define PPP_USE_PBUF_RAM                0
+#endif
 
 /**
  * NUM_PPP: Max PPP sessions.
@@ -1774,6 +1861,17 @@
 //#ifndef MSCHAP_SUPPORT
 //#define MSCHAP_SUPPORT                  0
 //#endif
+//#if MSCHAP_SUPPORT
+//#undef CHAP_SUPPORT
+//#define CHAP_SUPPORT                    1 /* MSCHAP requires CHAP support */
+//#endif /* MSCHAP_SUPPORT */
+
+/**
+ * EAP_SUPPORT==1: Support EAP.
+ */
+//#ifndef EAP_SUPPORT
+//#define EAP_SUPPORT                     0
+//#endif
 
 /**
  * CBCP_SUPPORT==1: Support CBCP. CURRENTLY NOT SUPPORTED! DO NOT SET!
@@ -1790,18 +1888,98 @@
 //#endif
 
 /**
- * VJ_SUPPORT==1: Support VJ header compression.
+ * ECP_SUPPORT==1: Support ECP. CURRENTLY NOT SUPPORTED! DO NOT SET!
  */
-//#ifndef VJ_SUPPORT
-//#define VJ_SUPPORT                      0
+//#ifndef ECP_SUPPORT
+//#define ECP_SUPPORT                     0
 //#endif
 
 /**
- * MD5_SUPPORT==1: Support MD5 (see also CHAP).
+ * LQR_SUPPORT==1: Support Link Quality Report. Do nothing except exchanging some LCP packets.
  */
-//#ifndef MD5_SUPPORT
-//#define MD5_SUPPORT                     0
+//#ifndef LQR_SUPPORT
+//#define LQR_SUPPORT                     0
 //#endif
+
+/**
+ * PPP_SERVER==1: Enable PPP server support (waiting for incoming PPP session). CURRENTLY NOT SUPPORTED! DO NOT SET!
+ */
+//#ifndef PPP_SERVER
+//#define PPP_SERVER                      0
+//#endif
+
+/**
+ * VJ_SUPPORT==1: Support VJ header compression.
+ */
+//#ifndef VJ_SUPPORT
+//#define VJ_SUPPORT                      1
+//#endif
+//#if !PPPOS_SUPPORT
+//#undef VJ_SUPPORT
+//#define VJ_SUPPORT                      0   /*  Only PPPoS may need VJ compression */
+//#endif /* !PPPOS_SUPPORT */
+
+/**
+ * PPP_MD5_RANDM==1: Use MD5 for better randomness. Automatically enabled if CHAP or L2TP AUTH support is enabled.
+ */
+//#ifndef PPP_MD5_RANDM
+//#define PPP_MD5_RANDM                     0
+//#endif
+//#if CHAP_SUPPORT || PPPOL2TP_AUTH_SUPPORT
+//#undef PPP_MD5_RANDM
+//#define PPP_MD5_RANDM                     1   /*  MD5 Random is required for CHAP and L2TP AUTH */
+//#endif /* CHAP_SUPPORT || PPPOL2TP_AUTH_SUPPORT */
+
+/**
+ * PolarSSL library, used if necessary and not previously disabled
+ *
+ *
+ * lwIP contains some files fetched from the latest BSD release of
+ * the PolarSSL project for ciphers and encryption methods we need for lwIP
+ * PPP support.
+ *
+ * The PolarSSL files were cleaned to contain only the necessary struct
+ * fields and functions needed for lwIP.
+ *
+ * The PolarSSL API was not changed at all, so if you are already using
+ * PolarSSL you can choose to skip the compilation of the included PolarSSL
+ * library into lwIP:
+ *
+ * The following defines are available for flexibility:
+ *
+ * LWIP_INCLUDED_POLARSSL_MD4   ; Use lwIP internal PolarSSL for MD4
+ * LWIP_INCLUDED_POLARSSL_MD5   ; Use lwIP internal PolarSSL for MD5
+ * LWIP_INCLUDED_POLARSSL_SHA1  ; Use lwIP internal PolarSSL for SHA1
+ * LWIP_INCLUDED_POLARSSL_DES   ; Use lwIP internal PolarSSL for DES
+ *
+ * If set (=1), the default if required by another enabled PPP feature unless
+ * explicitly set to 0, using included lwIP PolarSSL.
+ * 
+ * If clear (=0), using external PolarSSL.
+ * 
+ * Undefined if not needed.
+ * 
+ * Beware of the stack requirements which can be a lot larger if you are not
+ * using our cleaned PolarSSL library.
+ */
+
+//#if CHAP_SUPPORT || EAP_SUPPORT || PPPOL2TP_AUTH_SUPPORT || PPP_MD5_RANDM
+//#ifndef LWIP_INCLUDED_POLARSSL_MD5
+//#define LWIP_INCLUDED_POLARSSL_MD5        1 /* CHAP, EAP, L2TP AUTH and MD5 Random require MD5 support */
+//#endif /* LWIP_INCLUDED_POLARSSL_MD5 */
+//#endif /* CHAP_SUPPORT || EAP_SUPPORT || PPPOL2TP_AUTH_SUPPORT || PPP_MD5_RANDM */
+
+//#if MSCHAP_SUPPORT
+//#ifndef LWIP_INCLUDED_POLARSSL_MD4
+//#define LWIP_INCLUDED_POLARSSL_MD4        1 /* MSCHAP require MD4 support */
+//#endif /* LWIP_INCLUDED_POLARSSL_MD4 */
+//#ifndef LWIP_INCLUDED_POLARSSL_SHA1
+//#define LWIP_INCLUDED_POLARSSL_SHA1       1 /* MSCHAP require SHA1 support */
+//#endif /* LWIP_INCLUDED_POLARSSL_SHA1 */
+//#ifndef LWIP_INCLUDED_POLARSSL_DES
+//#define LWIP_INCLUDED_POLARSSL_DES        1 /* MSCHAP require DES support */
+//#endif /* LWIP_INCLUDED_POLARSSL_DES */
+//#endif /* MSCHAP_SUPPORT */
 
 /*
  * Timeouts
@@ -1826,16 +2004,52 @@
 //#define UPAP_DEFTIMEOUT                 6       /* Timeout (seconds) for retransmitting req */
 //#endif
 
+//#ifndef UPAP_DEFTRANSMITS
+//#define UPAP_DEFTRANSMITS               10      /* Maximum number of auth-reqs to send */
+//#endif
+
+//#if PPP_SERVER
 //#ifndef UPAP_DEFREQTIME
 //#define UPAP_DEFREQTIME                 30      /* Time to wait for auth-req from peer */
 //#endif
+//#endif /* PPP_SERVER */
 
 //#ifndef CHAP_DEFTIMEOUT
-//#define CHAP_DEFTIMEOUT                 6       /* Timeout time in seconds */
+//#define CHAP_DEFTIMEOUT                 6       /* Timeout (seconds) for retransmitting req */
 //#endif
 
 //#ifndef CHAP_DEFTRANSMITS
 //#define CHAP_DEFTRANSMITS               10      /* max # times to send challenge */
+//#endif
+
+//#if PPP_SERVER
+//#ifndef CHAP_DEFREQTIME
+//#define CHAP_DEFREQTIME                 30      /* Time to wait for auth-req from peer */
+//#endif
+//#endif /* PPP_SERVER */
+
+//#ifndef EAP_DEFREQTIME
+//#define EAP_DEFREQTIME                  6       /* Time to wait for peer request */
+//#endif
+
+//#ifndef EAP_DEFALLOWREQ
+//#define EAP_DEFALLOWREQ                 10      /* max # times to accept requests */
+//#endif
+
+//#if PPP_SERVER
+//#ifndef EAP_DEFTIMEOUT
+//#define EAP_DEFTIMEOUT                  6       /* Timeout (seconds) for rexmit */
+//#endif
+
+//#ifndef EAP_DEFTRANSMITS
+//#define EAP_DEFTRANSMITS                10      /* max # times to transmit */
+//#endif
+//#endif /* PPP_SERVER */
+
+/* Default number of times we receive our magic number from the peer
+   before deciding the link is looped-back. */
+//#ifndef LCP_DEFLOOPBACKFAIL
+//#define LCP_DEFLOOPBACKFAIL             10
 //#endif
 
 /* Interval in seconds between keepalive echo requests, 0 to disable. */

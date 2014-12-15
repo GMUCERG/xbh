@@ -17,6 +17,7 @@ XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c
 XBH_SOURCES += $(PROJECT_ROOT)/main.c
 XBH_SOURCES += $(PROJECT_ROOT)/util.c
+XBH_SOURCES += $(PROJECT_ROOT)/xbhserver.c
 
 
 
@@ -49,15 +50,13 @@ endif
 
 ${BUILDDIR}/xbh.axf: ${XBH_OBJECTS}
 ${BUILDDIR}/xbh.axf: ${LIBDIR}/freertos.a
-#${BUILDDIR}/xbh.axf: ${LIBDIR}/libusb.a
-#${BUILDDIR}/xbh.axf: ${LIBDIR}/libutils.a
 ${BUILDDIR}/xbh.axf: ${LIBDIR}/libdriver.a
 ${BUILDDIR}/xbh.axf: ${LIBDIR}/liblwip.a
 ${BUILDDIR}/xbh.axf: xbh.ld
 SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
-#CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -DDEBUG_STACK -g -O0
 CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -DDEBUG_STACK -g -O0
+#CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -g -O0
 
 #${BUILDDIR}/usb_dev_bulk.axf: |${BUILDDIR}
 #${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/startup_${COMPILER}.o

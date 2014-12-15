@@ -28,6 +28,7 @@
 
 #include "lwip_eth.h"
 #include "hal.h"
+#include "xbh.h"
 #include "util.h"
 
 
@@ -65,6 +66,7 @@ static TaskHandle_t eth_int_task_handle;
  */
 static QueueHandle_t eth_int_q_handle;
 
+static uint8_t mac_addr[6];
 /**
  * NetIF struct for lwIP
  */
@@ -83,7 +85,6 @@ void init_ethernet(void){/*{{{*/
 
     { // Enable Ethernet hardware/*{{{*/
         uint32_t user0, user1;
-        uint8_t mac_addr[6];
 
         // Lower priority of ISR so *FromISR functions can be safely called
         MAP_IntPrioritySet(INT_EMAC0, configKERNEL_INTERRUPT_PRIORITY);
@@ -164,7 +165,7 @@ static void tcpip_init_cb(void *args){/*{{{*/
             "eth_int",
             ETH_INT_STACK,
             NULL,
-            tskIDLE_PRIORITY+1,
+            tskIDLE_PRIORITY+ETH_PRIO,
             &eth_int_task_handle);
     LOOP_ERR(retval != pdPASS);
 
@@ -182,7 +183,14 @@ static void tcpip_init_cb(void *args){/*{{{*/
     netif_set_status_callback(&lwip_netif, link_status);
     netif_set_default(&lwip_netif);
 
+#if LWIP_IPV6
+    //IPv6, enable linklocal addresses and SLAAC
+    netif_create_ip6_linklocal_address(&lwip_netif, mac_addr);
+    lwip_netif.autoconfig_enabled = 1;
+#endif
+
     dhcp_start(&lwip_netif);
+
 #if DEBUG_STACK
     DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
 #endif
@@ -192,25 +200,25 @@ static void tcpip_init_cb(void *args){/*{{{*/
  * Outputs link status on serial console
  */
 static void link_status(struct netif *arg){/*{{{*/
-  xbh_printf("IP address of interface %c%c set to %hd.%hd.%hd.%hd\n",
+  uart_printf("IP address of interface %c%c set to %hd.%hd.%hd.%hd\n",
     arg->name[0], arg->name[1],
     ip4_addr1_16(&arg->ip_addr),
     ip4_addr2_16(&arg->ip_addr),
     ip4_addr3_16(&arg->ip_addr),
     ip4_addr4_16(&arg->ip_addr));
-  xbh_printf("Netmask of interface %c%c set to %hd.%hd.%hd.%hd\n",
+  uart_printf("Netmask of interface %c%c set to %hd.%hd.%hd.%hd\n",
     arg->name[0], arg->name[1],
     ip4_addr1_16(&arg->netmask),
     ip4_addr2_16(&arg->netmask),
     ip4_addr3_16(&arg->netmask),
     ip4_addr4_16(&arg->netmask));
-  xbh_printf("Gateway of interface %c%c set to %hd.%hd.%hd.%hd\n",
+  uart_printf("Gateway of interface %c%c set to %hd.%hd.%hd.%hd\n",
     arg->name[0], arg->name[1],
     ip4_addr1_16(&arg->gw),
     ip4_addr2_16(&arg->gw),
     ip4_addr3_16(&arg->gw),
     ip4_addr4_16(&arg->gw));
-  xbh_printf("Hostname of interface %c%c set to %s\n",
+  uart_printf("Hostname of interface %c%c set to %s\n",
     arg->name[0], arg->name[1], arg->hostname);
 }/*}}}*/
 

@@ -68,6 +68,7 @@
 // Hardware abstraction layer
 #include "hal/hal.h"
 #include "util.h"
+#include "xbhserver.h"
 
 /* Delay between cycles of the 'check' task. */
 // Make it 30s
@@ -151,7 +152,7 @@ void vApplicationStackOverflowHook(TaskHandle_t *pxTask, char *pcTaskName){
 int main(void) {
     HAL_setup();
 
-    //start_xbh_task();
+    start_xbhserver();
 
     DEBUG_OUT("Starting Scheduler\n");
 
