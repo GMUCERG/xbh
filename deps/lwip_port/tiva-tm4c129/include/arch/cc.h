@@ -32,6 +32,9 @@
 #ifndef __CC_H__
 #define __CC_H__
 
+#include "util.h"
+#define LWIP_PLATFORM_DIAG(msg) uart_writeP msg
+
 typedef unsigned    char    u8_t;
 typedef signed      char    s8_t;
 typedef unsigned    short   u16_t;
@@ -41,11 +44,15 @@ typedef signed      long    s32_t;
 typedef u32_t               mem_ptr_t;
 typedef u8_t                sys_prot_t;
 
+// Needed to enable socket API
+#define LWIP_PROVIDE_ERRNO
+
 #ifndef BYTE_ORDER
 #define BYTE_ORDER LITTLE_ENDIAN
 #endif
 
 #if 1
+#define X8_F  "02x"
 #define U16_F "hu"
 #define S16_F "hd"
 #define X16_F "hx"

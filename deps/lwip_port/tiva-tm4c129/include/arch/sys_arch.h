@@ -68,7 +68,9 @@ typedef sem_t sys_sem_t;
 typedef TaskHandle_t sys_thread_t;
 
 /* The value for an unallocated mbox. */
-#define SYS_MBOX_NULL       0
+#define SYS_MBOX_NULL       NULL
+#define SYS_SEM_NULL        NULL
+
 
 #endif /* __ARCH_SYS_ARCH_H__ */
 

@@ -149,26 +149,28 @@ static thread_t threads[SYS_THREAD_MAX];
  * Initializes the system architecture layer.
  *
  */
-void
-sys_init(void)
-{
-  u32_t i;
+void sys_init(void) {
+    static bool called = false; //variable to disallow this being called multiple times
+    u32_t i;
 
-  /* Clear out the mailboxes. */
-  for(i = 0; i < SYS_MBOX_MAX; i++) {
-    mboxes[i].queue = 0;
-  }
+    if(!called){
+        called = true;
+        /* Clear out the mailboxes. */
+        for(i = 0; i < SYS_MBOX_MAX; i++) {
+            mboxes[i].queue = 0;
+        }
 
-  /* Clear out the semaphores. */
-  for(i = 0; i < SYS_SEM_MAX; i++) {
-    sems[i].queue = 0;
-  }
+        /* Clear out the semaphores. */
+        for(i = 0; i < SYS_SEM_MAX; i++) {
+            sems[i].queue = 0;
+        }
 
-  /* Clear out the threads. */
-  for(i = 0; i < SYS_THREAD_MAX; i++) {
-    threads[i].stackstart = NULL;
-    threads[i].stackend = NULL;
-  }
+        /* Clear out the threads. */
+        for(i = 0; i < SYS_THREAD_MAX; i++) {
+            threads[i].stackstart = NULL;
+            threads[i].stackend = NULL;
+        }
+    }
 }
 
 /**
@@ -490,14 +492,16 @@ sys_mbox_free(sys_mbox_t *mbox)
 #if SYS_STATS
     STATS_INC(sys.mbox.err);
 #endif /* SYS_STATS */
-  }
+  }else{
+    /* Clear the queue handle. */
+    mbox->queue = 0;
+#if RTOS_FREERTOS
+	vQueueDelete( mbox->queue );
+#endif 
 
-  /* Clear the queue handle. */
-  mbox->queue = 0;
-
-  /* Update the mailbox statistics. */
+    /* Update the mailbox statistics. */
 #if SYS_STATS
-   STATS_DEC(sys.mbox.used);
+    STATS_DEC(sys.mbox.used);
 #endif /* SYS_STATS */
 }
 
@@ -516,6 +520,10 @@ sys_mbox_valid(sys_mbox_t *mbox)
   else{
       return 1;
   }
+}
+
+void sys_mbox_set_invalid(sys_mbox_t *mbox){
+
 }
 
 /**
