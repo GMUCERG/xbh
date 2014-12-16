@@ -36,608 +36,574 @@
  *
  */
 
-/* Copyright (c) 2008 Texas Instruments Incorporated */
+//*****************************************************************************
+//
+// Include OS functionality.
+//
+//*****************************************************************************
 
-/* lwIP includes. */
+/* ------------------------ System architecture includes ----------------------------- */
+#include "arch/sys_arch.h"
+
+/* ------------------------ lwIP includes --------------------------------- */
 #include "lwip/opt.h"
+
+#include "lwip/debug.h"
+#include "lwip/def.h"
 #include "lwip/sys.h"
+#include "lwip/mem.h"
+#include "lwip/stats.h"
 
-#if SYS_STATS
-#include <lwip/stats.h>
-#endif
+/* Very crude mechanism used to determine if the critical section handling
+functions are being called from an interrupt context or not.  This relies on
+the interrupt handler setting this variable manually. */
+BaseType_t xInsideISR = pdFALSE;
 
-#if NO_SYS
-
-#if SYS_LIGHTWEIGHT_PROT
-
-/* TivaWare header files required for this interface driver. */
-#include <stdint.h>
-#include <stdbool.h>
-#include "inc/hw_types.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/rom.h"
-#include "driverlib/rom_map.h"
-
-/**
- * This global is defined in lwiplib.c and contains a count of the number of
- * elapsed milliseconds since lwIP started.
- */
-extern uint32_t g_ui32LocalTimer;
-
-/**
- * This function returns the system time in milliseconds.
- */
-u32_t
-sys_now(void)
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_mbox_new
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Creates a new mailbox
+ * Inputs:
+ *      int size                -- Size of elements in the mailbox
+ * Outputs:
+ *      sys_mbox_t              -- Handle to new mailbox
+ *---------------------------------------------------------------------------*/
+err_t sys_mbox_new( sys_mbox_t *pxMailBox, int iSize )
 {
-    return(g_ui32LocalTimer);
+err_t xReturn = ERR_MEM;
+
+	*pxMailBox = xQueueCreate( iSize, sizeof( void * ) );
+
+	if( *pxMailBox != NULL )
+	{
+		xReturn = ERR_OK;
+		SYS_STATS_INC_USED( mbox );
+	}
+
+	return xReturn;
 }
 
 
-/**
- * This function is used to lock access to critical sections when lwipopt.h
- * defines SYS_LIGHTWEIGHT_PROT. It disables interrupts and returns a value
- * indicating the interrupt enable state when the function entered. This
- * value must be passed back on the matching call to sys_arch_unprotect().
- *
- * @return the interrupt level when the function was entered.
- */
-sys_prot_t
-sys_arch_protect(void)
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_mbox_free
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Deallocates a mailbox. If there are messages still present in the
+ *      mailbox when the mailbox is deallocated, it is an indication of a
+ *      programming error in lwIP and the developer should be notified.
+ * Inputs:
+ *      sys_mbox_t mbox         -- Handle of mailbox
+ * Outputs:
+ *      sys_mbox_t              -- Handle to new mailbox
+ *---------------------------------------------------------------------------*/
+void sys_mbox_free( sys_mbox_t *pxMailBox )
 {
-  return((sys_prot_t)MAP_IntMasterDisable());
+unsigned long ulMessagesWaiting;
+
+	ulMessagesWaiting = uxQueueMessagesWaiting( *pxMailBox );
+	configASSERT( ( ulMessagesWaiting == 0 ) );
+
+	#if SYS_STATS
+	{
+		if( ulMessagesWaiting != 0UL )
+		{
+			SYS_STATS_INC( mbox.err );
+		}
+
+		SYS_STATS_DEC( mbox.used );
+	}
+	#endif /* SYS_STATS */
+
+	vQueueDelete( *pxMailBox );
 }
 
-/**
- * This function is used to unlock access to critical sections when lwipopt.h
- * defines SYS_LIGHTWEIGHT_PROT. It enables interrupts if the value of the lev
- * parameter indicates that they were enabled when the matching call to
- * sys_arch_protect() was made.
- *
- * @param lev is the interrupt level when the matching protect function was
- * called
- */
-void
-sys_arch_unprotect(sys_prot_t lev)
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_mbox_post
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Post the "msg" to the mailbox.
+ * Inputs:
+ *      sys_mbox_t mbox         -- Handle of mailbox
+ *      void *data              -- Pointer to data to post
+ *---------------------------------------------------------------------------*/
+void sys_mbox_post( sys_mbox_t *pxMailBox, void *pxMessageToPost )
 {
-  /* Only turn interrupts back on if they were originally on when the matching
-     sys_arch_protect() call was made. */
-  if(!(lev & 1)) {
-    MAP_IntMasterEnable();
-  }
-}
-#endif /* SYS_LIGHTWEIGHT_PROT */
-
-#else /* NO_SYS */
-
-/* A structure to contain the variables for a sys_thread_t. */
-typedef struct {
-  void *stackstart;
-  void *stackend;
-  void (*thread)(void *arg);
-  void *arg;
-#if RTOS_FREERTOS
-  TaskHandle_t taskhandle;
-#endif /* RTOS_FREERTOS */
-} thread_t;
-
-/* Provide a default maximum number of threads. */
-#ifndef SYS_THREAD_MAX
-#define SYS_THREAD_MAX          4
-#endif /* SYS_THREAD_MAX */
-
-/* Provide a default maximum number of semaphores. */
-#ifndef SYS_SEM_MAX
-#define SYS_SEM_MAX             4
-#endif /* SYS_SEM_MAX */
-
-/* Provide a default maximum number of mailboxes. */
-#ifndef SYS_MBOX_MAX
-#define SYS_MBOX_MAX            4
-#endif /* SYS_MBOX_MAX */
-
-/* An array to hold the memory for the available semaphores. */
-static sem_t sems[SYS_SEM_MAX];
-
-/* An array to hold the memory for the available mailboxes. */
-static mbox_t mboxes[SYS_MBOX_MAX];
-
-/* An array to hold the memory for the available threads. */
-static thread_t threads[SYS_THREAD_MAX];
-
-/**
- * Initializes the system architecture layer.
- *
- */
-void sys_init(void) {
-    static bool called = false; //variable to disallow this being called multiple times
-    u32_t i;
-
-    if(!called){
-        called = true;
-        /* Clear out the mailboxes. */
-        for(i = 0; i < SYS_MBOX_MAX; i++) {
-            mboxes[i].queue = 0;
-        }
-
-        /* Clear out the semaphores. */
-        for(i = 0; i < SYS_SEM_MAX; i++) {
-            sems[i].queue = 0;
-        }
-
-        /* Clear out the threads. */
-        for(i = 0; i < SYS_THREAD_MAX; i++) {
-            threads[i].stackstart = NULL;
-            threads[i].stackend = NULL;
-        }
-    }
+	while( xQueueSendToBack( *pxMailBox, &pxMessageToPost, portMAX_DELAY ) != pdTRUE );
 }
 
-/**
- * Creates a new semaphore.
- *
- * @param count is non-zero if the semaphore should be acquired initially.
- * @return the handle of the created semaphore.
- */
-err_t
-sys_sem_new(sys_sem_t *sem, u8_t count)
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_mbox_trypost
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Try to post the "msg" to the mailbox.  Returns immediately with
+ *      error if cannot.
+ * Inputs:
+ *      sys_mbox_t mbox         -- Handle of mailbox
+ *      void *msg               -- Pointer to data to post
+ * Outputs:
+ *      err_t                   -- ERR_OK if message posted, else ERR_MEM
+ *                                  if not.
+ *---------------------------------------------------------------------------*/
+err_t sys_mbox_trypost( sys_mbox_t *pxMailBox, void *pxMessageToPost )
 {
-  void *temp;
-  u32_t i;
+err_t xReturn;
+portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
-  /* Find a semaphore that is not in use. */
-  for(i = 0; i < SYS_SEM_MAX; i++) {
-    if(sems[i].queue == 0) {
-      break;
-    }
-  }
-  if(i == SYS_SEM_MAX) {
-#if SYS_STATS
-    STATS_INC(sys.sem.err);
-#endif /* SYS_STATS */
-    return ERR_MEM;
-  }
+	if( xInsideISR != pdFALSE )
+	{
+		xReturn = xQueueSendFromISR( *pxMailBox, &pxMessageToPost, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+	}
+	else
+	{
+		xReturn = xQueueSend( *pxMailBox, &pxMessageToPost, ( TickType_t ) 0 );
+	}
 
-  /* Create a single-entry queue to act as a semaphore. */
-#if RTOS_FREERTOS
-  sem->queue = xQueueCreate(1, sizeof(void *));
-  if(sem->queue == NULL) {
-#endif /* RTOS_FREERTOS */
+	if( xReturn == pdPASS )
+	{
+		xReturn = ERR_OK;
+	}
+	else
+	{
+		/* The queue was already full. */
+		xReturn = ERR_MEM;
+		SYS_STATS_INC( mbox.err );
+	}
 
-#if SYS_STATS
-    STATS_INC(sys.sem.err);
-#endif /* SYS_STATS */
-    return ERR_MEM;
-  }
-
-  /* Acquired the semaphore if necessary. */
-  if(count == 0) {
-    temp = 0;
-    xQueueSend(sem->queue, &temp, 0);
-  }
-
-  /* Update the semaphore statistics. */
-#if SYS_STATS
-  STATS_INC(sys.sem.used);
-#if LWIP_STATS
-  if(lwip_stats.sys.sem.max < lwip_stats.sys.sem.used) {
-    lwip_stats.sys.sem.max = lwip_stats.sys.sem.used;
-  }
-#endif
-#endif /* SYS_STATS */
-
-  /* Save the queue handle. */
-  sems[i].queue = sem->queue;
-
-  /* Return this semaphore. */
-  return (ERR_OK);
+	return xReturn;
 }
 
-/**
- * Signal a semaphore.
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_arch_mbox_fetch
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Blocks the thread until a message arrives in the mailbox, but does
+ *      not block the thread longer than "timeout" milliseconds (similar to
+ *      the sys_arch_sem_wait() function). The "msg" argument is a result
+ *      parameter that is set by the function (i.e., by doing "*msg =
+ *      ptr"). The "msg" parameter maybe NULL to indicate that the message
+ *      should be dropped.
  *
- * @param sem is the semaphore to signal.
- */
-void
-sys_sem_signal(sys_sem_t *sem)
-{
-  void *msg;
-
-  /* Receive a message from the semaphore's queue. */
-  xQueueReceive(sem->queue, &msg, 0);
-}
-
-/**
- * Wait for a semaphore to be signalled.
+ *      The return values are the same as for the sys_arch_sem_wait() function:
+ *      Number of milliseconds spent waiting or SYS_ARCH_TIMEOUT if there was a
+ *      timeout.
  *
- * @param sem is the semaphore
- * @param timeout is the maximum number of milliseconds to wait for the
- *        semaphore to be signalled
- * @return the number of milliseconds that passed before the semaphore was
- *         acquired, or SYS_ARCH_TIMEOUT if the timeout occurred
- */
-u32_t
-sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
+ *      Note that a function with a similar name, sys_mbox_fetch(), is
+ *      implemented by lwIP.
+ * Inputs:
+ *      sys_mbox_t mbox         -- Handle of mailbox
+ *      void **msg              -- Pointer to pointer to msg received
+ *      u32_t timeout           -- Number of milliseconds until timeout
+ * Outputs:
+ *      u32_t                   -- SYS_ARCH_TIMEOUT if timeout, else number
+ *                                  of milliseconds until received.
+ *---------------------------------------------------------------------------*/
+u32_t sys_arch_mbox_fetch( sys_mbox_t *pxMailBox, void **ppvBuffer, u32_t ulTimeOut )
 {
-  TickType_t starttime;
-  void *msg = 0;
+void *pvDummy;
+TickType_t xStartTime, xEndTime, xElapsed;
+unsigned long ulReturn;
 
-  /* Get the starting time. */
-  starttime = xTaskGetTickCount();
+	xStartTime = xTaskGetTickCount();
 
-  /* See if there is a timeout. */
-  if(timeout != 0) {
-    /* Send a message to the queue. */
-    if(xQueueSend(sem->queue, &msg, timeout / portTICK_PERIOD_MS) == pdPASS) {
-      /* Return the amount of time it took for the semaphore to be
-         signalled. */
-      return (xTaskGetTickCount() - starttime) * portTICK_PERIOD_MS;
-    } else {
-      /* The semaphore failed to signal in the allotted time. */
-      return SYS_ARCH_TIMEOUT;
-    }
-  } else {
-    /* Try to send a message to the queue until it succeeds. */
-    while(xQueueSend(sem->queue, &msg, portMAX_DELAY) != pdPASS);
+	if( NULL == ppvBuffer )
+	{
+		ppvBuffer = &pvDummy;
+	}
 
-    /* Return the amount of time it took for the semaphore to be signalled. */
-    return (xTaskGetTickCount() - starttime) * portTICK_PERIOD_MS;
-  }
+	if( ulTimeOut != 0UL )
+	{
+		configASSERT( xInsideISR == ( portBASE_TYPE ) 0 );
+
+		if( pdTRUE == xQueueReceive( *pxMailBox, &( *ppvBuffer ), ulTimeOut/ portTICK_PERIOD_MS ) )
+		{
+			xEndTime = xTaskGetTickCount();
+			xElapsed = ( xEndTime - xStartTime ) * portTICK_PERIOD_MS;
+
+			ulReturn = xElapsed;
+		}
+		else
+		{
+			/* Timed out. */
+			*ppvBuffer = NULL;
+			ulReturn = SYS_ARCH_TIMEOUT;
+		}
+	}
+	else
+	{
+		while( pdTRUE != xQueueReceive( *pxMailBox, &( *ppvBuffer ), portMAX_DELAY ) );
+		xEndTime = xTaskGetTickCount();
+		xElapsed = ( xEndTime - xStartTime ) * portTICK_PERIOD_MS;
+
+		if( xElapsed == 0UL )
+		{
+			xElapsed = 1UL;
+		}
+
+		ulReturn = xElapsed;
+	}
+
+	return ulReturn;
 }
 
-/**
- * Destroys a semaphore.
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_arch_mbox_tryfetch
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Similar to sys_arch_mbox_fetch, but if message is not ready
+ *      immediately, we'll return with SYS_MBOX_EMPTY.  On success, 0 is
+ *      returned.
+ * Inputs:
+ *      sys_mbox_t mbox         -- Handle of mailbox
+ *      void **msg              -- Pointer to pointer to msg received
+ * Outputs:
+ *      u32_t                   -- SYS_MBOX_EMPTY if no messages.  Otherwise,
+ *                                  return ERR_OK.
+ *---------------------------------------------------------------------------*/
+u32_t sys_arch_mbox_tryfetch( sys_mbox_t *pxMailBox, void **ppvBuffer )
+{
+void *pvDummy;
+unsigned long ulReturn;
+long lResult;
+portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+
+	if( ppvBuffer== NULL )
+	{
+		ppvBuffer = &pvDummy;
+	}
+
+	if( xInsideISR != pdFALSE )
+	{
+		lResult = xQueueReceiveFromISR( *pxMailBox, &( *ppvBuffer ), &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+	}
+	else
+	{
+		lResult = xQueueReceive( *pxMailBox, &( *ppvBuffer ), 0UL );
+	}
+
+	if( lResult == pdPASS )
+	{
+		ulReturn = ERR_OK;
+	}
+	else
+	{
+		ulReturn = SYS_MBOX_EMPTY;
+	}
+
+	return ulReturn;
+}
+
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_sem_new
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Creates and returns a new semaphore. The "ucCount" argument specifies
+ *      the initial state of the semaphore.
+ *      NOTE: Currently this routine only creates counts of 1 or 0
+ * Inputs:
+ *      sys_mbox_t mbox         -- Handle of mailbox
+ *      u8_t ucCount              -- Initial ucCount of semaphore (1 or 0)
+ * Outputs:
+ *      sys_sem_t               -- Created semaphore or 0 if could not create.
+ *---------------------------------------------------------------------------*/
+err_t sys_sem_new( sys_sem_t *pxSemaphore, u8_t ucCount )
+{
+err_t xReturn = ERR_MEM;
+
+	//vSemaphoreCreateBinary( ( *pxSemaphore ) );
+	*pxSemaphore = xSemaphoreCreateCounting( 0xffff, ( unsigned long ) ucCount );
+
+	if( *pxSemaphore != NULL )
+	{
+		if( ucCount == 0U )
+		{
+//			xSemaphoreTake( *pxSemaphore, 1UL );
+		}
+
+		xReturn = ERR_OK;
+		SYS_STATS_INC_USED( sem );
+	}
+	else
+	{
+		SYS_STATS_INC( sem.err );
+	}
+
+	return xReturn;
+}
+
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_arch_sem_wait
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Blocks the thread while waiting for the semaphore to be
+ *      signaled. If the "timeout" argument is non-zero, the thread should
+ *      only be blocked for the specified time (measured in
+ *      milliseconds).
  *
- * @param sem is the semaphore to be destroyed.
- */
-void
-sys_sem_free(sys_sem_t *sem)
-{
-  /* Clear the queue handle. */
-  sem->queue = 0;
-
-  /* Update the semaphore statistics. */
-#if SYS_STATS
-  STATS_DEC(sys.sem.used);
-#endif /* SYS_STATS */
-}
-
-/**
- * Creates a new mailbox.
+ *      If the timeout argument is non-zero, the return value is the number of
+ *      milliseconds spent waiting for the semaphore to be signaled. If the
+ *      semaphore wasn't signaled within the specified time, the return value is
+ *      SYS_ARCH_TIMEOUT. If the thread didn't have to wait for the semaphore
+ *      (i.e., it was already signaled), the function may return zero.
  *
- * @param size is the number of entries in the mailbox.
- * @return the handle of the created mailbox.
- */
-err_t
-sys_mbox_new(sys_mbox_t *mbox, int size)
+ *      Notice that lwIP implements a function with a similar name,
+ *      sys_sem_wait(), that uses the sys_arch_sem_wait() function.
+ * Inputs:
+ *      sys_sem_t sem           -- Semaphore to wait on
+ *      u32_t timeout           -- Number of milliseconds until timeout
+ * Outputs:
+ *      u32_t                   -- Time elapsed or SYS_ARCH_TIMEOUT.
+ *---------------------------------------------------------------------------*/
+u32_t sys_arch_sem_wait( sys_sem_t *pxSemaphore, u32_t ulTimeout )
 {
-  u32_t i;
+TickType_t xStartTime, xEndTime, xElapsed;
+unsigned long ulReturn;
 
-  /* Fail if the mailbox size is too large. */
-  if(size > MBOX_MAX) {
-#if SYS_STATS
-    STATS_INC(sys.mbox.err);
-#endif /* SYS_STATS */
-    return ERR_MEM;
-  }
+	xStartTime = xTaskGetTickCount();
 
-  /* Find a mailbox that is not in use. */
-  for(i = 0; i < SYS_MBOX_MAX; i++) {
-    if(mboxes[i].queue == 0) {
-      break;
-    }
-  }
-  if(i == SYS_MBOX_MAX) {
-#if SYS_STATS
-    STATS_INC(sys.mbox.err);
-#endif /* SYS_STATS */
-    return ERR_MEM;
-  }
+	if( ulTimeout != 0UL )
+	{
+		if( xSemaphoreTake( *pxSemaphore, ulTimeout / portTICK_PERIOD_MS ) == pdTRUE )
+		{
+			xEndTime = xTaskGetTickCount();
+			xElapsed = (xEndTime - xStartTime) * portTICK_PERIOD_MS;
+			ulReturn = xElapsed;
+		}
+		else
+		{
+			ulReturn = SYS_ARCH_TIMEOUT;
+		}
+	}
+	else
+	{
+		while( xSemaphoreTake( *pxSemaphore, portMAX_DELAY ) != pdTRUE );
+		xEndTime = xTaskGetTickCount();
+		xElapsed = ( xEndTime - xStartTime ) * portTICK_PERIOD_MS;
 
-#if RTOS_FREERTOS
-  /* Create a queue for this mailbox. */
-  mbox->queue = xQueueCreate(size, sizeof(void *));
-  if(mbox == NULL) {
-#endif /* RTOS_FREERTOS */
+		if( xElapsed == 0UL )
+		{
+			xElapsed = 1UL;
+		}
 
-#if SYS_STATS
-    STATS_INC(sys.mbox.err);
-#endif /* SYS_STATS */
-    return ERR_MEM;
-  }
+		ulReturn = xElapsed;
+	}
 
-  /* Update the mailbox statistics. */
-#if SYS_STATS
-  STATS_INC(sys.mbox.used);
-#if LWIP_STATS
-  if(lwip_stats.sys.mbox.max < lwip_stats.sys.mbox.used) {
-    lwip_stats.sys.mbox.max = lwip_stats.sys.mbox.used;
-  }
-#endif
-#endif /* SYS_STATS */
-
-  /* Save the queue handle. */
-  mboxes[i].queue = mbox->queue;
-
-  /* Return this mailbox. */
-  return ERR_OK;
+	return ulReturn;
 }
 
-/**
- * Sends a message to a mailbox.
+/** Create a new mutex
+ * @param mutex pointer to the mutex to create
+ * @return a new mutex */
+err_t sys_mutex_new( sys_mutex_t *pxMutex )
+{
+err_t xReturn = ERR_MEM;
+
+	*pxMutex = xSemaphoreCreateMutex();
+
+	if( *pxMutex != NULL )
+	{
+		xReturn = ERR_OK;
+		SYS_STATS_INC_USED( mutex );
+	}
+	else
+	{
+		SYS_STATS_INC( mutex.err );
+	}
+
+	return xReturn;
+}
+
+/** Lock a mutex
+ * @param mutex the mutex to lock */
+void sys_mutex_lock( sys_mutex_t *pxMutex )
+{
+BaseType_t xGotSemaphore;
+BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	if( xInsideISR == 0 )
+	{
+		while( xSemaphoreTake( *pxMutex, portMAX_DELAY ) != pdPASS );
+	}
+	else
+	{
+		xGotSemaphore = xSemaphoreTakeFromISR( *pxMutex, &xHigherPriorityTaskWoken );
+		configASSERT( xGotSemaphore );
+		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+
+		/* Prevent compiler warnings if configASSERT() is not defined. */
+		( void ) xGotSemaphore;
+	}
+}
+
+/** Unlock a mutex
+ * @param mutex the mutex to unlock */
+void sys_mutex_unlock(sys_mutex_t *pxMutex )
+{
+	xSemaphoreGive( *pxMutex );
+}
+
+
+/** Delete a semaphore
+ * @param mutex the mutex to delete */
+void sys_mutex_free( sys_mutex_t *pxMutex )
+{
+	SYS_STATS_DEC( mutex.used );
+	vQueueDelete( *pxMutex );
+}
+
+
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_sem_signal
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Signals (releases) a semaphore
+ * Inputs:
+ *      sys_sem_t sem           -- Semaphore to signal
+ *---------------------------------------------------------------------------*/
+void sys_sem_signal( sys_sem_t *pxSemaphore )
+{
+portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+
+	if( xInsideISR != pdFALSE )
+	{
+		xSemaphoreGiveFromISR( *pxSemaphore, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+	}
+	else
+	{
+		xSemaphoreGive( *pxSemaphore );
+	}
+}
+
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_sem_free
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Deallocates a semaphore
+ * Inputs:
+ *      sys_sem_t sem           -- Semaphore to free
+ *---------------------------------------------------------------------------*/
+void sys_sem_free( sys_sem_t *pxSemaphore )
+{
+	SYS_STATS_DEC(sem.used);
+	vQueueDelete( *pxSemaphore );
+}
+
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_init
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Initialize sys arch
+ *---------------------------------------------------------------------------*/
+void sys_init(void)
+{
+}
+
+u32_t sys_now(void)
+{
+	return xTaskGetTickCount();
+}
+
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_thread_new
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      Starts a new thread with priority "prio" that will begin its
+ *      execution in the function "thread()". The "arg" argument will be
+ *      passed as an argument to the thread() function. The id of the new
+ *      thread is returned. Both the id and the priority are system
+ *      dependent.
+ * Inputs:
+ *      char *name              -- Name of thread
+ *      void (* thread)(void *arg) -- Pointer to function to run.
+ *      void *arg               -- Argument passed into function
+ *      int stacksize           -- Required stack amount in bytes
+ *      int prio                -- Thread priority
+ * Outputs:
+ *      sys_thread_t            -- Pointer to per-thread timeouts.
+ *---------------------------------------------------------------------------*/
+sys_thread_t sys_thread_new( const char *pcName, void( *pxThread )( void *pvParameters ), void *pvArg, int iStackSize, int iPriority )
+{
+TaskHandle_t xCreatedTask;
+portBASE_TYPE xResult;
+sys_thread_t xReturn;
+
+	xResult = xTaskCreate( pxThread, pcName, iStackSize, pvArg, iPriority, &xCreatedTask );
+
+	if( xResult == pdPASS )
+	{
+		xReturn = xCreatedTask;
+	}
+	else
+	{
+		xReturn = NULL;
+	}
+
+	return xReturn;
+}
+
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_arch_protect
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      This optional function does a "fast" critical region protection and
+ *      returns the previous protection level. This function is only called
+ *      during very short critical regions. An embedded system which supports
+ *      ISR-based drivers might want to implement this function by disabling
+ *      interrupts. Task-based systems might want to implement this by using
+ *      a mutex or disabling tasking. This function should support recursive
+ *      calls from the same task or interrupt. In other words,
+ *      sys_arch_protect() could be called while already protected. In
+ *      that case the return value indicates that it is already protected.
  *
- * @param mbox is the mailbox
- * @param msg is the message to send
- */
-void
-sys_mbox_post(sys_mbox_t *mbox, void *msg)
+ *      sys_arch_protect() is only required if your port is supporting an
+ *      operating system.
+ * Outputs:
+ *      sys_prot_t              -- Previous protection level (not used here)
+ *---------------------------------------------------------------------------*/
+sys_prot_t sys_arch_protect( void )
 {
-  /* Send this message to the queue. */
-  while(xQueueSend(mbox->queue, &msg, portMAX_DELAY) != pdPASS);
+	if( xInsideISR == pdFALSE )
+	{
+		taskENTER_CRITICAL();
+	}
+	return ( sys_prot_t ) 1;
 }
 
-/**
- * Tries to send a message to a mailbox.
- *
- * @param mbox is the mailbox
- * @param msg is the message to send
- * @return ERR_OK if the message was sent and ERR_MEM if there was no space for
- *         the message
- */
-err_t
-sys_mbox_trypost(sys_mbox_t *mbox, void *msg)
+/*---------------------------------------------------------------------------*
+ * Routine:  sys_arch_unprotect
+ *---------------------------------------------------------------------------*
+ * Description:
+ *      This optional function does a "fast" set of critical region
+ *      protection to the value specified by pval. See the documentation for
+ *      sys_arch_protect() for more information. This function is only
+ *      required if your port is supporting an operating system.
+ * Inputs:
+ *      sys_prot_t              -- Previous protection level (not used here)
+ *---------------------------------------------------------------------------*/
+void sys_arch_unprotect( sys_prot_t xValue )
 {
-  /* Send this message to the queue. */
-  if(xQueueSend(mbox->queue, &msg, 0) == pdPASS) {
-    return ERR_OK;
-  }
-
-  /* Update the mailbox statistics. */
-#if SYS_STATS
-  STATS_INC(sys.mbox.err);
-#endif /* SYS_STATS */
-
-  /* The message could not be sent. */
-  return ERR_MEM;
+	(void) xValue;
+	if( xInsideISR == pdFALSE )
+	{
+		taskEXIT_CRITICAL();
+	}
 }
 
-/**
- * Retrieve a message from a mailbox.
- *
- * @param mbox is the mailbox
- * @param msg is a pointer to the location to receive the message
- * @param timeout is the maximum number of milliseconds to wait for the message
- * @return the number of milliseconds that passed before the message was
- *         received, or SYS_ARCH_TIMEOUT if the tmieout occurred
+/*
+ * Prints an assertion messages and aborts execution.
  */
-u32_t
-sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
+void sys_assert( const char *pcMessage )
 {
-  TickType_t starttime;
-  void *dummyptr;
+	(void) pcMessage;
 
-  /* If the actual message contents are not required, provide a local variable
-     to recieve the message. */
-  if(msg == NULL) {
-    msg = &dummyptr;
-  }
-
-  /* Get the starting time. */
-  starttime = xTaskGetTickCount();
-
-  /* See if there is a timeout. */
-  if(timeout != 0) {
-    /* Receive a message from the queue. */
-    if(xQueueReceive(mbox->queue, msg, timeout / portTICK_PERIOD_MS) == pdPASS) {
-      /* Return the amount of time it took for the message to be received. */
-      return (xTaskGetTickCount() - starttime) * portTICK_PERIOD_MS;
-    } else {
-      /* No message arrived in the allotted time. */
-      *msg = NULL;
-      return SYS_ARCH_TIMEOUT;
-    }
-  } else {
-    /* Try to receive a message until one arrives. */
-    while(xQueueReceive(mbox->queue, msg, portMAX_DELAY) != pdPASS);
-
-    /* Return the amount of time it took for the message to be received. */
-    return (xTaskGetTickCount() - starttime) * portTICK_PERIOD_MS;
-  }
+	for (;;)
+	{
+	}
 }
+/*-------------------------------------------------------------------------*
+ * End of File:  sys_arch.c
+ *-------------------------------------------------------------------------*/
 
-/**
- * Try to receive a message from a mailbox, returning immediately if one is not
- * available.
- *
- * @param mbox is the mailbox
- * @param msg is a pointer to the location to receive the message
- * @return ERR_OK if a message was available and SYS_MBOX_EMPTY if one was not
- *         available
- */
-u32_t
-sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg)
-{
-  void *dummyptr;
-
-  /* If the actual message contents are not required, provide a local variable
-     to recieve the message. */
-  if(msg == NULL) {
-    msg = &dummyptr;
-  }
-
-  /* Recieve a message from the queue. */
-  if(xQueueReceive(mbox->queue, msg, 0) == pdPASS) {
-    /* A message was available. */
-    return ERR_OK;
-  } else {
-    /* A message was not available. */
-    return SYS_MBOX_EMPTY;
-  }
-}
-
-/**
- * Destroys a mailbox.
- *
- * @param mbox is the mailbox to be destroyed.
- */
-void
-sys_mbox_free(sys_mbox_t *mbox)
-{
-  /* There should not be any messages waiting (if there are it is a bug).  If
-     any are waiting, increment the mailbox error count. */
-#if RTOS_FREERTOS
-  if(uxQueueMessagesWaiting(mbox->queue) != 0) {
-#endif /* RTOS_FREERTOS */
-
-#if SYS_STATS
-    STATS_INC(sys.mbox.err);
-#endif /* SYS_STATS */
-  }else{
-    /* Clear the queue handle. */
-    mbox->queue = 0;
-#if RTOS_FREERTOS
-	vQueueDelete( mbox->queue );
-#endif 
-
-    /* Update the mailbox statistics. */
-#if SYS_STATS
-    STATS_DEC(sys.mbox.used);
-#endif /* SYS_STATS */
-}
-
-/**
- * Checks the validity of a mailbox.
- *
- * @param mbox is the mailbox whose validity is to be checked.
- */
-int
-sys_mbox_valid(sys_mbox_t *mbox)
-{
-  /*Check if a mailbox has been created*/
-  if(mbox->queue == SYS_MBOX_NULL){
-      return 0;
-  }
-  else{
-      return 1;
-  }
-}
-
-void sys_mbox_set_invalid(sys_mbox_t *mbox){
-
-}
-
-/**
- * The routine for a thread.  This handles some housekeeping around the
- * applications's thread routine.
- *
- * @param arg is the index into the thread structure for this thread
- */
-static void
-sys_arch_thread(void *arg)
-{
-  u32_t i;
-
-  /* Get this threads index. */
-  i = (u32_t)arg;
-
-  /* Call the application's thread routine. */
-  threads[i].thread(threads[i].arg);
-
-  /* Free the memory used by this thread's stack. */
-  mem_free(threads[i].stackstart);
-
-  /* Clear the stack from the thread structure. */
-  threads[i].stackstart = NULL;
-  threads[i].stackend = NULL;
-
-  /* Delete this task. */
-#if RTOS_FREERTOS
-  vTaskDelete(NULL);
-#endif
-}
-
-/**
- * Creates a new thread.
- *
- * @param name is the name of this thread
- * @param thread is a pointer to the function to run in the new thread
- * @param arg is the argument to pass to the thread's function
- * @param stacksize is the size of the stack to allocate for this thread
- * @param prio is the priority of the new thread
- * @return the handle fo the created thread
- */
-sys_thread_t
-sys_thread_new(const char *name, lwip_thread_fn thread, void *arg,
-               int stacksize, int prio)
-{
-  sys_thread_t created_thread;
-  void *data;
-  u32_t i;
-
-  /* Find a thread that is not in use. */
-  for(i = 0; i < SYS_THREAD_MAX; i++) {
-    if(threads[i].stackstart == NULL) {
-      break;
-    }
-  }
-  if(i == SYS_THREAD_MAX) {
-      return NULL;
-  }
-
-  /* Allocate memory for the thread's stack. */
-  data = mem_malloc(stacksize);
-  if(!data) {
-    return NULL;
-  }
-
-  /* Save the details of this thread. */
-  threads[i].stackstart = data;
-  threads[i].stackend = (void *)((char *)data + stacksize);
-  threads[i].thread = thread;
-  threads[i].arg = arg;
-
-  /* Create a new thread. */
-#if RTOS_FREERTOS
-  if(xTaskCreate(sys_arch_thread, (portCHAR *)name,
-                 stacksize/sizeof(int), (void *)i, tskIDLE_PRIORITY+prio,
-                 &threads[i].taskhandle) != pdTRUE){
-    threads[i].stackstart = NULL;
-    threads[i].stackend = NULL;
-    return NULL;
-  }
-  created_thread = threads[i].taskhandle;
-#endif /* RTOS_FREERTOS */
-
-  /* Return this thread. */
-  return created_thread;
-}
-
-/**
- * Enters a critical section.
- *
- * @return the previous protection level
- */
-sys_prot_t
-sys_arch_protect(void)
-{
-#if RTOS_FREERTOS
-  taskENTER_CRITICAL();
-#endif
-
-  return 1;
-}
-
-/**
- * Leaves a critical section.
- *
- * @param the preivous protection level
- */
-void
-sys_arch_unprotect(sys_prot_t val)
-{
-#if RTOS_FREERTOS
-  taskEXIT_CRITICAL();
-#endif
-}
-
-#endif /* NO_SYS */

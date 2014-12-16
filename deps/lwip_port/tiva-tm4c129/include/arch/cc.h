@@ -32,7 +32,10 @@
 #ifndef __CC_H__
 #define __CC_H__
 
+#include <inttypes.h>
+#include <stddef.h>
 #include "util.h"
+
 #define LWIP_PLATFORM_DIAG(msg) uart_writeP msg
 
 typedef unsigned    char    u8_t;
@@ -41,11 +44,23 @@ typedef unsigned    short   u16_t;
 typedef signed      short   s16_t;
 typedef unsigned    long    u32_t;
 typedef signed      long    s32_t;
-typedef u32_t               mem_ptr_t;
-typedef u8_t                sys_prot_t;
+
+typedef size_t mem_ptr_t;
+typedef u32_t sys_prot_t;
 
 // Needed to enable socket API
 #define LWIP_PROVIDE_ERRNO
+
+
+/** @todo fix some warnings: don't use #pragma if compiling with cygwin gcc */
+#ifndef __GNUC__
+#include <limits.h>
+#pragma warning (disable: 4244) /* disable conversion warning (implicit integer promotion!) */
+#pragma warning (disable: 4127) /* conditional expression is constant */
+#pragma warning (disable: 4996) /* 'strncpy' was declared deprecated */
+#pragma warning (disable: 4103) /* structure packing changed by including file */
+#endif
+
 
 #ifndef BYTE_ORDER
 #define BYTE_ORDER LITTLE_ENDIAN
@@ -141,5 +156,12 @@ extern void __error__(char *pcFilename, uint32_t ui32Line);
 #define LWIP_PLATFORM_ASSERT(msg)
 #endif
 #endif
+
+// Use FreeRTOS
+#define RTOS_FREERTOS                   1
+
+// Needed for IPv6
+#include <stdlib.h>
+#define LWIP_RAND rand
 
 #endif /* __CC_H__ */
