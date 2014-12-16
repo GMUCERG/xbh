@@ -85,10 +85,6 @@ void init_ethernet(void){/*{{{*/
 
     { // Enable Ethernet hardware/*{{{*/
         uint32_t user0, user1;
-
-        // Lower priority of ISR so *FromISR functions can be safely called
-        MAP_IntPrioritySet(INT_EMAC0, configKERNEL_INTERRUPT_PRIORITY);
-
         /**
          * Enable ethernet
          * See page 160 of spmu298a
@@ -147,6 +143,9 @@ void init_ethernet(void){/*{{{*/
         //Explicitly Disable PTP
         EMACTimestampDisable(EMAC0_BASE); 
     }/*}}}*/
+
+    // Lower priority of ISR so *FromISR functions can be safely called
+    MAP_IntPrioritySet(INT_EMAC0, configKERNEL_INTERRUPT_PRIORITY);
 
     tcpip_init(tcpip_init_cb, NULL);
 }/*}}}*/

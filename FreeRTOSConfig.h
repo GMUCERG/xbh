@@ -81,9 +81,9 @@
 #define configMAX_TASK_NAME_LEN                 15
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
-#define configUSE_MUTEXES                       0
+#define configUSE_MUTEXES                       1
 #define configUSE_RECURSIVE_MUTEXES             0
-#define configUSE_COUNTING_SEMAPHORES           0
+#define configUSE_COUNTING_SEMAPHORES           1
 #define configUSE_ALTERNATIVE_API               0 /* Deprecated! */
 #define configQUEUE_REGISTRY_SIZE               0 // Not using RTOS aware debugger. TODO: Look this up. Default 10
 #define configUSE_QUEUE_SETS                    0
@@ -120,7 +120,7 @@
 //#define configMAX_SYSCALL_INTERRUPT_PRIORITY    [dependent on processor and application]
 //#define configMAX_API_CALL_INTERRUPT_PRIORITY   [dependent on processor and application]
 #define configKERNEL_INTERRUPT_PRIORITY         ( 7 << 5 )    /* Priority 7, or 0xE0 as only the top three bits are implemented.  This is the lowest priority. */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY     ( 2 << 5 )  /* Priority 5, or 0xA0 as only the top three bits are implemented. */
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY     ( 2 << 5 )  /* Priority 2, or 0xA0 as only the top three bits are implemented. */
 
 #ifdef DEBUG
 extern void assert_called(const char * const filename, uint32_t line);

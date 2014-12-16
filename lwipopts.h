@@ -56,17 +56,11 @@
 //#define NUM_TX_DESCRIPTORS 24
 //#define NUM_RX_DESCRIPTORS 8
 
+//// Required by TI's driver implementation
+//#define LWIP_COMPAT_MUTEX               1
 
-
-// Required by TI's driver implementation
-#define LWIP_COMPAT_MUTEX               1
-
-// Use FreeRTOS
-#define RTOS_FREERTOS                   1
-
-// Needed for IPv6
-#include <stdlib.h>
-#define LWIP_RAND rand
+// 32 bit stats
+#define LWIP_STATS_LARGE                1
 
 /*
    -----------------------------------------------
@@ -247,7 +241,7 @@
  * If the application sends a lot of data out of ROM (or other static memory),
  * this should be set high.
  */
-#define MEMP_NUM_PBUF                   64
+#define MEMP_NUM_PBUF                   16
 
 /**
  * MEMP_NUM_RAW_PCB: Number of raw connection PCBs
@@ -286,7 +280,7 @@
  * MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP segments.
  * (requires the LWIP_TCP option)
  */
-#define MEMP_NUM_TCP_SEG                48
+#define MEMP_NUM_TCP_SEG                256
 
 /**
  * MEMP_NUM_REASSDATA: the number of IP packets simultaneously queued for
@@ -1019,7 +1013,7 @@
  * when opening a connection. For the transmit size, this MSS sets
  * an upper limit on the MSS advertised by the remote host.
  */
-#define TCP_MSS                         1500
+#define TCP_MSS                         1460
 
 /**
  * TCP_CALCULATE_EFF_SEND_MSS: "The maximum size of a segment that TCP really
@@ -1038,7 +1032,9 @@
  * TCP_SND_BUF: TCP sender buffer space (bytes).
  * To achieve good performance, this should be at least 2 * TCP_MSS.
  */
-#define TCP_SND_BUF                     (6 * TCP_MSS)
+//#ifndef TCP_SND_BUF
+//#define TCP_SND_BUF                     (2 * TCP_MSS)
+//#endif
 
 /**
  * TCP_SND_QUEUELEN: TCP sender buffer space (pbufs). This must be at least
@@ -1322,7 +1318,7 @@
  * The stack size value itself is platform-dependent, but is passed to
  * sys_thread_new() when the thread is created.
  */
-#define TCPIP_THREAD_STACKSIZE          2048
+#define TCPIP_THREAD_STACKSIZE          1024
 
 /**
  * TCPIP_THREAD_PRIO: The priority assigned to the main tcpip thread.
@@ -1336,7 +1332,7 @@
  * The queue size value itself is platform-dependent, but is passed to
  * sys_mbox_new() when tcpip_init is called.
  */
-#define TCPIP_MBOX_SIZE                 32
+#define TCPIP_MBOX_SIZE                 16
 
 /**
  * SLIPIF_THREAD_NAME: The name assigned to the slipif_loop thread.
@@ -1376,7 +1372,7 @@
  * sys_thread_new() when the thread is created.
  */
 //#ifndef DEFAULT_THREAD_STACKSIZE
-//#define DEFAULT_THREAD_STACKSIZE        0
+#define DEFAULT_THREAD_STACKSIZE        1024
 //#endif
 
 /**
@@ -1411,18 +1407,14 @@
  * NETCONN_TCP. The queue size value itself is platform-dependent, but is passed
  * to sys_mbox_new() when the recvmbox is created.
  */
-//#ifndef DEFAULT_TCP_RECVMBOX_SIZE
-//#define DEFAULT_TCP_RECVMBOX_SIZE       0
-//#endif
+#define DEFAULT_TCP_RECVMBOX_SIZE       8
 
 /**
  * DEFAULT_ACCEPTMBOX_SIZE: The mailbox size for the incoming connections.
  * The queue size value itself is platform-dependent, but is passed to
  * sys_mbox_new() when the acceptmbox is created.
  */
-//#ifndef DEFAULT_ACCEPTMBOX_SIZE
-//#define DEFAULT_ACCEPTMBOX_SIZE         0
-//#endif
+#define DEFAULT_ACCEPTMBOX_SIZE         8
 
 /*
    ----------------------------------------------
@@ -1449,15 +1441,15 @@
  * LWIP_NETCONN==1: Enable Netconn API (require to use api_lib.c)
  */
 //#ifndef LWIP_NETCONN
-#define LWIP_NETCONN                    1
+//#define LWIP_NETCONN                    1
 //#endif
 
 /** LWIP_TCPIP_TIMEOUT==1: Enable tcpip_timeout/tcpip_untimeout tod create
  * timers running in tcpip_thread from another thread.
  */
-#ifndef LWIP_TCPIP_TIMEOUT
-#define LWIP_TCPIP_TIMEOUT              1
-#endif
+//#ifndef LWIP_TCPIP_TIMEOUT
+//#define LWIP_TCPIP_TIMEOUT              1
+//#endif
 
 /** LWIP_NETCONN_SEM_PER_THREAD==1: Use one (thread-local) semaphore per
  * thread calling socket/netconn functions instead of allocating one
@@ -1584,10 +1576,9 @@
 /**
  * LWIP_STATS==1: Enable statistics collection in lwip_stats.
  */
-#define LWIP_STATS                      1
+#define LWIP_STATS                      0
 
-// 32 bit stats
-#define LWIP_STATS_LARGE                1
+#if LWIP_STATS
 
 /**
  * LWIP_STATS_DISPLAY==1: Compile in the statistics output functions.
@@ -1711,27 +1702,27 @@
 //#define ND6_STATS                       (LWIP_IPV6)
 //#endif
 
-//#else
+#else
 
-//#define LINK_STATS                      0
-//#define ETHARP_STATS                    0
-//#define IP_STATS                        0
-//#define IPFRAG_STATS                    0
-//#define ICMP_STATS                      0
-//#define IGMP_STATS                      0
-//#define UDP_STATS                       0
-//#define TCP_STATS                       0
-//#define MEM_STATS                       0
-//#define MEMP_STATS                      0
-//#define SYS_STATS                       0
-//#define LWIP_STATS_DISPLAY              0
-//#define IP6_STATS                       0
-//#define ICMP6_STATS                     0
-//#define IP6_FRAG_STATS                  0
-//#define MLD6_STATS                      0
-//#define ND6_STATS                       0
+#define LINK_STATS                      0
+#define ETHARP_STATS                    0
+#define IP_STATS                        0
+#define IPFRAG_STATS                    0
+#define ICMP_STATS                      0
+#define IGMP_STATS                      0
+#define UDP_STATS                       0
+#define TCP_STATS                       0
+#define MEM_STATS                       0
+#define MEMP_STATS                      0
+#define SYS_STATS                       0
+#define LWIP_STATS_DISPLAY              0
+#define IP6_STATS                       0
+#define ICMP6_STATS                     0
+#define IP6_FRAG_STATS                  0
+#define MLD6_STATS                      0
+#define ND6_STATS                       0
 
-//#endif /* LWIP_STATS */
+#endif /* LWIP_STATS */
 
 /*
    ---------------------------------
@@ -1856,7 +1847,7 @@
 //#endif
 
 /**
- * MSCHAP_SUPPORT==1: Support MSCHAP. CURRENTLY NOT SUPPORTED! DO NOT SET!
+ * MSCHAP_SUPPORT==1: Support MSCHAP.
  */
 //#ifndef MSCHAP_SUPPORT
 //#define MSCHAP_SUPPORT                  0
@@ -2505,9 +2496,7 @@
 /**
  * SOCKETS_DEBUG: Enable debugging in sockets.c.
  */
-//#ifndef SOCKETS_DEBUG
-//#define SOCKETS_DEBUG                   LWIP_DBG_OFF
-//#endif
+//#define SOCKETS_DEBUG                   LWIP_DBG_ON
 
 /**
  * ICMP_DEBUG: Enable debugging in icmp.c.
