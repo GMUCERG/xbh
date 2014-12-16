@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+
 #define BUFSIZE (sizeof(long) * 8 + 1)
 
 char *ltoa(long N, char *str, int base)
@@ -59,3 +61,16 @@ char *ltoa(long N, char *str, int base)
       memcpy(head, ++tail, i);
       return str;
 }
+
+#if DEBUG
+#include "FreeRTOSConfig.h"
+#include <FreeRTOS.h>
+#include <task.h>
+void dbg_maskisr(void) {
+    taskDISABLE_INTERRUPTS();
+}
+void dbg_unmaskisr(void) {
+    taskDISABLE_INTERRUPTS();
+}
+
+#endif

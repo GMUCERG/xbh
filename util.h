@@ -28,7 +28,7 @@
  * @param x true if error condition
  * @param ... Input to printf
  */
-#define LOOP_ERRMSG(x,...) if(x){uart_printf(__VA_ARGS__); while(x);}
+#define LOOP_ERRMSG(x,...) if(x){uart_printf(__VA_ARGS__); while(1);}
 
 /* 
  * http://stackoverflow.com/questions/9907160/how-to-convert-enum-names-to-string-in-c 
@@ -55,4 +55,10 @@
  */
 char *ltoa(long val, char *str, int base);
 
+#ifdef DEBUG
+//void dbg_maskisr(void) __attribute__((used));
+//void dbg_unmaskisr(void) __attribute__((used));
+void dbg_maskisr(void);
+void dbg_unmaskisr(void);
+#endif
 #endif

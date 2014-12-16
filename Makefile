@@ -55,8 +55,8 @@ ${BUILDDIR}/xbh.axf: ${LIBDIR}/liblwip.a
 ${BUILDDIR}/xbh.axf: xbh.ld
 SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
-CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -DDEBUG_STACK -g -O0
-#CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -g -O0
+#CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -DDEBUG_STACK -g -O0
+CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -g -O0
 
 #${BUILDDIR}/usb_dev_bulk.axf: |${BUILDDIR}
 #${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/startup_${COMPILER}.o
