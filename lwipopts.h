@@ -44,7 +44,6 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
-#include "xbh.h"
 
 
 /*

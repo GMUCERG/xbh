@@ -8,8 +8,9 @@
 
 #include <lwip/sockets.h> 
 
+#include "xbh.h"
 #include "util.h"
-#include "xbhconfig.h"
+#include "xbh_config.h"
 #include "xbd_multipacket.h"
 
 

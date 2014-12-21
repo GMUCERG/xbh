@@ -20,22 +20,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "hal/hal.h"
 #include "xbh.h"
+#include "xbh_config.h"
 #include "xbh_prot.h"
-
-
-#include <util/delay.h>
-#include <util/crc16.h>
-
-#include "xbd_multipacket.h"
-#include "xbh.h"
-#include "XBH_version.h"
-#include "xbh_utils.h"
 #include "xbh_xbdcomm.h"
+#include "xbd_multipacket.h"
+
+#include "util.h"
+
 
 
 uint16_t resetTimerBase=10;	//10s is the initial base unit for resetTimer settings
 
+/**
+ * XBH Command String Constants
+ */
+const char *XBH_CMD[] = {
+     FOREACH_XBH_CMD(XBH_CMD_DEF)
+};
+
+/**
+ * XBD Command String Constants */
+const char *XBD_CMD[] = {
+     FOREACH_XBH_CMD(XBD_CMD_DEF)
+};
 
 //TODO: Make these local variables
 static uint8_t XBDCommandBuf[XBD_PACKET_SIZE_MAX];

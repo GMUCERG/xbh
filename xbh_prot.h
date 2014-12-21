@@ -111,21 +111,11 @@ enum XBH_CMD_ENUM {
 enum XBD_CMD_ENUM {
      FOREACH_XBD_CMD(GEN_XBD_CMD_ENUM)
 };
-
-/**
- * XBH Command String Constants
- */
-const char *XBH_CMD[] = {
-     FOREACH_XBH_CMD(XBH_CMD_DEF)
-};
-
-/**
- * XBD Command String Constants */
-const char *XBD_CMD[] = {
-     FOREACH_XBH_CMD(XBD_CMD_DEF)
-};
 #define XBH_COMMAND_LEN (3+2+3)
 #define XBD_COMMAND_LEN (3+2+3)
+
+extern const char *XBH_CMD[];
+extern const char *XBD_CMD[];
 
 #endif
 

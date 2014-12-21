@@ -2,6 +2,7 @@
 #define _HAL_H
 
 #include <inttypes.h>
+#include "lwip_eth.h"
 
 extern uint32_t g_syshz; 
 
