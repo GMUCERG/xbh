@@ -7,10 +7,8 @@
  * Wrapper to printf to uart
  * @param ... Same as printf
  */
-#define uart_printf uart_writeP
-
 #ifdef DEBUG
-#define DEBUG_OUT(...) {uart_writeP("%s: %d: ",__FILE__,__LINE__); uart_writeP( __VA_ARGS__);}
+#define DEBUG_OUT(...) {uart_printf("%s: %d: ",__FILE__,__LINE__); uart_printf( __VA_ARGS__);}
 #else
 #define DEBUG_OUT(...)
 #endif
@@ -54,6 +52,7 @@
  * };
  */
 char *ltoa(long val, char *str, int base);
+void uart_printf(const char *buffer,...) ;
 
 #ifdef DEBUG
 //void dbg_maskisr(void) __attribute__((used));

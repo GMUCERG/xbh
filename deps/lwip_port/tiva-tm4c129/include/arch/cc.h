@@ -36,7 +36,7 @@
 #include <stddef.h>
 #include "util.h"
 
-#define LWIP_PLATFORM_DIAG(msg) uart_writeP msg
+#define LWIP_PLATFORM_DIAG(msg) uart_printf msg
 
 typedef unsigned    char    u8_t;
 typedef signed      char    s8_t;

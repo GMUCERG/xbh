@@ -6,5 +6,6 @@
 extern uint32_t g_syshz; 
 
 void HAL_setup(void);
-void uart_writeP (const char *buffer,...) ;
+void uart_write_char(char c);
+void uart_write_str(char *str);
 #endif
