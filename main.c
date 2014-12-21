@@ -151,10 +151,6 @@ void vApplicationStackOverflowHook(TaskHandle_t *pxTask, char *pcTaskName){
 
 int main(void) {
     HAL_setup();
-#if DEBUG
-    dbg_maskisr();
-    dbg_unmaskisr();
-#endif
 
 
     start_xbhserver();

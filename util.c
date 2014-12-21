@@ -62,12 +62,6 @@ char *ltoa(long N, char *str, int base)
       return str;
 }
 
-#if DEBUG
-#include "FreeRTOSConfig.h"
-#include <FreeRTOS.h>
-#include <task.h>
-void dbg_maskisr(void) {
-    taskDISABLE_INTERRUPTS();
 //Serial output code /*{{{*/
 
 //from usart.c in XBH, modified a bit
@@ -224,8 +218,5 @@ void uart_printf(const char *buffer,...) {
 	uart_vwriteP(buffer, &ap);
 	va_end(ap);
 }
-void dbg_unmaskisr(void) {
-    taskDISABLE_INTERRUPTS();
 }
 
-#endif
