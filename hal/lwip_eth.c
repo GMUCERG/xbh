@@ -111,11 +111,11 @@ void init_ethernet(void){/*{{{*/
 
 
         // Initialize MAC (see spmu363a.pdf)
-        // TODO: Optimize burst size
+        // Maybe should optimize burst size
         MAP_EMACInit(EMAC0_BASE, g_syshz, EMAC_BCONFIG_MIXED_BURST|EMAC_BCONFIG_PRIORITY_FIXED, 4, 4, 0);
 
         // Set options
-        // TODO: Tune parameters
+        //  Tune parameters
         MAP_EMACConfigSet(EMAC0_BASE, (EMAC_CONFIG_FULL_DUPLEX |
                     EMAC_CONFIG_CHECKSUM_OFFLOAD |
                     EMAC_CONFIG_7BYTE_PREAMBLE |
@@ -290,4 +290,3 @@ void lwIP_eth_isr(void){/*{{{*/
     //Yield to eth_int_task
     portYIELD_FROM_ISR(wake == pdTRUE);
 }/*}}}*/
-
