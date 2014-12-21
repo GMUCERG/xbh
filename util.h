@@ -60,4 +60,22 @@ void uart_printf(const char *buffer,...) ;
 void dbg_maskisr(void);
 void dbg_unmaskisr(void);
 #endif
+
+/**
+ * Converts hex digit in ascii to numerical value
+ * From XBH
+ */
+inline uint8_t htoi(char h) {
+	if(h >= '0' && h <= '9')
+		return (h-'0');
+
+	if(h>= 'a' && h <= 'f')
+		return (h-'a'+10);
+
+	if(h>= 'A' && h <= 'F')
+		return (h-'A'+10);
+
+	return 255;
+}
+
 #endif

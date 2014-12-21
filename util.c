@@ -238,3 +238,5 @@ void assert_called( const char * const filename,uint32_t line ) { __error__((cha
 /*}}}*/
 
 
+//for c99 compliance
+extern inline uint8_t htoi(char h);
