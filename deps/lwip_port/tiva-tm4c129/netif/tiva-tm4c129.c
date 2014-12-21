@@ -199,12 +199,12 @@ typedef struct {
  * context of the lwIP netif.
  *
  */
-tDescriptor g_pTxDescriptors[NUM_TX_DESCRIPTORS];
-tDescriptor g_pRxDescriptors[NUM_RX_DESCRIPTORS];
-tDescriptorList g_TxDescList = {
+static tDescriptor g_pTxDescriptors[NUM_TX_DESCRIPTORS];
+static tDescriptor g_pRxDescriptors[NUM_RX_DESCRIPTORS];
+static tDescriptorList g_TxDescList = {
     g_pTxDescriptors, NUM_TX_DESCRIPTORS, 0, 0
 };
-tDescriptorList g_RxDescList = {
+static tDescriptorList g_RxDescList = {
     g_pRxDescriptors, NUM_RX_DESCRIPTORS, 0, 0
 };
 static tStellarisIF g_StellarisIFData = {
@@ -227,7 +227,7 @@ volatile uint32_t g_ui32AbnormalInts;
 /**
  * Initialize the transmit and receive DMA descriptor lists.
  */
-void
+static void
 InitDMADescriptors(void)
 {
     uint32_t ui32Loop;
