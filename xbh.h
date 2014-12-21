@@ -2,7 +2,7 @@
 #define _XBH_H
 
 
-#include "xbhconfig.h"
+#include "xbh_config.h"
 #include "hal/hal.h"
 
 #define TCP_PRIO 2
