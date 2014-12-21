@@ -218,5 +218,13 @@ void uart_printf(const char *buffer,...) {
 	uart_vwriteP(buffer, &ap);
 	va_end(ap);
 }
+void __error__(char * filename, uint32_t line) { 
+    uart_printf("ERROR:%s:%d\n", filename, line);
 }
+#pragma GCC diagnostic push  // require GCC 4.6
+#pragma GCC diagnostic ignored "-Wcast-qual"
+void assert_called( const char * const filename,uint32_t line ) { __error__((char*)filename,line); }
+#pragma GCC diagnostic pop
+/*}}}*/
+
 
