@@ -44,6 +44,7 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
+#define TCP_PRIO 1
 
 
 /*
