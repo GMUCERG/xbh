@@ -1,4 +1,18 @@
 #include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <ctype.h>
+#include <unistd.h>
+
+#include <lwip/sockets.h> 
+
+#include "util.h"
+
+//LTOA/*{{{*/
 //TODO: Make version for large unsigned ints
 
 /*
@@ -18,10 +32,6 @@
 **            successful, a NULL pointer if the number base specified
 **            is out of range.
 */
-
-#include <stdlib.h>
-#include <string.h>
-
 
 
 #define BUFSIZE (sizeof(long) * 8 + 1)
@@ -60,7 +70,7 @@ char *ltoa(long N, char *str, int base)
 
       memcpy(head, ++tail, i);
       return str;
-}
+}/*}}}*/
 
 //Serial output code /*{{{*/
 
