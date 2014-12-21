@@ -87,6 +87,7 @@ tags:
 		${TIVA_ROOT}/driverlib \
 		${TIVA_ROOT}/inc \
 		${LWIP_ROOT} \
+		${LWIP_PORT} \
 		${FREERTOS_ROOT}/Source/include \
 		${FREERTOS_ROOT}/Source/*.c \
 		${FREERTOS_ROOT}/Source/portable/MemMang \
