@@ -1,0 +1,20 @@
+License issues
+
+Issue encountered: forgot to set mac address
+
+Issue encountered: Tuning stack sizes for threads
+Issue encountered: Disable interrupts while debugging
+Issue encountered: Original xbx code didn't delimit messages over TCP; working
+on raw packets not guaranteed to work correctly w/ fragmentation, etc
+
+
+
+
+
+Justify Switch to RTOS
+
+
+
+TODO: Tune DMA burst sizes
+TODO: PTPD? 
+
