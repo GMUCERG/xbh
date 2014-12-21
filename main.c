@@ -68,7 +68,7 @@
 // Hardware abstraction layer
 #include "hal/hal.h"
 #include "util.h"
-#include "xbhserver.h"
+#include "xbh_server.h"
 
 /* Delay between cycles of the 'check' task. */
 // Make it 30s

@@ -17,7 +17,7 @@ XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c
 XBH_SOURCES += $(PROJECT_ROOT)/main.c
 XBH_SOURCES += $(PROJECT_ROOT)/util.c
-XBH_SOURCES += $(PROJECT_ROOT)/xbhserver.c
+XBH_SOURCES += $(PROJECT_ROOT)/xbh_server.c
 
 
 
