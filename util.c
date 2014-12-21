@@ -237,6 +237,19 @@ void assert_called( const char * const filename,uint32_t line ) { __error__((cha
 #pragma GCC diagnostic pop
 /*}}}*/
 
+/** Simulates recv() w/ MSG_WAITALL flag */
+int recv_bytes(int s, void *mem, size_t len, int flags){/*{{{*/
+    int recved = 0;
+    while(recved < len){
+        int retval = recv(s, (uint8_t *)mem+recved, len-recved, flags);
+        if(retval <= 0){
+            return retval;
+        }else{
+            recved += retval;
+        }
+    }
+    return recved;
+}/*}}}*/
 
 //for c99 compliance
 extern inline uint8_t htoi(char h);

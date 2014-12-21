@@ -51,8 +51,13 @@
  *      FOREACH_FRUIT(GEN_STR)
  * };
  */
+
+
+
+
 char *ltoa(long val, char *str, int base);
 void uart_printf(const char *buffer,...) ;
+int recv_bytes(int s, void *mem, size_t len, int flags);
 
 #ifdef DEBUG
 //void dbg_maskisr(void) __attribute__((used));
