@@ -5,8 +5,9 @@
 #define XBH_PROTO_VER "05"
 
 #define XBH_CMD_DEF(X) "XBH"XBH_PROTO_VER#X,
-#define GEN_XBH_CMD_ENUM(ENUM) XBH_CMD_#ENUM
-#define GEN_XBD_CMD_ENUM(ENUM) XBD_CMD_#ENUM
+#define XBD_CMD_DEF(X) "XBD"XBH_PROTO_VER#X,
+#define GEN_XBH_CMD_ENUM(ENUM) XBH_CMD_##ENUM,
+#define GEN_XBD_CMD_ENUM(ENUM) XBD_CMD_##ENUM,
 
 // XXX Might have issues w/ some compilers that start enums from 1, but for now
 // just worry about GCC
@@ -120,11 +121,11 @@ const char *XBH_CMD[] = {
 
 /**
  * XBD Command String Constants */
-const char *XBH_CMD[] = {
+const char *XBD_CMD[] = {
      FOREACH_XBH_CMD(XBD_CMD_DEF)
 };
-#define XBH_COMMAND_LEN sizeof(XBH_CMD[0])
-#define XBD_COMMAND_LEN sizeof(XBD_CMD[0])
+#define XBH_COMMAND_LEN (3+2+3)
+#define XBD_COMMAND_LEN (3+2+3)
 
 #endif
 
