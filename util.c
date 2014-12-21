@@ -253,3 +253,4 @@ int recv_bytes(int s, void *mem, size_t len, int flags){/*{{{*/
 
 //for c99 compliance
 extern inline uint8_t htoi(char h);
+extern inline char ntoa(uint8_t n);

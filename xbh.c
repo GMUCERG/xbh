@@ -33,6 +33,7 @@
 
 #include "util.h"
 
+#define XBH_REV_DIGITS 7
 
 
 uint16_t resetTimerBase=10;	//10s is the initial base unit for resetTimer settings
@@ -50,7 +51,6 @@ const char *XBD_CMD[] = {
      FOREACH_XBH_CMD(XBD_CMD_DEF)
 };
 
-//TODO: Make these local variables
 static uint8_t XBDCommandBuf[XBD_PACKET_SIZE_MAX];
 static uint8_t XBDResponseBuf[XBD_ANSWERLENG_MAX];
 
@@ -73,6 +73,64 @@ extern volatile unsigned int  fallingTime;
 extern volatile unsigned char fallingSeen;
 
 
+//TODO implement
+size_t XBH_HandleGitRevisionRequest(uint8_t* p_answer){
+	uint8_t i;
+
+
+	// Report SVN Rev in 5 digits length
+
+	for(i=0;i < XBH_REV_DIGITS;i++) {
+		p_answer[i]=XBH_REVISION[i];
+	}
+
+	p_answer[XBH_REV_DIGITS]=',';
+
+	for(i=0;i<6;++i) {
+		p_answer[XBH_REV_DIGITS+1+2*i]=ntoa(mac_addr[i]>>4);
+		p_answer[XBH_REV_DIGITS+1+2*i+1]=ntoa(mac_addr[i]&0xf);
+	}
+    //Null terminator
+	p_answer[XBH_REV_DIGITS+1+2*6+1]=0;
+	return XBH_REV_DIGITS+1+2*6+1;
+}
+
+//TODO Implement 
+uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer)
+{
+    return 1;
+#if 0
+
+	uint8_t i;
+
+	constStringToBuffer (XBDCommandBuf, XBDtrr);
+	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+REVISIZE);
+	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
+	xbdReceive(XBD_COMMAND_LEN+REVISIZE, XBDResponseBuf);
+
+	XBH_DEBUG("trr\n");
+
+//	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
+
+	if(0 == memcmp_P(XBDResponseBuf,XBDtro,XBD_COMMAND_LEN))
+	{	
+		for(i=0;i<REVISIZE;++i)
+		{
+			p_answer[i] = XBDResponseBuf[XBD_COMMAND_LEN+i];
+		}
+		return 0;
+	}
+	else
+	{
+	        XBH_ERROR("trr fai\r\n");
+		return 1;
+	}
+
+#endif
+}
+
+#if 0
+/*{{{*/
 
 /**
  * Program XBD
@@ -480,14 +538,15 @@ static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
 	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN, p_answer);
 }/*}}}*/
-
+/*}}}*/
+#endif
 /**
  * Sets reset pin depending on value of param
  * TODO Change to use c99 bool
  * TODO Actually implement
  * @return 0 if valid parameter, 1 if not
  */
-uint8_t XBH_HandleResetControlRequest(uint8_t param) {
+uint8_t XBH_HandleResetControlRequest(uint8_t param) {/*{{{*/
 #if 0
 	//Disable pull-up in input, set to low level if output
 	PORTB &= ~(_BV(PB0));
@@ -513,12 +572,13 @@ uint8_t XBH_HandleResetControlRequest(uint8_t param) {
 	return 1;
 #endif
     return 1;
-}	
+}	/*}}}*/
 
 /**
  * Retrieves stack usage information from XBD
  */
-uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {
+uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
+#if 0
     XBH_DEBUG("Sending 's'tack 'r'equest to XBD\n");
 
     memcpy(output, XBH_CMD[XBD_CMD_sur], XBH_COMMAND_LEN);
@@ -544,10 +604,13 @@ uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {
         XBH_DEBUG("'s'tack 'u'sage 'o'kay not received from XBD\n");
 		return 1;
 	}
-}
+#endif
+    return -1;
+}/*}}}*/
 
-uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer)
-{
+//TODO: Make work
+uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
+#if 0
 
 	uint8_t i;
 
@@ -575,14 +638,15 @@ uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer)
 		XBH_ERROR("Response wrong [%s\r\n",XBDResponseBuf);
 		return 1;
 	}
-
+#endif
+    return -1;
 }
+/*}}}*/
 
+//TODO: Redefine OCRVAL
+//TODO: Counting cycles probably not accurate on ARM
 
-//TODO Redefine OCRVAL
-//TODO Counting cycles probably not accurate on ARM
-
-void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{
+void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
     return;
 #if 0
 
@@ -666,105 +730,12 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{
 	XBD_debugOutHex32Bit(tmpvar);
 #endif
 #endif
-}
+}/*}}}*/
 
 
 
-//TODO implement
-void XBH_HandleSubversionRevisionRequest(uint8_t* p_answer)	
-{
-#if 0
-	uint8_t i;
-	uint8_t svnRevLen = strlen(XBH_Rev);
 
 
-	// Report SVN Rev in 5 digits length
-	for(i=0;i<5-svnRevLen;++i)
-	{
-		p_answer[i]='0';
-	}
-	constStringToBufferN(p_answer+i,XBH_Rev,5);
-
-	p_answer[5]=',';
-
-	for(i=0;i<6;++i)
-	{
-		p_answer[6+2*i]=ntoa(eeprom_mac[i]>>4);
-		p_answer[6+2*i+1]=ntoa(eeprom_mac[i]&0xf);
-	}
-	p_answer[6+2*6+1]=0;
-	return;
-#endif
-
-}
-
-
-
-//TODO Implement 
-uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer)
-{
-    return 1;
-#if 0
-
-	uint8_t i;
-
-	constStringToBuffer (XBDCommandBuf, XBDtrr);
-	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+REVISIZE);
-	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
-	xbdReceive(XBD_COMMAND_LEN+REVISIZE, XBDResponseBuf);
-
-	XBH_DEBUG("trr\n");
-
-//	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
-
-	if(0 == memcmp_P(XBDResponseBuf,XBDtro,XBD_COMMAND_LEN))
-	{	
-		for(i=0;i<REVISIZE;++i)
-		{
-			p_answer[i] = XBDResponseBuf[XBD_COMMAND_LEN+i];
-		}
-		return 0;
-	}
-	else
-	{
-	        XBH_ERROR("trr fai\r\n");
-		return 1;
-	}
-
-#endif
-}
-
-#if 0/*{{{*/
-uint8_t XBH_HandleLOopbackRequest(uint8_t* p_answer) {
-
-	uint8_t i;
-
-	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_trr], XBD_COMMAND_LEN);
-	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+REVISIZE);
-	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
-	xbdReceive(XBD_COMMAND_LEN+REVISIZE, XBDResponseBuf);
-
-	XBH_DEBUG("trr\n");
-
-//	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
-
-	if(0 == memcmp_P(XBDResponseBuf,XBDtro,XBD_COMMAND_LEN))
-	{	
-		for(i=0;i<REVISIZE;++i)
-		{
-			p_answer[i] = XBDResponseBuf[XBD_COMMAND_LEN+i];
-		}
-		return 0;
-	}
-	else
-	{
-	        XBH_ERROR("loopback fai\r\n");
-		return 1;
-	}
-
-}
-
-#endif/*}}}*/
 
 /**
  * Decode commands
@@ -773,10 +744,39 @@ uint8_t XBH_HandleLOopbackRequest(uint8_t* p_answer) {
  * @output Buffer containing output to return (MUST be greater or equal to XBH_COMMAND_LEN
  * @return Length of output containing return data
  */
-uint32_t XBH_handle(const uint8_t *input, uint16_t input_len, uint8_t* output) {/*{{{*/
+size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{{*/
 	uint8_t buf[XBH_COMMAND_LEN+1];
-	uint8_t ret;
+	int ret;
     XBH_DEBUG("XBH_handle()\n");
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_srr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 's'ubversion/git 'r'evision 'r'equest received\n");
+		//resetTimer=resetTimerBase;
+		ret = XBH_HandleGitRevisionRequest(&output[XBH_COMMAND_LEN]);
+		//resetTimer=0;
+
+        XBH_DEBUG("'s'ubversion/git 'r'evision 'o'kay sent\n");
+        memcpy(output, XBH_CMD[XBH_CMD_sro], XBH_COMMAND_LEN);
+		return ret+XBH_COMMAND_LEN;
+	}/*}}}*/
+
+#if 0
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_trr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 't'arget 'r'evision 'r'equest received\n");
+		//resetTimer=resetTimerBase*2;
+		ret = XBH_HandleTargetRevisionRequest(&output[XBH_COMMAND_LEN]);
+		//resetTimer=0;
+		if(0 == ret) {
+            XBH_DEBUG("'t'arget 'r'evision 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_tro], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN+REVISIZE;
+		} else {
+            XBH_DEBUG("'t'arget 'r'evision 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_trf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'u'pload 'r'esults 'r'equest received\n");
@@ -1006,33 +1006,6 @@ uint32_t XBH_handle(const uint8_t *input, uint16_t input_len, uint8_t* output) {
 		}
 	}/*}}}*/
 
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_srr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 's'ubversion/git 'r'evision 'r'equest received\n");
-		resetTimer=resetTimerBase;
-		XBH_HandleSubversionRevisionRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-
-        XBH_DEBUG("'s'ubversion/git 'r'evision 'o'kay sent\n");
-        memcpy(output, XBH_CMD[XBH_CMD_sro], XBH_COMMAND_LEN);
-		return (uint16_t) XBH_COMMAND_LEN+5+1+12;		// 5 chars SVN Rev, ',' , 6*2 chars MAC address
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_trr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 't'arget 'r'evision 'r'equest received\n");
-		resetTimer=resetTimerBase*2;
-		ret = XBH_HandleTargetRevisionRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		if(0 == ret) {
-            XBH_DEBUG("'t'arget 'r'evision 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_tro], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN+REVISIZE;
-		} else {
-            XBH_DEBUG("'t'arget 'r'evision 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_trf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
     memcpy(output, XBH_CMD[XBH_CMD_unk], XBH_COMMAND_LEN);
     XBH_DEBUG("'un'known command 'r'eceived (len: %d)\n", input_len);
     for(uint8_t u=0;u<input_len;++u) {
@@ -1044,4 +1017,6 @@ uint32_t XBH_handle(const uint8_t *input, uint16_t input_len, uint8_t* output) {
     XBH_DEBUG("\n");
 	
 	return (uint16_t) XBH_COMMAND_LEN;
+#endif
+    return -1;
 }/*}}}*/

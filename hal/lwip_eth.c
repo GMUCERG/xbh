@@ -66,7 +66,7 @@ static TaskHandle_t eth_int_task_handle;
  */
 static QueueHandle_t eth_int_q_handle;
 
-static uint8_t mac_addr[6];
+uint8_t mac_addr[6];
 /**
  * NetIF struct for lwIP
  */

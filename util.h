@@ -2,6 +2,7 @@
 #define __UTILS_H__
 
 
+#include <stdlib.h>
 #include "hal/hal.h"
 /**
  * Wrapper to printf to uart
@@ -81,6 +82,16 @@ inline uint8_t htoi(char h) {
 		return (h-'A'+10);
 
 	return 255;
+}
+
+/**
+ * Converts nibble to hex
+ */
+inline char ntoa(uint8_t n){
+	if(n<=9)
+		return n+'0';
+	else
+		return n+'A'-10;
 }
 
 #endif

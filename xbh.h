@@ -7,6 +7,8 @@
 
 #define CYCLES_PER_US (g_syshz/1000000)
 
-uint32_t XBH_handle(const uint8_t *input, uint16_t input_len, uint8_t* output);
+size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output);
+
+#define XBH_DEBUG DEBUG_OUT
 
 #endif

@@ -17,6 +17,7 @@ XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c
 XBH_SOURCES += $(PROJECT_ROOT)/main.c
 XBH_SOURCES += $(PROJECT_ROOT)/util.c
+XBH_SOURCES += $(PROJECT_ROOT)/xbh.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh_server.c
 
 
@@ -55,21 +56,11 @@ ${BUILDDIR}/xbh.axf: ${LIBDIR}/liblwip.a
 ${BUILDDIR}/xbh.axf: xbh.ld
 SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
-#CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -DDEBUG_STACK -g -O0
-CFLAGSgcc+=-std=gnu99 -DDEBUG -DLWIP_DEBUG -g -O0
 
-#${BUILDDIR}/usb_dev_bulk.axf: |${BUILDDIR}
-#${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/startup_${COMPILER}.o
-#${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/uartstdio.o
-#${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/usb_dev_bulk.o
-#${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/usb_bulk_structs.o
-#${BUILDDIR}/usb_dev_bulk.axf: ${BUILDDIR}/ustdlib.o
-#${BUILDDIR}/usb_dev_bulk.axf: ${LIBDIR}/libusb.a
-#${BUILDDIR}/usb_dev_bulk.axf: ${LIBDIR}/libdriver.a
-#${BUILDDIR}/usb_dev_bulk.axf: usb_dev_bulk.ld
-#SCATTERgcc_usb_dev_bulk=usb_dev_bulk.ld
-#ENTRY_usb_dev_bulk=ResetISR
-#CFLAGSgcc=-DTARGET_IS_BLIZZARD_RB1 -DUART_BUFFERED
+CFLAGSgcc+=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
+#CFLAGSgcc+=-g -Os
+CFLAGSgcc+=-DDEBUG -DLWIP_DEBUG -ggdb3 -O0
+#CFLAGSgcc+=-DDEBUG_STACK
 
 
 ifneq (${MAKECMDGOALS},clean)
@@ -81,7 +72,7 @@ endif
 distclean: clean
 	rm -rf build lib
 clean:
-	rm -rf build/*.o build/*.d build/*.bin build/*.axf tags
+	rm -rf build/*.o build/*.d build/*.bin build/*.axf build/xbh tags 
 tags: 
 	ctags -R . \
 		${TIVA_ROOT}/driverlib \

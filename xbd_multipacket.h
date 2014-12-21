@@ -11,7 +11,7 @@
 #define TYPESIZE sizeof(uint32_t)
 #define TIMESIZE sizeof(uint32_t)
 #define NUMBSIZE sizeof(uint32_t)
-#define REVISIZE 5		//GIT/SVN revisions are 5 digit hex  numbers
+#define REVISIZE 40	//GIT revisions are 40 digit hex numbers
 
 #define CRC16SIZE 2
 

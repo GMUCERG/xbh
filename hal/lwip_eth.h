@@ -3,4 +3,6 @@
 
 void init_ethernet(void);
 
+extern uint8_t mac_addr[6];
+
 #endif

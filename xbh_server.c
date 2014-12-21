@@ -120,7 +120,11 @@ static void xbhsrv_task(void *arg){/*{{{*/
                     DEBUG_OUT("Command Length: %d\n", len);
 #endif
                     }
-                    //XBH_handle(xbd_cmd, clnt_sock);
+                    len = XBH_handle(xbd_cmd+CMDLEN_SZ+1,len,reply_buf);
+                    retval = send(clnt_sock, reply_buf, len, 0);
+                    LOOP_ERRMSG(retval < 0, "Failed to send XBH reply\n");
+
+                    break;
 cmd_err:
                     close(clnt_sock);
                     state = XBHSRV_ACCEPT;
