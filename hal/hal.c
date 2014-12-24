@@ -7,20 +7,20 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include <inc/hw_memmap.h>
-#include <driverlib/debug.h>
-#include <driverlib/gpio.h>
 #include <driverlib/rom.h>
+
+#include <inc/hw_memmap.h>
+#include <inc/hw_ints.h>
+#include <driverlib/gpio.h>
 #include <driverlib/rom_map.h>
 #include <driverlib/pin_map.h>
 #include <driverlib/sysctl.h>
-#include <driverlib/emac.h>
 #include "driverlib/uart.h"
 
 
 #include "FreeRTOSConfig.h"
 #include "util.h"
-#include "lwip_eth.h"
+#include "hal/lwip_eth.h"
 
 
 
@@ -28,7 +28,6 @@
  * Clock rate in HZ
  */
 uint32_t g_syshz;
-
 
 
 
@@ -65,6 +64,7 @@ void HAL_setup(void){/*{{{*/
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOQ);
+
     init_ethernet();
 
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);

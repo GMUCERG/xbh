@@ -1,16 +1,17 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#include <inc/hw_memmap.h>
-#include <inc/hw_ints.h>
-#include <inc/hw_emac.h>
-#include <driverlib/debug.h>
-#include <driverlib/gpio.h>
 #include <driverlib/rom.h>
-#include <driverlib/rom_map.h>
-#include <driverlib/pin_map.h>
-#include <driverlib/sysctl.h>
+
+#include <inc/hw_emac.h>
+#include <inc/hw_ints.h>
+#include <inc/hw_memmap.h>
+#include <driverlib/debug.h>
 #include <driverlib/emac.h>
+#include <driverlib/gpio.h>
+#include <driverlib/pin_map.h>
+#include <driverlib/rom_map.h>
+#include <driverlib/sysctl.h>
 
 #include "FreeRTOSConfig.h"
 #include <FreeRTOS.h>
@@ -26,8 +27,8 @@
 #include <lwip/netif.h>
 #include <netif/tivaif.h>
 
-#include "lwip_eth.h"
-#include "hal.h"
+#include "hal/hal.h"
+#include "hal/lwip_eth.h"
 #include "xbh.h"
 #include "util.h"
 

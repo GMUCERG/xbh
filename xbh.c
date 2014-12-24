@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "hal/hal.h"
+#include "hal/lwip_eth.h"
 #include "xbh.h"
 #include "xbh_config.h"
 #include "xbh_prot.h"

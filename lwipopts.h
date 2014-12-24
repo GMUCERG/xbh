@@ -2477,7 +2477,7 @@
 /**
  * NETIF_DEBUG: Enable debugging in netif.c.
  */
-#//define NETIF_DEBUG LWIP_DBG_ON
+//define NETIF_DEBUG LWIP_DBG_ON
 //#ifndef NETIF_DEBUG
 //#define NETIF_DEBUG                     LWIP_DBG_OFF
 //#endif
