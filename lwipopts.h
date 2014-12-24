@@ -44,7 +44,7 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
-#define TCP_PRIO 1
+#include "task_prio.h"
 
 
 /*
@@ -1335,7 +1335,7 @@
  * The priority value itself is platform-dependent, but is passed to
  * sys_thread_new() when the thread is created.
  */
-#define TCPIP_THREAD_PRIO               TCP_PRIO
+#define TCPIP_THREAD_PRIO               LWIP_PRIO 
 
 /**
  * TCPIP_MBOX_SIZE: The mailbox size for the tcpip thread messages

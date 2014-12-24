@@ -57,6 +57,8 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+#include "hal/isr_prio.h"
+
 /*-----------------------------------------------------------
  * Application specific definitions.
  *
@@ -119,8 +121,8 @@
 //#define configKERNEL_INTERRUPT_PRIORITY         [dependent of processor]
 //#define configMAX_SYSCALL_INTERRUPT_PRIORITY    [dependent on processor and application]
 //#define configMAX_API_CALL_INTERRUPT_PRIORITY   [dependent on processor and application]
-#define configKERNEL_INTERRUPT_PRIORITY         ( 7 << 5 )    /* Priority 7, or 0xE0 as only the top three bits are implemented.  This is the lowest priority. */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY     ( 2 << 5 )  /* Priority 2, or 0xA0 as only the top three bits are implemented. */
+#define configKERNEL_INTERRUPT_PRIORITY         FREERTOS_KERNEL_PRIO
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY    FREERTOS_SYSCALL_PRIO 
 
 #ifdef DEBUG
 extern void assert_called(const char * const filename, uint32_t line);

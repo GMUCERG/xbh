@@ -145,7 +145,7 @@ void init_ethernet(void){/*{{{*/
     }/*}}}*/
 
     // Lower priority of ISR so *FromISR functions can be safely called
-    MAP_IntPrioritySet(INT_EMAC0, configKERNEL_INTERRUPT_PRIORITY);
+    MAP_IntPrioritySet(INT_EMAC0, ETH_ISR_PRIO);
 
     tcpip_init(tcpip_init_cb, NULL);
 }/*}}}*/

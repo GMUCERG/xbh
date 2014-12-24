@@ -37,7 +37,7 @@ void start_xbhserver(void){/*{{{*/
             "xbh",
             XBH_STACK,
             NULL,
-            tskIDLE_PRIORITY+1,
+            XBH_SRV_PRIO,
             &xbhsrv_task_handle);
     LOOP_ERRMSG(retval != pdPASS, "Could not create xbh server task\n");
 }/*}}}*/

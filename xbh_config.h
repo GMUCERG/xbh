@@ -11,8 +11,4 @@
 
 #define DEBUG_XBHNET
 
-/* Check TCP_PRIO in lwipopts.h */
-
-#define ETH_PRIO 2
-
 #endif
