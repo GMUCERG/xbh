@@ -95,7 +95,9 @@
     GEN(suf) \
     GEN(tcf) \
     GEN(trf) \
-    GEN(lof)
+    GEN(lof) \
+/* Unknown command */ \
+    GEN(unk)
 
 
 /**

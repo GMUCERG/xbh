@@ -73,12 +73,17 @@ extern volatile unsigned int  fallingTime;
 extern volatile unsigned char fallingSeen;
 
 
-//TODO implement
-size_t XBH_HandleGitRevisionRequest(uint8_t* p_answer){
+/**
+ * Retrieves git revision information and mac address
+ * @param p_answer Buffer to write information to. Needs to be
+ * XBH_REV_DIGITS+1+6*2+1 long. Format is gitrev,mac address (no colons)
+ * @return length of data written to p_answer
+ */
+size_t XBH_HandleGitRevisionRequest(uint8_t* p_answer){/*{{{*/
 	uint8_t i;
 
 
-	// Report SVN Rev in 5 digits length
+	// Report Git Rev in 7 digits length
 
 	for(i=0;i < XBH_REV_DIGITS;i++) {
 		p_answer[i]=XBH_REVISION[i];
@@ -90,17 +95,46 @@ size_t XBH_HandleGitRevisionRequest(uint8_t* p_answer){
 		p_answer[XBH_REV_DIGITS+1+2*i]=ntoa(mac_addr[i]>>4);
 		p_answer[XBH_REV_DIGITS+1+2*i+1]=ntoa(mac_addr[i]&0xf);
 	}
-    //Null terminator
+    // Add Null terminator
 	p_answer[XBH_REV_DIGITS+1+2*6+1]=0;
 	return XBH_REV_DIGITS+1+2*6+1;
+}/*}}}*/
+
+
+#if 0 /*{{{*/
+
+//TODO: Implement
+uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
+	uint8_t i;
+
+	constStringToBuffer (XBDCommandBuf, XBDtcr);
+	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+NUMBSIZE);
+	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
+	xbdReceive(XBD_COMMAND_LEN+NUMBSIZE, XBDResponseBuf);
+
+	XBH_DEBUG("tcr\n");
+
+//	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
+
+	if(0 == memcmp_P(XBDResponseBuf,XBDtco,XBD_COMMAND_LEN))
+	{	
+
+		for(i=0;i<4;++i)
+		{
+			p_answer[2*i] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]>>4);
+			p_answer[2*i+1] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]&0xf);
+		}
+		return 0;
+	}
+	else
+	{
+		XBH_ERROR("Response wrong [%s\r\n",XBDResponseBuf);
+		return 1;
+	}
 }
-
-//TODO Implement 
-uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer)
-{
-    return 1;
-#if 0
-
+/*}}}*/
+//TODO: Implement 
+uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 	uint8_t i;
 
 	constStringToBuffer (XBDCommandBuf, XBDtrr);
@@ -126,11 +160,8 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer)
 		return 1;
 	}
 
-#endif
 }
 
-#if 0
-/*{{{*/
 
 /**
  * Program XBD
@@ -447,7 +478,6 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 	}
 }/*}}}*/
 
-
 /**
  * Switches from bootloader to application mode
  * @return 0 if success
@@ -539,7 +569,7 @@ static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
 	xbdReceive(XBD_COMMAND_LEN, p_answer);
 }/*}}}*/
 /*}}}*/
-#endif
+
 /**
  * Sets reset pin depending on value of param
  * TODO Change to use c99 bool
@@ -547,7 +577,6 @@ static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
  * @return 0 if valid parameter, 1 if not
  */
 uint8_t XBH_HandleResetControlRequest(uint8_t param) {/*{{{*/
-#if 0
 	//Disable pull-up in input, set to low level if output
 	PORTB &= ~(_BV(PB0));
 
@@ -570,15 +599,12 @@ uint8_t XBH_HandleResetControlRequest(uint8_t param) {/*{{{*/
 
 	XBH_ERROR("Invalid Reset Reques\r\n");
 	return 1;
-#endif
-    return 1;
 }	/*}}}*/
 
 /**
  * Retrieves stack usage information from XBD
  */
 uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
-#if 0
     XBH_DEBUG("Sending 's'tack 'r'equest to XBD\n");
 
     memcpy(output, XBH_CMD[XBD_CMD_sur], XBH_COMMAND_LEN);
@@ -604,40 +630,9 @@ uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
         XBH_DEBUG("'s'tack 'u'sage 'o'kay not received from XBD\n");
 		return 1;
 	}
-#endif
     return -1;
 }/*}}}*/
 
-//TODO: Make work
-uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
-#if 0
-
-	uint8_t i;
-
-	constStringToBuffer (XBDCommandBuf, XBDtcr);
-	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+NUMBSIZE);
-	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
-	xbdReceive(XBD_COMMAND_LEN+NUMBSIZE, XBDResponseBuf);
-
-	XBH_DEBUG("tcr\n");
-
-//	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
-
-	if(0 == memcmp_P(XBDResponseBuf,XBDtco,XBD_COMMAND_LEN))
-	{	
-
-		for(i=0;i<4;++i)
-		{
-			p_answer[2*i] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]>>4);
-			p_answer[2*i+1] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]&0xf);
-		}
-		return 0;
-	}
-	else
-	{
-		XBH_ERROR("Response wrong [%s\r\n",XBDResponseBuf);
-		return 1;
-	}
 #endif
     return -1;
 }
@@ -1006,6 +1001,7 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{
 		}
 	}/*}}}*/
 
+#endif
     memcpy(output, XBH_CMD[XBH_CMD_unk], XBH_COMMAND_LEN);
     XBH_DEBUG("'un'known command 'r'eceived (len: %d)\n", input_len);
     for(uint8_t u=0;u<input_len;++u) {
@@ -1017,6 +1013,4 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{
     XBH_DEBUG("\n");
 	
 	return (uint16_t) XBH_COMMAND_LEN;
-#endif
-    return -1;
 }/*}}}*/
