@@ -45,7 +45,7 @@ void HAL_setup(void){/*{{{*/
                                              SYSCTL_OSC_MAIN |
                                              SYSCTL_USE_PLL |
                                              SYSCTL_CFG_VCO_480),
-                                             configCPU_CLOCK_HZ);
+                                             120000000L);
 
     MAP_SysCtlMOSCConfigSet(SYSCTL_MOSC_HIGHFREQ);
 

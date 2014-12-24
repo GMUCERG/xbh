@@ -57,6 +57,7 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+#include "hal/hal.h"
 #include "hal/isr_prio.h"
 
 /*-----------------------------------------------------------
@@ -71,11 +72,10 @@
  * See http://www.freertos.org/a00110.html.
  *----------------------------------------------------------*/
 
-
 #define configUSE_PREEMPTION                    1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
 #define configUSE_TICKLESS_IDLE                 0
-#define configCPU_CLOCK_HZ                      120000000L
+#define configCPU_CLOCK_HZ                      g_syshz
 #define configTICK_RATE_HZ                      250
 #define configMAX_PRIORITIES                    5
 #define configMINIMAL_STACK_SIZE                200
