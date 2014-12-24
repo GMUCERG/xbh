@@ -15,8 +15,8 @@
 /*}}}*/
 
 #define ETH_ISR_PRIO FREERTOS_KERNEL_PRIO
-#define TIMER_CAP_ISR_PRIO (1 << 5)
-#define TIMER_WRAP_ISR_PRIO (0 << 5)
+#define TIMER_CAP_ISR_PRIO (3 << 5)
+#define TIMER_WRAP_ISR_PRIO (1 << 5)
 
 
 #endif

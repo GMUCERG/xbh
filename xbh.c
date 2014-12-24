@@ -161,7 +161,7 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 		return 1;
 	}
 
-}
+}/*}}}*/
 
 
 /**
@@ -634,17 +634,10 @@ uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
     return -1;
 }/*}}}*/
 
-#endif
-    return -1;
-}
-/*}}}*/
-
 //TODO: Redefine OCRVAL
 //TODO: Counting cycles probably not accurate on ARM
 
 void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
-    return;
-#if 0
 
 	uint32_t tmpvar;
 	int32_t rising_fract, falling_fract;
@@ -725,8 +718,9 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
 	XBH_DEBUG("\ntmpvar:");
 	XBD_debugOutHex32Bit(tmpvar);
 #endif
-#endif
 }/*}}}*/
+#endif
+
 
 
 
@@ -747,16 +741,42 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_srr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 's'ubversion/git 'r'evision 'r'equest received\n");
-		//resetTimer=resetTimerBase;
 		ret = XBH_HandleGitRevisionRequest(&output[XBH_COMMAND_LEN]);
-		//resetTimer=0;
 
         XBH_DEBUG("'s'ubversion/git 'r'evision 'o'kay sent\n");
         memcpy(output, XBH_CMD[XBH_CMD_sro], XBH_COMMAND_LEN);
 		return ret+XBH_COMMAND_LEN;
 	}/*}}}*/
 
+
 #if 0
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'r'e'p'ort timestamp 'r'equest received\n");
+
+		resetTimer=resetTimerBase*1;
+		XBH_HandleRePorttimestampRequest(&output[XBH_COMMAND_LEN]);
+		resetTimer=0;
+		
+        XBH_DEBUG("'r'e'p'ort timestamp 'o'kay sent\n");
+        memcpy(output, XBH_CMD[XBH_CMD_rpo], XBH_COMMAND_LEN);
+		return (uint16_t) XBH_COMMAND_LEN+(3*TIMESIZE*2);
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_tcr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 't'iming 'c'alibration 'r'equest received\n");
+		ret=XBH_HandleTimingCalibrationRequest(&output[XBH_COMMAND_LEN]);
+		
+		if(0 == ret) {
+            XBH_DEBUG("'t'iming 'c'alibration 'o'kay sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_tco], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
+		} else {
+            XBH_DEBUG("'t'iming 'c'alibration 'f'ail sent\n");
+            memcpy(output, XBH_CMD[XBH_CMD_tcf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_trr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 't'arget 'r'evision 'r'equest received\n");
 		//resetTimer=resetTimerBase*2;
@@ -772,7 +792,6 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
 	}/*}}}*/
-
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'u'pload 'r'esults 'r'equest received\n");
@@ -857,18 +876,6 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{
         }
 		return (uint16_t) XBH_COMMAND_LEN;
 	}	/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 'r'e'p'ort timestamp 'r'equest received\n");
-
-		resetTimer=resetTimerBase*1;
-		XBH_HandleRePorttimestampRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		
-        XBH_DEBUG("'r'e'p'ort timestamp 'o'kay sent\n");
-        memcpy(output, XBH_CMD[XBH_CMD_rpo], XBH_COMMAND_LEN);
-		return (uint16_t) XBH_COMMAND_LEN+(3*TIMESIZE*2);
-	}/*}}}*/
 	
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_str],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'st'atus 'r'equest received\n");
@@ -929,23 +936,6 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{
 		} else {
             XBH_DEBUG("'s'tack 'u'sage 'f'ail sent\n");
             memcpy(output, XBH_CMD[XBH_CMD_suf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_tcr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 't'iming 'c'alibration 'r'equest received\n");
-		resetTimer=resetTimerBase*2;		
-		ret=XBH_HandleTimingCalibrationRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		
-		if(0 == ret) {
-            XBH_DEBUG("'t'iming 'c'alibration 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_tco], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
-		} else {
-            XBH_DEBUG("'t'iming 'c'alibration 'f'ail sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_tcf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
 	}/*}}}*/

@@ -80,9 +80,11 @@ extern void vPortSVCHandler(void);
 extern void xPortSysTickHandler(void);
 
 /*
- * Interrupt handlers from hal/lwip_eth.c
+ * Interrupt handlers from hal
  */
 extern void lwIP_eth_isr(void);
+extern void exec_timer_cap_isr(void);
+extern void exec_timer_wrap_isr(void);
 
 
 //*****************************************************************************
@@ -135,8 +137,8 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // 36  // 16/32-Bit Timer 0B
     IntDefaultHandler,                      // 37  // 16/32-Bit Timer 1A
     IntDefaultHandler,                      // 38  // 16/32-Bit Timer 1B
-    IntDefaultHandler,                      // 39  // 16/32-Bit Timer 2A
-    IntDefaultHandler,                      // 40  // 16/32-Bit Timer 2B
+    exec_timer_cap_isr,                     // 39  // 16/32-Bit Timer 2A
+    exec_timer_wrap_isr,                    // 40  // 16/32-Bit Timer 2B
     IntDefaultHandler,                      // 41  // Analog Comparator 0
     IntDefaultHandler,                      // 42  // Analog Comparator 1
     IntDefaultHandler,                      // 43  // Analog Comparator 2

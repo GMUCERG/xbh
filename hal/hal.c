@@ -78,6 +78,8 @@ void HAL_setup(void){/*{{{*/
                             (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                              UART_CONFIG_PAR_NONE));
 
+    //Configure timer capture pin
+    timer_setup();
 }/*}}}*/
 
 
@@ -96,35 +98,4 @@ void uart_write_char(char c){
 }
 
 /*}}}*/
-
-// Timer capture code
-
-void start_capture(void){
-#define TIMER_PIN GPIO_PM0_T2CCP0
-#define TIMER_BASE TIMER2_BASE
-    MAP_IntPrioritySet(INT_TIMER2A, TIMER_CAP_ISR_PRIO);
-    MAP_IntPrioritySet(INT_TIMER2B, TIMER_WRAP_ISR_PRIO);
-
-// PM0 and PM1 are attached to timer2
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER2);
-    MAP_GPIOPinConfigure(TIMER_PIN);
-    
-
-    // Split needed for timer capture
-    // We use timer A for capture and timer B to count wraparounds of timer A
-    TimerConfigure(TIMER_BASE, TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_CAP_TIME_UP|TIMER_CFG_B_PERIODIC_UP);
-
-    // Synchronize both counters
-    TimerSynchronize(TIMER0_BASE, TIMER2A_SYNC, TIMER2B_SYNC);
-
-    // Keep counting even in debug
-    TimerControlStall(TIMER_BASE, TIMER_BOTH, false);
-
-    // Detect both rising and falling edges
-    TimerControlEvent(TIMER_BASE, TIMER_A, TIMER_EVENT_BOTH_EDGES);
-
-
-        
-
 
