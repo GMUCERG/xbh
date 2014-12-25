@@ -16,15 +16,16 @@
 #include "isr_prio.h"
 
 
-#define WRAP_TIME_MASK 0xFFFF0000
-
-static volatile uint64_t t_start;
-static volatile uint64_t t_stop;
+// Timer variables
 static volatile uint32_t wrap_cnt;
 static volatile uint32_t wrap_time;
-
+static volatile uint64_t t_start;
+static volatile uint64_t t_stop;
 static volatile bool exec_started;
 
+
+// Execution timer stuff/*{{{*/
+#define WRAP_TIME_MASK 0xFFFF0000
 
 /**
  * Sets up execution timer
@@ -74,12 +75,12 @@ void exec_timer_cap_isr(void){/*{{{*/
     uint32_t cap_time;
 
     TimerIntClear(TIMER2_BASE, TIMER_TIMA_EVENT);
-    //Disable TimerB interrupt so snap and time read are atomic
-    TimerIntDisable(TIMER2_BASE, TIMER_TIMB_TIMEOUT);{
+    //Disable interrupts so snap and time read are atomic
+    IntMasterDisable();{
         wrap_cnt_snap = wrap_cnt;
         wrap_time_snap = wrap_time;
         cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
-    } TimerIntEnable(TIMER2_BASE, TIMER_TIMB_TIMEOUT);
+    } IntMasterEnable();
     
 
     // If timer A value when wrap_cnt was incremented was equal to cap timer, then
@@ -115,9 +116,15 @@ void exec_timer_wrap_isr(void){/*{{{*/
     ++wrap_cnt; 
     wrap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A); 
 }/*}}}*/
+/*}}}*/
 
+// Power measurement stuff 
 
-void pwr_sample_isr(void *args){
+void pwr_sample_timmr_isr(void){
+    TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+}
+
+void pwr_sample_task(void *args){
     uint32_t wrap_cnt_snap;
     uint32_t wrap_time_snap; 
     
