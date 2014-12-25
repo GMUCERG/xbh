@@ -3,7 +3,17 @@
 
 #include <inttypes.h>
 
+struct pwr_measurement{
+    uint64_t timestamp;
+    uint16_t value;
+}
+
+
+void exec_start(void);
+
 void exec_timer_setup(void);
-void exec_timer_startcap(void);
-uint64_t exec_timer_gettime(void); 
+void pwr_measure_setup(void);
+
+void pwr_get_measurement;
+
 #endif
