@@ -37,45 +37,30 @@
 #define ETH_INT_STACK 256
 
 
-/*
- * Forward Declarations
- */
-void init_ethernet(void);
+// Global Variables /*{{{*/
+/** Mac address */
+uint8_t mac_addr[6];
+/*}}}*/
 
+// Static Variables /*{{{*/
 
-// Ethernet ISR and task
-void lwIP_eth_isr(void);
-static void eth_int_task(void *arg);
-
-//Callback for tcpip_init when nthread starts
-static void tcpip_init_cb(void *args);
-
-//Link status callback
-static void link_status(struct netif *arg);
-
-
-
-
-
-
-/**
- * Handle for ethernet interrupt task
- */
+/** Handle for ethernet interrupt task */
 static TaskHandle_t eth_int_task_handle;
-/**
- * Queue handle for status register passed between ISR and task
- */
+
+/** Queue handle for status register passed between ISR and task */
 static QueueHandle_t eth_int_q_handle;
 
-uint8_t mac_addr[6];
-/**
- * NetIF struct for lwIP
- */
+/** NetIF struct for lwIP */
 static struct netif lwip_netif;
+/*}}}*/
 
-
-
-
+// Forward Declarations *//*{{{*/
+void init_ethernet(void);
+void lwIP_eth_isr(void);
+static void eth_int_task(void *arg);
+static void tcpip_init_cb(void *args);
+static void link_status(struct netif *arg);
+/*}}}*/
 
 
 /**
@@ -224,34 +209,6 @@ static void link_status(struct netif *arg){/*{{{*/
 
 
 
-
-/**
- * Task for feeding packets from ISR to lwIP
- * Loops forever blocking on queue waiting for next status from ISR
- * @param arg Unused
- */
-static void eth_int_task(void* arg){/*{{{*/
-    uint32_t status;
-    while(1){
-
-        //Loop waiting max time between loops until queue item received
-        while(xQueueReceive(eth_int_q_handle, &status, portMAX_DELAY)!=pdPASS);
-
-        tivaif_interrupt(&lwip_netif, status);
-        // Reenable interrupts disabled in lwIP_eth_isr()
-        MAP_EMACIntEnable(EMAC0_BASE, (EMAC_INT_PHY|
-                    EMAC_INT_RECEIVE|
-                    EMAC_INT_RX_NO_BUFFER|
-                    EMAC_INT_RX_STOPPED|
-                    EMAC_INT_TRANSMIT|
-                    EMAC_INT_TX_STOPPED));
-
-#if DEBUG_STACK
-        DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
-#endif
-    }
-}/*}}}*/
-
 /**
  * ISR for handling interrupts from Ethernet MAC (ISR 56)
  */
@@ -290,4 +247,31 @@ void lwIP_eth_isr(void){/*{{{*/
 
     //Yield to eth_int_task
     portYIELD_FROM_ISR(wake == pdTRUE);
+}/*}}}*/
+
+/**
+ * Task for feeding packets from ISR to lwIP
+ * Loops forever blocking on queue waiting for next status from ISR
+ * @param arg Unused
+ */
+static void eth_int_task(void* arg){/*{{{*/
+    uint32_t status;
+    while(1){
+
+        //Loop waiting max time between loops until queue item received
+        while(xQueueReceive(eth_int_q_handle, &status, portMAX_DELAY)!=pdPASS);
+
+        tivaif_interrupt(&lwip_netif, status);
+        // Reenable interrupts disabled in lwIP_eth_isr()
+        MAP_EMACIntEnable(EMAC0_BASE, (EMAC_INT_PHY|
+                    EMAC_INT_RECEIVE|
+                    EMAC_INT_RX_NO_BUFFER|
+                    EMAC_INT_RX_STOPPED|
+                    EMAC_INT_TRANSMIT|
+                    EMAC_INT_TX_STOPPED));
+
+#if DEBUG_STACK
+        DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
+#endif
+    }
 }/*}}}*/

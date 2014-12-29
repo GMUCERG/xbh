@@ -79,7 +79,7 @@ void HAL_setup(void){/*{{{*/
                              UART_CONFIG_PAR_NONE));
 
     //Configure timer capture pin
-    timer_setup();
+    exec_timer_setup();
 }/*}}}*/
 
 
