@@ -2,30 +2,40 @@
 #include <stdbool.h>
 
 #include <driverlib/rom.h>
+#include <driverlib/rom_map.h>
 
 #include <inc/hw_ints.h>
 #include <inc/hw_memmap.h>
 #include <driverlib/gpio.h>
 #include <driverlib/interrupt.h>
 #include <driverlib/pin_map.h>
-#include <driverlib/rom_map.h>
 #include <driverlib/sysctl.h>
 #include <driverlib/timer.h>
 
-#include "hal/timer.h"
-#include "isr_prio.h"
+#include "hal/measure.h"
+#include "hal/isr_prio.h"
+
+#include "FreeRTOSConfig.h"
+#include <FreeRTOS.h>
+#include <task.h>
 
 
-// Timer variables
+// Static variables 
+
+/** Sampling task handle */
+TaskHandle_t pwr_sample_task_handle;
+
+// Timer variables/*{{{*/
 static volatile uint32_t wrap_cnt;
 static volatile uint32_t wrap_time;
 static volatile uint64_t t_start;
 static volatile uint64_t t_stop;
 static volatile bool exec_started;
+/*}}}*/
+
 
 
 // Execution timer stuff/*{{{*/
-#define WRAP_TIME_MASK 0xFFFF0000
 
 /**
  * Sets up execution timer
@@ -56,10 +66,10 @@ void exec_timer_setup(void){/*{{{*/
  */
 void exec_timer_start(void){/*{{{*/
     wrap_cnt = 0;
-    t_fall = 0;
-    t_rise = 0;
+    t_start= 0;
+    t_stop= 0;
     exec_started = false;
-    MAP_TimerIntEnable(TIMER2_BASE, TIMER_TIMA_EVENT);
+    MAP_TimerIntEnable(TIMER2_BASE, TIMER_CAPA_EVENT);
     MAP_TimerIntEnable(TIMER2_BASE, TIMER_TIMB_TIMEOUT);
     MAP_TimerEnable(TIMER2_BASE, TIMER_BOTH);
 }/*}}}*/
@@ -74,7 +84,7 @@ void exec_timer_cap_isr(void){/*{{{*/
     uint32_t wrap_time_snap;
     uint32_t cap_time;
 
-    TimerIntClear(TIMER2_BASE, TIMER_TIMA_EVENT);
+    TimerIntClear(TIMER2_BASE, TIMER_CAPA_EVENT);
     //Disable interrupts so snap and time read are atomic
     IntMasterDisable();{
         wrap_cnt_snap = wrap_cnt;
@@ -85,23 +95,21 @@ void exec_timer_cap_isr(void){/*{{{*/
 
     // If timer A value when wrap_cnt was incremented was equal to cap timer, then
     // wrap must have been triggered during or after cap timer
-    if(wrap_cnt_time == cap_time){
+    if(wrap_time_snap == cap_time){
         // If capture time was shortly before wraparound point, let's say halfway
         // through counter (0xFFFF/2), than wraparound probably happened after
         // and thus decrement to compensate
         if(cap_time > (0xFFFF >> 1)){
-            --wrap_cnt;
+            --wrap_cnt_snap;
         }  
     }
 
 
     if(!exec_started){
-        t_start = wrap_cnt << 16 + cap_time;
+        t_start = (wrap_cnt_snap << 16) | cap_time;
         exec_started = true;
     }else{
-        t_stop = wrap_cnt << 16 + cap_time;
-        exec_time_elapsed = (wrap_cnt << 16 + MAP_TimerValueGet(TIMER0_BASE, TIMER_A)) - t_start;
-        
+        t_stop = (wrap_cnt_snap << 16) | cap_time;
         MAP_TimerDisable(TIMER2_BASE, TIMER_BOTH);
     }
 }/*}}}*/
@@ -120,7 +128,7 @@ void exec_timer_wrap_isr(void){/*{{{*/
 
 // Power measurement stuff 
 
-void pwr_sample_timmr_isr(void){
+void pwr_sample_timer_isr(void){
     TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
 }
 
@@ -128,14 +136,17 @@ void pwr_sample_task(void *args){
     uint32_t wrap_cnt_snap;
     uint32_t wrap_time_snap; 
     
-    //Disable interrupts so we get both values together atomically
-    //Really only need to disable exec_timer_cap and exec_timer_wrap, but we
-    //kill all just to be sure. Plus cpsid/cpsie is faster than masking
-    //individual interrupts
-    IntMasterDisable();
-    wrap_cnt_snap = wrap_cnt;
-    wrap_cnt_snap = wrap_time;
-    IntMasterEnable();
+    while(1){
+        //Disable interrupts so we get both values together atomically
+        //Really only need to disable exec_timer_cap and exec_timer_wrap, but we
+        //kill all just to be sure. Plus cpsid/cpsie is faster than masking
+        //individual interrupts
+        IntMasterDisable();
+        wrap_cnt_snap = wrap_cnt;
+        wrap_cnt_snap = wrap_time;
+        IntMasterEnable();
+    }
+
 
 }
 
