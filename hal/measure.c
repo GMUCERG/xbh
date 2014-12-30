@@ -27,10 +27,10 @@ TaskHandle_t pwr_sample_task_handle;
 
 // Timer variables/*{{{*/
 static volatile uint32_t wrap_cnt;
-static volatile uint32_t wrap_time;
+static volatile uint32_t wrap_cap_cnt;
 static volatile uint64_t t_start;
 static volatile uint64_t t_stop;
-static volatile bool exec_started;
+static volatile uint32_t cap_cnt;
 /*}}}*/
 
 
@@ -68,6 +68,7 @@ void exec_timer_start(void){/*{{{*/
     wrap_cnt = 0;
     t_start= 0;
     t_stop= 0;
+    cap_cnt = 0;
     exec_started = false;
     MAP_TimerIntEnable(TIMER2_BASE, TIMER_CAPA_EVENT);
     MAP_TimerIntEnable(TIMER2_BASE, TIMER_TIMB_TIMEOUT);
@@ -81,21 +82,21 @@ void exec_timer_start(void){/*{{{*/
  */
 void exec_timer_cap_isr(void){/*{{{*/
     uint32_t wrap_cnt_snap;
-    uint32_t wrap_time_snap;
+    uint32_t wrap_cap_cnt_snap;
     uint32_t cap_time;
 
     TimerIntClear(TIMER2_BASE, TIMER_CAPA_EVENT);
     //Disable interrupts so snap and time read are atomic
     IntMasterDisable();{
         wrap_cnt_snap = wrap_cnt;
-        wrap_time_snap = wrap_time;
-        cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
+        wrap_cap_cnt_snap = wrap_cap_cnt;
+        cap_time = MAP_TimerValueGet(TIMER2_BASE, TIMER_A);
     } IntMasterEnable();
     
 
-    // If timer A value when wrap_cnt was incremented was equal to cap timer, then
+    // If cap count when wrap happens equal to timer A value when wrap_cnt was incremented was equal to cap timer, then
     // wrap must have been triggered during or after cap timer
-    if(wrap_time_snap == cap_time){
+    if(wrap_cap_cnt_snap == cap_cnt){
         // If capture time was shortly before wraparound point, let's say halfway
         // through counter (0xFFFF/2), than wraparound probably happened after
         // and thus decrement to compensate
@@ -105,13 +106,18 @@ void exec_timer_cap_isr(void){/*{{{*/
     }
 
 
-    if(!exec_started){
+    if(cap_cnt == 0){
         t_start = (wrap_cnt_snap << 16) | cap_time;
-        exec_started = true;
-    }else{
+    }else if (cap_cnt == 1){
         t_stop = (wrap_cnt_snap << 16) | cap_time;
         MAP_TimerDisable(TIMER2_BASE, TIMER_BOTH);
     }
+
+    IntMasterDisable();{
+        ++cap_cnt;
+    } IntMasterEnable();
+
+
 }/*}}}*/
 
 /**
@@ -122,7 +128,7 @@ void exec_timer_wrap_isr(void){/*{{{*/
     TimerIntClear(TIMER2_BASE, TIMER_TIMB_TIMEOUT);
     
     ++wrap_cnt; 
-    wrap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A); 
+    wrap_cap_cnt = cap_cnt;
 }/*}}}*/
 /*}}}*/
 
