@@ -56,7 +56,7 @@ void exec_timer_setup(void){/*{{{*/
     MAP_TimerConfigure(TIMER0_BASE, TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_CAP_TIME_UP|TIMER_CFG_B_PERIODIC_UP);
 
     // Synchronize both counters
-    MAP_TimerSynchronize(TIMER0_BASE, TIMER_2A_SYNC|TIMER_2B_SYNC);
+    MAP_TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC);
 
     // Detect both rising and falling edges
     MAP_TimerControlEvent(TIMER0_BASE, TIMER_A, TIMER_EVENT_BOTH_EDGES);
