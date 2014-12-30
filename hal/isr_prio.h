@@ -5,7 +5,7 @@
 // Max supported priority 
 #define ISR_MAX_PRIO_RAW 7 
 // Pre-encoding value of FREERTOS_SYSCALL_PRIO
-#define MAX_SYSCALL_PRIO_RAW (ISR_MAX_PRIO_RAW-2)
+#define MAX_SYSCALL_PRIO_RAW (ISR_MAX_PRIO_RAW-3)
 
 // Modifies priority into appropriate format for processor
 // This macro inverts ARM priority values to be consistent w/ FreeRTOS (i.e
@@ -13,7 +13,7 @@
 // On ARM Cortex M4:
 /* 3 bits, shift upwards by 5, lower number = higher priority (for Cortex M4) */
 
-#define ISR_PRIO_ENC(x) ((ISR_MAX_PRIO_RAW-x) << 5)
+#define ISR_PRIO_ENC(x) ((ISR_MAX_PRIO_RAW-(x)) << 5)
 /*}}}*/
 
 /* Interrupt priorities */
@@ -28,9 +28,14 @@
 
 /*}}}*/
 
+// Set to lowest priority, i.e. equal to kernel scheduler
 #define ETH_ISR_PRIO        FREERTOS_KERNEL_PRIO
-#define TIMER_CAP_ISR_PRIO  ISR_PRIO_ENC(MAX_SYSCALL_PRIO_RAW-1)
-#define TIMER_WRAP_ISR_PRIO ISR_PRIO_ENC(MAX_SYSCALL_PRIO_RAW+1)
-#define PWR_SAMPLE_ISR_PRIO ISR_PRIO_ENC(MAX_SYSCALL_PRIO_RAW-2)
+// Set to highest priority, as wrap must always happen before capture when
+// wrapping is valid 
+#define TIMER_WRAP_ISR_PRIO ISR_PRIO_ENC(ISR_MAX_PRIO_RAW-1)
+// Set to second highest priority after wrap ISR, Does not make syscalls 
+#define TIMER_CAP_ISR_PRIO  ISR_PRIO_ENC(ISR_MAX_PRIO_RAW-2)
+// Set to sample, use max syscall-safe priority
+#define PWR_SAMPLE_ISR_PRIO ISR_PRIO_ENC(MAX_SYSCALL_PRIO_RAW)
 
 #endif
