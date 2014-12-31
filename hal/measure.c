@@ -12,13 +12,15 @@
 #include <driverlib/sysctl.h>
 #include <driverlib/timer.h>
 
+#include "FreeRTOSConfig.h"
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include "hal/hal.h"
 #include "hal/measure.h"
 #include "hal/isr_prio.h"
 
-#include "FreeRTOSConfig.h"
-#include <FreeRTOS.h>
-#include <task.h>
+#include "util.h"
 
 #define SAMPLE_PERIOD_US 500
 
@@ -43,24 +45,26 @@ static volatile uint32_t cap_cnt;
  * Sets up execution timer
  */
 void exec_timer_setup(void){/*{{{*/
-    MAP_IntPrioritySet(INT_TIMER0A, TIMER_CAP_ISR_PRIO);
-    MAP_IntPrioritySet(INT_TIMER0B, TIMER_WRAP_ISR_PRIO);
-
-    // PA0 and PA1 are attached to timer0
+    // Enable and reset timer 0
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER0);
+
+    // PA0 is attached to timer0
     MAP_GPIOPinConfigure(GPIO_PA0_T0CCP0);
     
     // Split needed for timer capture
     // We use timer A for capture and timer B to count wraparounds of timer A
     MAP_TimerConfigure(TIMER0_BASE, TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_CAP_TIME_UP|TIMER_CFG_B_PERIODIC_UP);
 
-    // Synchronize both counters
-    MAP_TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC);
-
     // Detect both rising and falling edges
     MAP_TimerControlEvent(TIMER0_BASE, TIMER_A, TIMER_EVENT_BOTH_EDGES);
 
+    // Set priorities for the timers
+    MAP_IntPrioritySet(INT_TIMER0A, TIMER_CAP_ISR_PRIO);
+    MAP_IntPrioritySet(INT_TIMER0B, TIMER_WRAP_ISR_PRIO);
+
+    MAP_IntEnable(INT_TIMER0A);
+    MAP_IntEnable(INT_TIMER0B);
 }/*}}}*/
 
 /**
