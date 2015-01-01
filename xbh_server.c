@@ -30,11 +30,11 @@ static void xbhsrv_task(void *arg);
  * Starts XBHServer task
  */
 void start_xbhserver(void){/*{{{*/
-    uint32_t retval;
+    int retval;
 
     DEBUG_OUT("Starting XBH task\n");
     retval = xTaskCreate( xbhsrv_task,
-            "xbh",
+            "xbh_srv",
             XBH_STACK,
             NULL,
             XBH_SRV_PRIO,
@@ -53,10 +53,10 @@ static void xbhsrv_task(void *arg){/*{{{*/
     struct sockaddr_in listen_addr;
     struct sockaddr_in clnt_addr;
 
-    int32_t srv_sock, clnt_sock;
+    int srv_sock, clnt_sock;
 
     socklen_t clnt_addr_sz;
-    int32_t retval;
+    int retval;
 
     xbhsrv_state state = XBHSRV_ACCEPT;
 
@@ -96,7 +96,7 @@ static void xbhsrv_task(void *arg){/*{{{*/
             case XBHSRV_CMD: 
                 {
                     size_t len = 0;
-                    retval = recv_bytes(clnt_sock, xbd_cmd, CMDLEN_SZ,0);
+                    retval = recv_waitall(clnt_sock, xbd_cmd, CMDLEN_SZ,0);
                     if(retval <= 0){ goto cmd_err; }
 
                     // Get length of command message in ascii hex format
@@ -104,8 +104,15 @@ static void xbhsrv_task(void *arg){/*{{{*/
                         len += htoi(xbd_cmd[i]) << 4*(CMDLEN_SZ-1-i);
                     }
 
+                    // If data length greater than XBD_PACKET_SIZE_MAX, then
+                    // overlow would happen, so error out, close connection, and
+                    // return to listening 
+                    if(len+CMDLEN_SZ+1 > XBD_PACKET_SIZE_MAX){
+                        goto cmd_err;
+                    }
+
                     //+1 to account for colon delimiter
-                    retval = recv_bytes(clnt_sock, xbd_cmd+CMDLEN_SZ, len+1,0);
+                    retval = recv_waitall(clnt_sock, xbd_cmd+CMDLEN_SZ, len+1,0);
                     if(retval <= 0){ goto cmd_err; }
 
                     //Validate if command, otherwise abort
@@ -113,16 +120,16 @@ static void xbhsrv_task(void *arg){/*{{{*/
                         goto cmd_err;
                     }else{
 #ifdef DEBUG_XBHNET
-                    char cmd[XBH_COMMAND_LEN+1];
-                    cmd[XBH_COMMAND_LEN]='\0';
-                    memcpy(cmd, xbd_cmd+CMDLEN_SZ+1, XBH_COMMAND_LEN);
-                    DEBUG_OUT("Command: %s\n", cmd);
-                    DEBUG_OUT("Command Length: %d\n", len);
+                        char cmd[XBH_COMMAND_LEN+1];
+                        cmd[XBH_COMMAND_LEN]='\0';
+                        memcpy(cmd, xbd_cmd+CMDLEN_SZ+1, XBH_COMMAND_LEN);
+                        DEBUG_OUT("Command: %s\n", cmd);
+                        DEBUG_OUT("Command Length: %d\n", len);
 #endif
                     }
-                    len = XBH_handle(xbd_cmd+CMDLEN_SZ+1,len,reply_buf);
+                    len = XBH_handle(clnt_sock, xbd_cmd+CMDLEN_SZ+1,len,reply_buf);
                     retval = send(clnt_sock, reply_buf, len, 0);
-                    LOOP_ERRMSG(retval < 0, "Failed to send XBH reply\n");
+                    COND_ERRMSG(retval < 0, "Failed to send XBH reply\n");
 
                     break;
 cmd_err:

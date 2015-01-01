@@ -152,7 +152,7 @@ static void tcpip_init_cb(void *args){/*{{{*/
             NULL,
             tskIDLE_PRIORITY+ETH_PRIO,
             &eth_int_task_handle);
-    LOOP_ERR(retval != pdPASS);
+    LOOP_ERRMSG(retval != pdPASS, "Could not start lwip eth_int task\n" );
 
 
 
@@ -246,7 +246,7 @@ void lwIP_eth_isr(void){/*{{{*/
     xQueueSendToBackFromISR(eth_int_q_handle, &status,  &wake);
 
     //Yield to eth_int_task
-    portYIELD_FROM_ISR(wake == pdTRUE);
+    portYIELD_FROM_ISR((pdTRUE == wake));
 }/*}}}*/
 
 /**

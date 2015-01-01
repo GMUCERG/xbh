@@ -5,15 +5,6 @@
 #include "xbh_prot.h"
 #include <inttypes.h>
 
-#define ADDRSIZE sizeof(uint32_t) //bytes used to store address 
-#define LENGSIZE sizeof(uint32_t) //bytes used to store length
-#define SEQNSIZE sizeof(uint32_t) //bytes used to store sequence counter
-#define TYPESIZE sizeof(uint32_t)
-#define TIMESIZE sizeof(uint32_t)
-#define NUMBSIZE sizeof(uint32_t)
-#define REVISIZE 40	//GIT revisions are 40 digit hex numbers
-
-#define CRC16SIZE 2
 
 #define XBD_ANSWERLENG_MAX 32
 #define XBD_PACKET_SIZE_MAX 255

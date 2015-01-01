@@ -1,10 +1,9 @@
 #include <util/delay.h>
 
+#include "xbh.h"
+#include "util.h"
 #include "xbh_xbdcomm.h"
 #include "xbd_multipacket.h"
-#include "i2c.h"
-#include "usart.h"
-#include "xbh_utils.h"
 #include "config.h"
 #include "stack.h"
 
@@ -39,10 +38,10 @@ unsigned char ce_timeouts=0;
 unsigned long ce_timeout_at=0;
 
 
-volatile unsigned char udp_conn_lastop = UDP_CONN_NOOP;
-
 extern uint8_t I2cReceiveData[I2C_RECEIVE_DATA_BUFFER_SIZE];
 
+// TODO: Implement other transports/*{{{*/
+#if 0
 void inc_ce_seqnum()
 {
     ++ce_seqnum;
@@ -365,6 +364,7 @@ void xbdCommUdpInit()
     }
 }
 
+#endif/*}}}*/
 
 
 
@@ -373,15 +373,10 @@ void xbdCommInit(uint8_t commMode)
     xbd_comm=commMode;
     switch(xbd_comm) {
         case COMM_I2C:
-            i2cInit();
-            i2cSetLocalDeviceAddr(SLAVE_ADR+1, 0);
-            i2cSetBitrate(I2C_BAUDRATE);
-            XBH_DEBUG("I2C");
-            usart_init(UART_DEBUG_BAUDRATE);
-            usart_status.usart_ignore = 0;
-            _delay_ms(100);
-            XBH_DEBUG("...I2\n");
+            XBH_DEBUG("I2C\n");
             break;
+        //TODO: Implement other modes/*{{{*/
+#if 0
         case COMM_UART:
             usart_init(UART_COMM_BAUDRATE);
             usart_status.usart_ignore = 1;
@@ -396,13 +391,14 @@ void xbdCommInit(uint8_t commMode)
             XBH_DEBUG("\nEthernet XB\n");
             xbdCommUdpInit();
             break;
-
+#endif
+/*}}}*/
         default:
-            XBH_ERROR("HURTZ!\n");
+            uart_printf("UNSUPPORTED XBD communication mode!\n");
     }
 }
 
-void xbdSend(uint8_t length, uint8_t *buf) {
+void xbdSend(size_t length, void *buf) {
     int i;
     unsigned char ch;
     u16 *p_crc;
@@ -416,6 +412,8 @@ void xbdSend(uint8_t length, uint8_t *buf) {
         case COMM_I2C:
             i2cMasterSendNI(SLAVE_ADR, length, buf);
             break;
+            //TODO: Implement other modes/*{{{*/
+#if 0
         case COMM_UART:
         case COMM_UART_OVERDRIVE:
             usart_write_char(0);
@@ -511,11 +509,12 @@ void xbdSend(uint8_t length, uint8_t *buf) {
             SWITCH_TO_LARGE_BUFFER;
 
             break;
+#endif/*}}}*/
     }
 }
 
 
-void xbdReceive(uint8_t length, uint8_t *buf) {
+void xbdReceive(size_t length, void *buf) {
     int i;
     u16 *p_crc;
     //XBH_DEBUG("XBD: Waiting for %d byte\n",length);
@@ -529,6 +528,8 @@ void xbdReceive(uint8_t length, uint8_t *buf) {
                 XBH_ERROR("I2C Receive error: %d\n",i);
             }
             break;
+            // TODO: Implement UART and ethernet transports/*{{{*/
+#if 0
         case COMM_UART:
         case COMM_UART_OVERDRIVE:
             usart_write_char(0);
@@ -640,6 +641,7 @@ void xbdReceive(uint8_t length, uint8_t *buf) {
 
             SWITCH_TO_LARGE_BUFFER;
             break;
+#endif/*}}}*/
     }
 
     //Check CRC

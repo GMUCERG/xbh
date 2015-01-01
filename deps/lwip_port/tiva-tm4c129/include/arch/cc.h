@@ -34,9 +34,6 @@
 
 #include <inttypes.h>
 #include <stddef.h>
-#include "util.h"
-
-#define LWIP_PLATFORM_DIAG(msg) uart_printf msg
 
 typedef unsigned    char    u8_t;
 typedef signed      char    s8_t;
@@ -51,6 +48,9 @@ typedef u32_t sys_prot_t;
 // Needed to enable socket API
 #define LWIP_PROVIDE_ERRNO
 
+// Printf
+#include "util.h"
+#define LWIP_PLATFORM_DIAG(msg) uart_printf msg
 
 /** @todo fix some warnings: don't use #pragma if compiling with cygwin gcc */
 #ifndef __GNUC__

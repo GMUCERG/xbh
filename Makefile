@@ -16,6 +16,7 @@ XBH_SOURCES := $(PROJECT_ROOT)/hal/startup_gcc.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/measure.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/i2c.c
 XBH_SOURCES += $(PROJECT_ROOT)/main.c
 XBH_SOURCES += $(PROJECT_ROOT)/util.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh.c

@@ -1,5 +1,6 @@
 #include <inttypes.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include <driverlib/rom.h>
 #include <driverlib/rom_map.h>
@@ -14,20 +15,24 @@
 
 #include "FreeRTOSConfig.h"
 #include <FreeRTOS.h>
+#include <queue.h>
 #include <task.h>
 
 #include "hal/hal.h"
 #include "hal/measure.h"
 #include "hal/isr_prio.h"
+#include "hal/i2c.h"
 
 #include "util.h"
 
-#define SAMPLE_PERIOD_US 500
+#define PWR_SAMP_STACK 256
+#define SAMPLE_PERIOD_US 200
 
 
 
 /** Sampling task handle */
-TaskHandle_t pwr_sample_task_handle;
+static TaskHandle_t pwr_sample_task_handle;
+QueueHandle_t pwr_sample_q_handle;
 
 // Timer capture variables/*{{{*/
 static volatile uint32_t wrap_cnt;
@@ -38,19 +43,19 @@ static volatile uint32_t cap_cnt;
 /*}}}*/
 
 
-
 // Execution timer stuff/*{{{*/
 
 /**
  * Sets up execution timer
  */
-void exec_timer_setup(void){/*{{{*/
+static void exec_timer_setup(void){/*{{{*/
     // Enable and reset timer 0
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER0);
 
     // PA0 is attached to timer0
     MAP_GPIOPinConfigure(GPIO_PA0_T0CCP0);
+    MAP_GPIOPinTypeTimer(GPIO_PORTA_BASE, GPIO_PIN_0);
     
     // Split needed for timer capture
     // We use timer A for capture and timer B to count wraparounds of timer A
@@ -65,18 +70,20 @@ void exec_timer_setup(void){/*{{{*/
 
     MAP_IntEnable(INT_TIMER0A);
     MAP_IntEnable(INT_TIMER0B);
+
+    MAP_TimerIntEnable(TIMER0_BASE, TIMER_CAPA_EVENT);
+    MAP_TimerIntEnable(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
 }/*}}}*/
 
 /**
  * Starts execution timer, enabling interrupts
  */
-void exec_timer_start(void){/*{{{*/
+static void exec_timer_start(void){/*{{{*/
     wrap_cnt = 0;
     t_start= 0;
     t_stop= 0;
     cap_cnt = 0;
-    MAP_TimerIntEnable(TIMER0_BASE, TIMER_CAPA_EVENT);
-    MAP_TimerIntEnable(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
+
     MAP_TimerEnable(TIMER0_BASE, TIMER_BOTH);
 }/*}}}*/
 
@@ -111,9 +118,9 @@ void exec_timer_cap_isr(void){/*{{{*/
     }
 
 
-    if(cap_cnt == 0){
+    if(0 == cap_cnt){
         t_start = (wrap_cnt_snap << 16) | cap_time;
-    }else if (cap_cnt == 1){
+    }else if (1 == cap_cnt ){
         t_stop = (wrap_cnt_snap << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
     }
@@ -139,27 +146,64 @@ void exec_timer_wrap_isr(void){/*{{{*/
 // Power measurement stuff /*{{{*/
 #define SAMPLE_PERIOD ((g_syshz*SAMPLE_PERIOD_US)/1000000)
 
-void pwr_sample_setup(){
+/** Refer to page 25 in ina219.pdf */
+#define INA219_REG_CONF 0x0
+#define INA219_REG_VOLT 0x2
+#define INA219_REG_POWR 0x3
+#define INA219_REG_CURR 0x4
+#define INA219_REG_CAL  0x5
+#define INA219_CONF (1<<15|1<<13|2<<11|1<<7|1<<2|7)
+#define INA219_CAL 0x1000 //10uA increments, w/ 1Ohm resistor
+#define INA219_CNVR 0x2
+#define INA219_OVF 0x1
+#define INA219_I2C_ADDR 0x46
+
+
+
+static void pwr_sample_setup(){/*{{{*/
+    uint8_t cmd_buf[3];
+    // Configure interrupt priority for periodic sampling timer
     MAP_IntPrioritySet(INT_TIMER1A, PWR_SAMPLE_ISR_PRIO);
 
+    // Enable timer1 as periodic sampling timer
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
     MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER1);
     
+    // Set as periodic and load period
     MAP_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
     MAP_TimerLoadSet(TIMER1_BASE, TIMER_A, SAMPLE_PERIOD);
 
-}
-
-void pwr_sample_start(){
+    MAP_IntEnable(INT_TIMER1A);
     MAP_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-    MAP_TimerEnable(TIMER0_BASE, TIMER_A);
-}
 
+    // Configure I2C pins
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C0);
+    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C0);
+    MAP_GPIOPinConfigure(GPIO_PB2_I2C0SCL);
+    MAP_GPIOPinConfigure(GPIO_PB3_I2C0SDA);
+    MAP_GPIOPinTypeI2C(GPIO_PORTB_BASE, GPIO_PIN_3);
+    MAP_GPIOPinTypeI2CSCL(GPIO_PORTB_BASE, GPIO_PIN_2);
+
+    // Configure I2C master and fifos, and flush fifos
+    i2c_setup(I2C0_BASE, true);
+
+    // Send configuration to INA219 config register
+    cmd_buf[0] = INA219_REG_CONF;
+    cmd_buf[1] = INA219_CONF >> 8; 
+    cmd_buf[2] = INA219_CONF & 0xFF;
+    i2c_write(I2C0_BASE, INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
+
+    // Write calibration
+    cmd_buf[0] = INA219_REG_CAL; 
+    cmd_buf[1] = INA219_CAL >> 8; 
+    cmd_buf[2] = INA219_CAL & 0xFF;
+    i2c_write(I2C0_BASE, INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
+}/*}}}*/
 
 /**
  * Timer interrupt notifies sample task to wake and perform one sample
  */
-void pwr_sample_timer_isr(void){
+void pwr_sample_timer_isr(void){/*{{{*/
     BaseType_t wake = pdFALSE;
 
     MAP_TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
@@ -168,23 +212,107 @@ void pwr_sample_timer_isr(void){
 
     // Should always be true, since pwr_sample_task is supposed to be higher
     // priority than any other task
-    if(wake == pdTRUE){
+    if(pdTRUE == wake){
         portYIELD_FROM_ISR(wake);
     }
-}
+}/*}}}*/
 
-void pwr_sample_task(void *args){
+static void pwr_sample_task(void *args){/*{{{*/
     uint32_t wrap_cnt_snap;
     uint32_t wrap_time_snap; 
+
+    struct pwr_sample sample; 
     
-    while(1){
-        // Wait forever until notified by ISR, clear notification upon exit
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        taskENTER_CRITICAL();{
+    // Run while no stop time set on capture timer
+    while(0 == t_stop){
+        bool valid;
+        
+        do{
+            uint8_t reg; 
+
+            //Read current
+            reg = INA219_REG_CURR;
+            i2c_write(I2C0_BASE, INA219_I2C_ADDR, &reg, 1);
+            i2c_read(I2C0_BASE, INA219_I2C_ADDR, &sample.current, 2);
+
+            //Read power 
+            reg = INA219_REG_POWR;
+            i2c_write(I2C0_BASE, INA219_I2C_ADDR, &reg, 1);
+            i2c_read(I2C0_BASE, INA219_I2C_ADDR, &sample.power, 2);
+
+            //Read voltage. 
+            reg = INA219_REG_VOLT;
+            i2c_write(I2C0_BASE, INA219_I2C_ADDR, &reg, 1);
+            i2c_read(I2C0_BASE, INA219_I2C_ADDR, &sample.voltage, 2);
+
+            //TI documentation is contradictory on whether power or voltage read
+            //triggers conversion. TODO: Verify what happens
+            sample.voltage = ntohs(sample.voltage);
+            valid = (sample.voltage & INA219_CNVR) && !(sample.voltage & INA219_OVF);
+            sample.voltage = htons(sample.voltage >> 3);
+        }while(!valid);
+
+        //Pick up timestamp where valid value is available
+        //Can't use taskENTER_CRITICAL since wrap counter is higher priority
+        IntMasterDisable();{
             wrap_cnt_snap = wrap_cnt;
             wrap_time_snap = MAP_TimerValueGet(TIMER0_BASE, TIMER_A); 
-        }taskEXIT_CRITICAL();
-        // Do measurement here 
+        }IntMasterEnable();
+        
+        sample.timestamp = wrap_cnt_snap << 16 | wrap_time_snap;
+
+        COND_ERRMSG(
+                pdTRUE != xQueueSendToBack(pwr_sample_q_handle, &sample, 0), 
+                "Power Sample queue full!\n" );
+
+        // Wait forever until notified by ISR, clear notification upon exit
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+#if DEBUG_STACK
+        DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
+#endif
     }
-}
+    // Delete task when done
+    MAP_TimerDisable(TIMER1_BASE, TIMER_A);
+    vTaskDelete(NULL);
+}/*}}}*/
+
+static void pwr_sample_start(){/*{{{*/
+    BaseType_t retval;
+
+    MAP_TimerEnable(TIMER1_BASE, TIMER_A);
+
+    i2c_flush(I2C0_BASE);
+
+    retval = xTaskCreate( pwr_sample_task,
+            "pwr_samp",
+            PWR_SAMP_STACK,
+            NULL,
+            PWR_SAMP_PRIO,
+            &pwr_sample_task_handle);
+    pwr_sample_q_handle = xQueueCreate(32, sizeof(struct pwr_sample));
+    COND_ERRMSG(retval != pdPASS, "Could not create power sampling task\n");
+}/*}}}*/
+
 /*}}}*/
+
+
+/**
+ * Sets up measurement hardware. Should be called from HAL init.
+ */
+void measure_setup(void){
+    exec_timer_setup();
+    pwr_sample_setup();
+}
+
+
+void measure_start(void){
+    exec_timer_start();
+    pwr_sample_start();
+    MAP_TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC|TIMER_1A_SYNC);
+}
+
+
+bool measure_isrunning(void){
+    return (0 == t_stop);
+}
+

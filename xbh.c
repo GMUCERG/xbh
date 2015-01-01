@@ -24,8 +24,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "FreeRTOSConfig.h"
+#include <FreeRTOS.h>
+#include <queue.h>
+
+#include <lwip/sockets.h>
+
 #include "hal/hal.h"
 #include "hal/lwip_eth.h"
+#include "hal/measure.h"
 #include "xbh.h"
 #include "xbh_config.h"
 #include "xbh_prot.h"
@@ -62,25 +69,13 @@ extern uint32_t xbd_recmp_datanext;
 extern uint32_t xbd_recmp_dataleft;
 
 
-extern volatile unsigned int resetTimer;
-extern volatile unsigned long risingTimeStamp;
-extern volatile unsigned char risingIntCtr;
-extern volatile unsigned int  risingTime;
-extern volatile unsigned char risingSeen;
-
-extern volatile unsigned long fallingTimeStamp;
-extern volatile unsigned char fallingIntCtr;
-extern volatile unsigned int  fallingTime;
-extern volatile unsigned char fallingSeen;
-
-
 /**
  * Retrieves git revision information and mac address
  * @param p_answer Buffer to write information to. Needs to be
  * XBH_REV_DIGITS+1+6*2+1 long. Format is gitrev,mac address (no colons)
  * @return length of data written to p_answer
  */
-size_t XBH_HandleGitRevisionRequest(uint8_t* p_answer){/*{{{*/
+size_t XBH_HandleRevisionRequest(uint8_t* p_answer){/*{{{*/
 	uint8_t i;
 
 
@@ -99,6 +94,65 @@ size_t XBH_HandleGitRevisionRequest(uint8_t* p_answer){/*{{{*/
     // Add Null terminator
 	p_answer[XBH_REV_DIGITS+1+2*6+1]=0;
 	return XBH_REV_DIGITS+1+2*6+1;
+}/*}}}*/
+
+/**
+ * Asks XBD to execute
+ * @param socket Sock to stream power measurements to
+ * @return 0 if success, 1 if fail.
+ */
+static uint8_t XBH_HandleEXecutionRequest(int sock) {/*{{{*/
+    struct pwr_sample sample; 
+    int retval;
+    // 4 bytes pkt ID + sizeof pwr_sample in ascii hex. Subtract 2 to remove padding
+    char pkt_buf[4+2*(sizeof(struct pwr_sample)-2)]; 
+    
+    memcpy(pkt_buf, "PWRD", 4);
+
+
+    //Kick off power measurement
+    measure_start();
+
+    // Send execution request to XBD
+    XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
+	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_exr], XBD_COMMAND_LEN);
+	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
+
+
+    // Run power measurement/*{{{*/
+    while(measure_isrunning()){
+        // Dequeue data packets, waiting for a max of 2 ticks
+        if(pdTRUE == xQueueReceive(pwr_sample_q_handle, &sample, 2)){
+            // Convert to ascii hex to be consistent with rest of xbh
+            // Subtract 2 since we don't want to send padding- the struct is 8-byte
+            // aligned and has 2 bytes padding
+            for(size_t i = 0; i < sizeof(pkt_buf)-2; i++){
+                pkt_buf[i+4] = ntoa(((uint8_t *)&sample)[i]);
+            }
+            retval = send(sock, pkt_buf, sizeof(pkt_buf), 0);
+            // If socket disconnected, fail
+            if(retval < 0){
+                uart_printf("Failed to send pwr data to PC\n");
+                return 1;
+            }
+        }
+    }/*}}}*/
+
+
+    // Receive status from XBD
+	xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
+	
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_exo], XBD_COMMAND_LEN)) {	
+        XBH_DEBUG("Received 'ex'ecution 'o'kay from XBD\n");
+/*		XBH_DEBUG("Took %d s, %d IRQs, %d clocks\r\n",
+						risingTimeStamp-fallingTimeStamp,
+						risingIntCtr-fallingIntCtr,
+						risingTime-fallingTime);
+*/		return 0;
+	} else {
+        XBH_DEBUG("Did not receive 'ex'ecution 'o'kay from XBD\n");
+		return 1;
+	}
 }/*}}}*/
 
 
@@ -362,28 +416,6 @@ static uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uin
 	return 0;
 }/*}}}*/
 
-/**
- * Asks XBD to execute
- * @return 0 if success, 1 if fail.
- */
-static uint8_t XBH_HandleEXecutionRequest() {/*{{{*/
-	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_exr], XBD_COMMAND_LEN);
-    XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
-	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
-	xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
-	
-	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_exo], XBD_COMMAND_LEN)) {	
-        XBH_DEBUG("Received 'ex'ection 'o'kay from XBD\n");
-/*		XBH_DEBUG("Took %d s, %d IRQs, %d clocks\r\n",
-						risingTimeStamp-fallingTimeStamp,
-						risingIntCtr-fallingIntCtr,
-						risingTime-fallingTime);
-*/		return 0;
-	} else {
-        XBH_DEBUG("Did not receive 'ex'ection 'o'kay from XBD\n");
-		return 1;
-	}
-}/*}}}*/
 
 /**
  * Asks XBD to calculate checksum
@@ -569,7 +601,7 @@ static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
 	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
 	xbdReceive(XBD_COMMAND_LEN, p_answer);
 }/*}}}*/
-/*}}}*/
+
 
 /**
  * Sets reset pin depending on value of param
@@ -719,7 +751,7 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
 	XBD_debugOutHex32Bit(tmpvar);
 #endif
 }/*}}}*/
-#endif
+#endif/*}}}*/
 
 
 
@@ -729,25 +761,38 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
 
 /**
  * Decode commands
- * @input buffer containing commands 
- * @input_len length of buffer
- * @output Buffer containing output to return (MUST be greater or equal to XBH_COMMAND_LEN
- * @return Length of output containing return data
+ * @param input buffer containing commands 
+ * @param input_len length of buffer
+ * @param reply Buffer containing output to return (MUST be greater or equal to XBH_COMMAND_LEN
+ * @return Length of reply containing return data
  */
-size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{{*/
-	uint8_t buf[XBH_COMMAND_LEN+1];
+size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *reply) {/*{{{*/
 	int ret;
     XBH_DEBUG("XBH_handle()\n");
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_srr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 's'ubversion/git 'r'evision 'r'equest received\n");
-		ret = XBH_HandleGitRevisionRequest(&output[XBH_COMMAND_LEN]);
+		ret = XBH_HandleRevisionRequest(&reply[XBH_COMMAND_LEN]);
 
         XBH_DEBUG("'s'ubversion/git 'r'evision 'o'kay sent\n");
-        memcpy(output, XBH_CMD[XBH_CMD_sro], XBH_COMMAND_LEN);
+        memcpy(reply, XBH_CMD[XBH_CMD_sro], XBH_COMMAND_LEN);
 		return ret+XBH_COMMAND_LEN;
 	}/*}}}*/
 
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_exr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper handle 'ex'ecution 'r'equest received\n");
+		ret=XBH_HandleEXecutionRequest(sock);
+
+		if(0 == ret) {
+            XBH_DEBUG("Handle 'ex'ecution 'o'kay sent\n");
+            memcpy(reply, XBH_CMD[XBH_CMD_exo], XBH_COMMAND_LEN);
+			return XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("Handle 'ex'ecution 'f'ail sent\n");
+            memcpy(reply, XBH_CMD[XBH_CMD_exf], XBH_COMMAND_LEN);
+			return XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
 
 #if 0
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
@@ -957,23 +1002,6 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{
 		}
 	}/*}}}*/
 
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_exr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper handle 'ex'ecution 'r'equest received\n");
-		resetTimer=resetTimerBase*12;
-		ret=XBH_HandleEXecutionRequest();
-		resetTimer=0;
-
-		if(0 == ret) {
-            XBH_DEBUG("Handle 'ex'ecution 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_exo], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            XBH_DEBUG("Handle 'ex'ecution 'f'ail sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_exf], XBH_COMMAND_LEN);
-			constStringToBuffer (output, XBHexf);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_ccr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'c'hecksum 'c'alc 'r'equest received\n");
@@ -993,7 +1021,7 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *output) {/*{{
 	}/*}}}*/
 
 #endif
-    memcpy(output, XBH_CMD[XBH_CMD_unk], XBH_COMMAND_LEN);
+    memcpy(reply, XBH_CMD[XBH_CMD_unk], XBH_COMMAND_LEN);
     XBH_DEBUG("'un'known command 'r'eceived (len: %d)\n", input_len);
     for(uint8_t u=0;u<input_len;++u) {
         if(u % 32 == 0){ 

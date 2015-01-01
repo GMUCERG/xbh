@@ -238,7 +238,7 @@ void assert_called( const char * const filename,uint32_t line ) { __error__((cha
 /*}}}*/
 
 /** Simulates recv() w/ MSG_WAITALL flag */
-int recv_bytes(int s, void *mem, size_t len, int flags){/*{{{*/
+int recv_waitall(int s, void *mem, size_t len, int flags){/*{{{*/
     int recved = 0;
     while(recved < len){
         int retval = recv(s, (uint8_t *)mem+recved, len-recved, flags);

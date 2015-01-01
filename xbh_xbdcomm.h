@@ -14,8 +14,6 @@ enum XBD_COMM_PROT{COMMI2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
 #define CE_TIMEOUT_SECS 2
 #define CE_MAX_TIMEOUTS	10
 
-extern volatile unsigned long time;
-
 void xbdCommInit(uint8_t commMode);
 void xbdCommExit();
 void xbdSend(uint8_t length, uint8_t *buf);

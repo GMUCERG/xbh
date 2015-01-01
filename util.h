@@ -3,7 +3,18 @@
 
 
 #include <stdlib.h>
+#include <stdbool.h>
+#include <inttypes.h>
+
+#include "hal/crc.h"
 #include "hal/hal.h"
+
+// For htonl/htons
+#include <lwip/def.h>
+
+// Contains stuff formerly in xbh_utils.h
+
+
 /**
  * Wrapper to printf to uart
  * @param ... Same as printf
@@ -17,17 +28,31 @@
 
 
 /**
- * Loop while error condition is true
+ * Loop if error condition is true to preserve state for debugger, after
+ * outputting message
  * @param x true if error condition
- */
-#define LOOP_ERR(x) while(x)
-
-/**
- * Loop while error condition is true
- * @param x true if error condition
- * @param ... Input to printf
+ * @param ... Message to printf
  */
 #define LOOP_ERRMSG(x,...) if(x){uart_printf(__VA_ARGS__); while(1);}
+
+/**
+ * Outputs message if error condition happens
+ * @param x true if error condition
+ * @param ... Message to printf
+ */
+#define COND_ERRMSG(x,...) if(x){uart_printf(__VA_ARGS__);}
+
+
+#ifdef DEBUG
+/**
+ * Outputs message of error condition happens; only enabled if debug is on
+ * @param x true if error condition
+ * @param ... Message to printf
+ */
+#define ASSERT_MSG(x,...) if(x){DEBUG_OUT(__VA_ARGS);}
+#else
+#define ASSERT_MSG(x,...)
+#endif
 
 /* 
  * http://stackoverflow.com/questions/9907160/how-to-convert-enum-names-to-string-in-c 
@@ -54,18 +79,14 @@
  */
 
 
+// Byte swap macros 
 
+#define htonll(x) __builtin_bswap64(x)
+#define ntohll(x) __builtin_bswap64(x)
 
 char *ltoa(long val, char *str, int base);
 void uart_printf(const char *buffer,...) ;
-int recv_bytes(int s, void *mem, size_t len, int flags);
-
-#ifdef DEBUG
-//void dbg_maskisr(void) __attribute__((used));
-//void dbg_unmaskisr(void) __attribute__((used));
-void dbg_maskisr(void);
-void dbg_unmaskisr(void);
-#endif
+int recv_waitall(int s, void *mem, size_t len, int flags);
 
 /**
  * Converts hex digit in ascii to numerical value

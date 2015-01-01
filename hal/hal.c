@@ -21,6 +21,8 @@
 #include "FreeRTOSConfig.h"
 #include "util.h"
 #include "hal/lwip_eth.h"
+#include "hal/i2c.h"
+#include "hal/measure.h"
 
 
 
@@ -78,8 +80,11 @@ void HAL_setup(void){/*{{{*/
                             (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                              UART_CONFIG_PAR_NONE));
 
-    //Configure timer capture pin
-    //exec_timer_setup();
+    //Configure measurement stuff
+    measure_setup();
+
+    //Configure xbd i2c comm
+    i2c_comm_setup();
 }/*}}}*/
 
 
