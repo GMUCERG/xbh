@@ -126,8 +126,9 @@ static uint8_t XBH_HandleEXecutionRequest(int sock) {/*{{{*/
             // Convert to ascii hex to be consistent with rest of xbh
             // Subtract 2 since we don't want to send padding- the struct is 8-byte
             // aligned and has 2 bytes padding
-            for(size_t i = 0; i < sizeof(pkt_buf)-2; i++){
-                pkt_buf[i+4] = ntoa(((uint8_t *)&sample)[i]);
+            for(size_t i = 0; i < sizeof(struct pwr_sample)-2; i++){
+                pkt_buf[i*2+4] = ntoa(((uint8_t *)&sample)[i] >> 4);
+                pkt_buf[i*2+1+4] = ntoa(((uint8_t *)&sample)[i] & 0xF);
             }
             retval = send(sock, pkt_buf, sizeof(pkt_buf), 0);
             // If socket disconnected, fail
