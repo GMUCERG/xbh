@@ -12,14 +12,16 @@ include ${FREERTOS_MAKE_ROOT}/freertos.make
 include ${LWIP_MAKE_ROOT}/lwip.make
 
 
-XBH_SOURCES := $(PROJECT_ROOT)/hal/startup_gcc.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/crc.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/i2c.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/measure.c
-XBH_SOURCES += $(PROJECT_ROOT)/hal/i2c.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/startup_gcc.c
 XBH_SOURCES += $(PROJECT_ROOT)/main.c
 XBH_SOURCES += $(PROJECT_ROOT)/util.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh.c
+XBH_SOURCES += $(PROJECT_ROOT)/xbh_xbdcomm.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh_server.c
 
 
@@ -60,9 +62,10 @@ SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
 
 CFLAGSgcc+=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
-#CFLAGSgcc+=-g -Os
+#CFLAGSgcc+=-g -Os -flto
 CFLAGSgcc+=-DDEBUG -DLWIP_DEBUG -ggdb3 -O0
 #CFLAGSgcc+=-DDEBUG_STACK
+#LDFLAGS+=-flto -fuse-linker-plugin
 
 
 ifneq (${MAKECMDGOALS},clean)

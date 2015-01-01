@@ -90,7 +90,7 @@ FPU=-mfpu=fpv4-sp-d16 -mfloat-abi=hard
 #
 # The flags passed to the assembler.
 #
-AFLAGS=-mthumb \
+AFLAGS+=-mthumb \
        ${CPU}  \
        ${FPU}  \
        -MD
@@ -98,7 +98,7 @@ AFLAGS=-mthumb \
 #
 # The flags passed to the compiler.
 #
-CFLAGS=-mthumb             \
+CFLAGS+=-mthumb             \
        ${CPU}              \
        ${FPU}              \
        -ffunction-sections \
@@ -118,12 +118,12 @@ AR=${PREFIX}-ar
 #
 # The command for calling the linker.
 #
-LD=${PREFIX}-ld
+LD=${PREFIX}-gcc
 
 #
 # The flags passed to the linker.
 #
-LDFLAGS=--gc-sections
+LDFLAGS+=-Wl,--gc-sections
 
 #
 # Get the location of libgcc.a from the GCC front-end.
