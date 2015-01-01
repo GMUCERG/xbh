@@ -1,15 +1,16 @@
-#include <util/delay.h>
-
+#include <string.h>
+#include "hal/i2c.h"
 #include "xbh.h"
 #include "util.h"
 #include "xbh_xbdcomm.h"
 #include "xbd_multipacket.h"
-#include "config.h"
-#include "stack.h"
 
-#define I2C_BAUDRATE 400
-//Address must be shifted in by 1
-#define SLAVE_ADR (0x75<<1)
+//I2C Slave address
+#define SLAVE_ADR (0x75)
+
+unsigned char xbd_comm=COMM_I2C;
+
+#if 0/*{{{*/
 
 #define UART_COMM_BAUDRATE 115200
 #define UART_OVERDRIVE_BAUDRATE 250000
@@ -22,13 +23,13 @@
 //#define XBD_UDP_DEBUG
 
 
+
 //const char XBHcrcFail[] PROGMEM = "XBHcrcFL";
 
 u32 xbd_ip=DEFAULT_XBD_IP;
 unsigned char * xbd_ip_bytes=(unsigned char *)&xbd_ip;
 #define XBD_PORT 22596
 
-unsigned char xbd_comm=COMM_I2C;
 
 
 unsigned char ce_state=CE_IDLE;
@@ -40,6 +41,7 @@ unsigned long ce_timeout_at=0;
 
 extern uint8_t I2cReceiveData[I2C_RECEIVE_DATA_BUFFER_SIZE];
 
+#endif /*}}}*/
 // TODO: Implement other transports/*{{{*/
 #if 0
 void inc_ce_seqnum()
@@ -65,9 +67,9 @@ void xbdCommUdpGet(unsigned char index)
     struct UDP_Header *udp;
     struct IP_Header  *ip;
     unsigned int src_port;
-    u16 *p_crc;
+    uint16_t *p_crc;
 
-    u16 udp_data_len = (UDP_DATA_END_VAR)-(UDP_DATA_START);
+    uint16_t udp_data_len = (UDP_DATA_END_VAR)-(UDP_DATA_START);
 
 
     udp = (struct UDP_Header *)&eth_buffer[UDP_OFFSET];
@@ -262,7 +264,7 @@ void xbdCommUdpGet(unsigned char index)
                             memcpy(I2cReceiveData,&eth_buffer[UDP_DATA_START+2],udp_data_len-2);
 
                             //Check CRC
-                            p_crc=(u16 *)&eth_buffer[UDP_DATA_START+udp_data_len-CRC16SIZE];
+                            p_crc=(uint16_t *)&eth_buffer[UDP_DATA_START+udp_data_len-CRC16SIZE];
                             if( ! (crc16check(&eth_buffer[UDP_DATA_START+2], udp_data_len-2-CRC16SIZE, p_crc)) )
                             {
                                 XBD_debugOutBuffer("RE CE_ANSWER_WAIT wrong CRC at ", &eth_buffer[UDP_DATA_START], udp_data_len);
@@ -398,19 +400,21 @@ void xbdCommInit(uint8_t commMode)
     }
 }
 
-void xbdSend(size_t length, void *buf) {
-    int i;
-    unsigned char ch;
-    u16 *p_crc;
+void xbdSend(void *buf, size_t length) {
+    uint16_t crc;
 
     //generate CRC16
-    p_crc=(u16 *)&buf[length];
-    crc16create(buf, length, p_crc);
+    crc = crc16_create(buf, length);
+
+    // We can't write directly to end of buffer because of possible alignment issues
+    // Manually split crc
+    ((uint8_t *)buf)[length] = crc >> 8;
+    ((uint8_t *)buf)[length+1] = crc & 0xFF;
     length+=CRC16SIZE;
 
     switch(xbd_comm) {
         case COMM_I2C:
-            i2cMasterSendNI(SLAVE_ADR, length, buf);
+            i2c_comm_write(SLAVE_ADR, buf, length);
             break;
             //TODO: Implement other modes/*{{{*/
 #if 0
@@ -514,16 +518,16 @@ void xbdSend(size_t length, void *buf) {
 }
 
 
-void xbdReceive(size_t length, void *buf) {
+void xbdReceive(void *buf, size_t length) {
     int i;
-    u16 *p_crc;
+    uint16_t crc;
     //XBH_DEBUG("XBD: Waiting for %d byte\n",length);
 
     length+=CRC16SIZE;
 
     switch(xbd_comm) {
         case COMM_I2C:
-            i=i2cMasterReceiveNI(SLAVE_ADR, length, buf);
+            i = i2c_comm_read(SLAVE_ADR, buf, length);
             if( i != 0 ) {
                 XBH_ERROR("I2C Receive error: %d\n",i);
             }
@@ -645,10 +649,12 @@ void xbdReceive(size_t length, void *buf) {
     }
 
     //Check CRC
-    p_crc=(u16 *)&buf[length-CRC16SIZE];
+    crc=((uint8_t *)buf)[length-CRC16SIZE] << 8;
+    crc|=((uint8_t *)buf)[length-(CRC16SIZE-1)];
 
-    if( ! (crc16check(buf, length-CRC16SIZE, p_crc)) ) {
-        XBD_debugOutBuffer("wrong CRC", buf, length);
+    if(crc != crc16_create(buf, length-CRC16SIZE) ) {
+        //XBD_debugOutBuffer("wrong CRC", buf, length);
+        XBH_ERROR("wrong CRC");
         memcpy(buf, XBD_CMD[XBD_CMD_ccf], XBD_COMMAND_LEN);
         return;
     }

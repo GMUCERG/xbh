@@ -1,6 +1,7 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+/** @file Contains stuff formerly in xbh_utils.h */
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -12,7 +13,6 @@
 // For htonl/htons
 #include <lwip/def.h>
 
-// Contains stuff formerly in xbh_utils.h
 
 
 /**

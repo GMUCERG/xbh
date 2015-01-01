@@ -1,7 +1,7 @@
 #ifndef _XBH_XBDCOMM_H
 #define _XBH_XBDCOMM_H
 
-enum XBD_COMM_PROT{COMMI2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
+enum XBD_COMM_PROT{COMM_I2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
 
 #define CE_IDLE			0
 #define CE_ACK_WAIT		1
@@ -16,8 +16,8 @@ enum XBD_COMM_PROT{COMMI2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
 
 void xbdCommInit(uint8_t commMode);
 void xbdCommExit();
-void xbdSend(uint8_t length, uint8_t *buf);
-void xbdReceive(uint8_t length, uint8_t *buf);
+void xbdSend(void *buf, size_t len);
+void xbdReceive(void *buf, size_t len);
 
 
 #endif

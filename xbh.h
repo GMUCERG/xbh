@@ -6,6 +6,7 @@
 #include "hal/hal.h"
 
 #define XBH_DEBUG DEBUG_OUT
+#define XBH_ERROR uart_printf
 
 #define CYCLES_PER_US (g_syshz/1000000)
 

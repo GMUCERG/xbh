@@ -7,6 +7,8 @@
 
 #include <inc/hw_ints.h>
 #include <inc/hw_memmap.h>
+#include <driverlib/gpio.h>
+#include <driverlib/pin_map.h>
 #include <driverlib/sysctl.h>
 #include <driverlib/i2c.h>
 
@@ -42,11 +44,13 @@ void i2c_setup(uint32_t base, bool highspeed){
  * @param addr Address of I2C device to write to
  * @param data Data to write
  * @param len Length of data
+ * @return 0 if success, else value of I2CMasterErr
  */
-void i2c_write(uint32_t base, uint8_t addr, void *data, size_t len){
+uint32_t i2c_write(uint32_t base, uint8_t addr, void *data, size_t len){
     size_t offset = 0;
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
+    uint32_t err; 
     
     // Send configuration to INA219 config register
     MAP_I2CMasterSlaveAddrSet(base, addr, false);
@@ -61,6 +65,10 @@ void i2c_write(uint32_t base, uint8_t addr, void *data, size_t len){
         }else{
             MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_CONT);
         }
+        err = MAP_I2CMasterErr(base);
+        if(err != I2C_MASTER_ERR_NONE){
+            goto error;
+        }
     }
     MAP_I2CMasterBurstLengthSet(base, final_burst);
     for(size_t i = 0; i < final_burst; ++i){
@@ -71,7 +79,14 @@ void i2c_write(uint32_t base, uint8_t addr, void *data, size_t len){
     }else{
         MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_FINISH);
     }
+    err = MAP_I2CMasterErr(base);
+    if(err != I2C_MASTER_ERR_NONE){
+        goto error;
+    }
     while(MAP_I2CMasterBusy(base));
+    return 0;
+error:
+    return err;
 }
 
 /**
@@ -80,11 +95,13 @@ void i2c_write(uint32_t base, uint8_t addr, void *data, size_t len){
  * @param addr Address of I2C device to read from
  * @param data Data to read
  * @param len Length of data
+ * @return 0 if success, else value of I2CMasterErr
  */
-void i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
+uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     size_t offset = 0;
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
+    uint32_t err; 
     
     // Send configuration to INA219 config register
     MAP_I2CMasterSlaveAddrSet(base, addr, true);
@@ -99,6 +116,10 @@ void i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
         }else{
             MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_CONT);
         }
+        err = MAP_I2CMasterErr(base);
+        if(err != I2C_MASTER_ERR_NONE){
+            goto error;
+        }
     }
     MAP_I2CMasterBurstLengthSet(base, final_burst);
     for(size_t i = 0; i < final_burst; ++i){
@@ -109,7 +130,13 @@ void i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     }else{
         MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_FINISH);
     }
-    while(MAP_I2CMasterBusy(base));
+    err = MAP_I2CMasterErr(base);
+    if(err != I2C_MASTER_ERR_NONE){
+        goto error;
+    }
+    return 0;
+error:
+    return err;
 }
 
 
@@ -127,6 +154,6 @@ void i2c_comm_setup(void){
 }
 
 // C99 compliance 
-extern inline void i2c_comm_write(uint8_t addr, void *data, size_t len);
-extern inline void i2c_comm_read(uint8_t addr, void *data, size_t len);
+extern inline int i2c_comm_write(uint8_t addr, void *data, size_t len);
+extern inline int i2c_comm_read(uint8_t addr, void *data, size_t len);
 

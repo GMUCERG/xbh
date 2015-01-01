@@ -116,7 +116,7 @@ static uint8_t XBH_HandleEXecutionRequest(int sock) {/*{{{*/
     // Send execution request to XBD
     XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_exr], XBD_COMMAND_LEN);
-	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
+	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 
 
     // Run power measurement/*{{{*/
@@ -140,7 +140,7 @@ static uint8_t XBH_HandleEXecutionRequest(int sock) {/*{{{*/
 
 
     // Receive status from XBD
-	xbdReceive(XBD_COMMAND_LEN, XBDResponseBuf);
+	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 	
 	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_exo], XBD_COMMAND_LEN)) {	
         XBH_DEBUG("Received 'ex'ecution 'o'kay from XBD\n");
