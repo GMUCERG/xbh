@@ -113,7 +113,7 @@ CFLAGS+=-mthumb             \
 #
 # The command for calling the library archiver.
 #
-AR=${PREFIX}-ar
+AR=${PREFIX}-gcc-ar
 
 #
 # The command for calling the linker.

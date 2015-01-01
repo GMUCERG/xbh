@@ -62,10 +62,10 @@ SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
 
 CFLAGSgcc+=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
-#CFLAGSgcc+=-g -Os -flto
-CFLAGSgcc+=-DDEBUG -DLWIP_DEBUG -ggdb3 -O0
+CFLAGSgcc+=-g -Os -flto
+#CFLAGSgcc+=-DDEBUG -DLWIP_DEBUG -ggdb3 -O0
 #CFLAGSgcc+=-DDEBUG_STACK
-#LDFLAGS+=-flto -fuse-linker-plugin
+LDFLAGS+=-flto -fuse-linker-plugin
 
 
 ifneq (${MAKECMDGOALS},clean)
