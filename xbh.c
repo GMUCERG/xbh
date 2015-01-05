@@ -44,8 +44,6 @@
 #define XBH_REV_DIGITS 7
 
 
-uint16_t resetTimerBase=10;	//10s is the initial base unit for resetTimer settings
-
 /**
  * XBH Command String Constants
  */
@@ -156,6 +154,86 @@ static uint8_t XBH_HandleEXecutionRequest(int sock) {/*{{{*/
 	}
 }/*}}}*/
 
+/**
+ * Program XBD
+ * @param input_buf Code buffer containing code in ascii hex format, prefixed by
+ * 4 byte address
+ * @param len Length of buffer in bytes (in hex format)
+ * @return 0 if success, 1 if fails during program flash request to XBD, 2 if
+ * fails during flash download request to XBD
+ */
+static uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
+	uint32_t *cmd_ptr = (uint32_t*)(XBDCommandBuf+XBD_COMMAND_LEN);
+	uint32_t seqn=0,addr=0;
+    uint32_t byte_len = len/2; //byte length of len which is  ascii hex length in nybbles
+	uint32_t len_remaining; //bytes left to send to XBD
+    uint32_t fd_idx; // offset of packet to send to XBD
+    uint32_t numbytes; // bytes written to XBD
+
+    memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_pfr], XBD_COMMAND_LEN);
+
+	// convert code load addr to binary (4 bytes)
+	for(uint32_t i=0; i < ADDRSIZE; ++i) {
+		addr |= ( (uint32_t)
+				 (htoi(input_buf[(i*2)])<<4 |
+				  htoi(input_buf[(i*2)+1]))
+				) <<((3-i)*8);
+	}
+
+    //XBD expects big endian
+	*cmd_ptr = htons(addr);
+
+	//place LENG (in correct endianess)
+	++cmd_ptr; //ADDRSIZE == sizeof(uint32_t)
+	*cmd_ptr = htons((uint32_t)(byte_len-ADDRSIZE));
+
+    XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
+	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE);
+	xbdReceive(XBDCommandBuf, XBD_COMMAND_LEN);
+
+	
+	if(0 != memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN)) {
+        XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD!\n");
+		return 1;
+	}else{
+        XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
+    }
+
+
+	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_fdr], XBD_COMMAND_LEN);
+	len_remaining=(byte_len-ADDRSIZE);
+	fd_idx = ADDRSIZE;
+	cmd_ptr = (uint32_t *)&XBDCommandBuf[XBD_COMMAND_LEN];
+    // Loop through, sending code in 128 byte packets + code
+    //TODO Find out why 128 is hardcoded in here. XBD_PACKET_SIZE_MAX/2 ? 
+    //
+	while(len_remaining != 0) {
+        uint32_t i;
+		*cmd_ptr = htons(seqn);
+		++seqn;
+		for(i=0; i < (len_remaining<128?len_remaining:128) ; ++i) {
+			XBDCommandBuf[XBD_COMMAND_LEN+SEQNSIZE+i]=
+				htoi(input_buf[((fd_idx+i)*2)])<<4 |
+				htoi(input_buf[((fd_idx+i)*2)+1]);
+		}
+		numbytes=i;
+        XBH_DEBUG("Sending 'f'lash 'd'ownload 'r'equest to XBD\n");
+		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+SEQNSIZE+numbytes);
+		xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+				
+		if(0 == memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN)) {
+            XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
+			len_remaining-=numbytes;
+			fd_idx+=numbytes;
+		} else {
+            XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD\n");
+			return 2;
+		}	
+	}
+	return 0;
+
+}/*}}}*/
+
 
 #if 0 /*{{{*/
 
@@ -165,8 +243,8 @@ uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
 
 	constStringToBuffer (XBDCommandBuf, XBDtcr);
 	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+NUMBSIZE);
-	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
-	xbdReceive(XBD_COMMAND_LEN+NUMBSIZE, XBDResponseBuf);
+	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
+	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+NUMBSIZE);
 
 	XBH_DEBUG("tcr\n");
 
@@ -195,8 +273,8 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 
 	constStringToBuffer (XBDCommandBuf, XBDtrr);
 	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+REVISIZE);
-	xbdSend(XBD_COMMAND_LEN, XBDCommandBuf);
-	xbdReceive(XBD_COMMAND_LEN+REVISIZE, XBDResponseBuf);
+	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
+	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+REVISIZE);
 
 	XBH_DEBUG("trr\n");
 
@@ -215,88 +293,6 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 	        XBH_ERROR("trr fai\r\n");
 		return 1;
 	}
-
-}/*}}}*/
-
-
-/**
- * Program XBD
- * TODO Clean up code, minimize scope of variables and document them.
- * @param input_buf Code buffer containing code in ascii hex format, prefixed by
- * 4 byte address
- * @param len Length of buffer in bytes (in hex format)
- * @return 0 if success, 1 if fails during program flash request to XBD, 2 if
- * fails during flash download request to XBD
- */
-static uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
-	uint32_t *cmd_ptr = (uint32_t*)(XBDCommandBuf+XBD_COMMAND_LEN);
-	uint32_t seqn=0,addr=0;
-    uint32_t byte_len = len/2; //byte length of len which is  ascii hex length in nybbles
-	uint32_t len_remaining; //bytes left to send to XBD
-    uint32_t fd_idx; // offset of packet to send to XBD
-    uint32_t numbytes; // bytes written to XBD
-
-    memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_pfr], XBD_COMMAND_LEN);
-
-	//place and endian-convert code load addr (4 bytes)
-	for(uint32_t i=0; i < ADDRSIZE; ++i) {
-		addr |= ( (uint32_t)
-				 (htoi(input_buf[(i*2)])<<4 |
-				  htoi(input_buf[(i*2)+1]))
-				) <<((3-i)*8)uint32_t ;
-	}
-
-	*cmd_ptr = htons(addr);
-
-	//place LENG (in correct endianess)
-	++cmd_ptr; //ADDRSIZE == sizeof(uint32_t)
-	*cmd_ptr = htons((uint32_t)(byte_len-ADDRSIZE));
-
-    XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
-	xbdSend(XBD_CommandBuf, XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE);
-	xbdReceive(XBD_CommandBuf, XBD_COMMAND_LEN);
-
-	
-	if(0 != memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN)) {
-        XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD!\n");
-		return 1;
-	}else{
-        XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
-    }
-
-
-	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_fdr], XBD_COMMAND_LEN);
-	len_remaining=(byte_len-ADDRSIZE);
-	fd_idx = ADDRSIZE;
-	cmd_ptr = (uint32_t *)&XBDCommandBuf[XBD_COMMAND_LEN];
-    // Loop through, sending code in 128 byte packets + code
-    // TODO: Find out why 128 bytes
-    //
-	while(len_remaining != 0) {
-        uint32_t i;
-		*cmd_ptr = htons(seqn);
-		++seqn;
-        //TODO Find out why 128 is hardcoded in here. XBD_PACKET_SIZE_MAX/2 ? 
-		for(i=0; i < (len_remaining<128?len_remaining:128) ; ++i) {
-			XBDCommandBuf[XBD_COMMAND_LEN+SEQNSIZE+i]=
-				htoi(input_buf[((fd_idx+i)*2)])<<4 |
-				htoi(input_buf[((fd_idx+i)*2)+1]);
-		}
-		numbytes=i;
-        XBH_DEBUG("Sending 'f'lash 'd'ownload 'r'equest to XBD\n");
-		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+SEQNSIZE+numbytes);
-		xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
-				
-		if(0 == memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN)) {
-            XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
-			len_remaining-=numbytes;
-			fd_idx+=numbytes;
-		} else {
-            XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD\n");
-			return 2;
-		}	
-	}
-	return 0;
 
 }/*}}}*/
 
@@ -796,6 +792,22 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 		}
 	}/*}}}*/
 
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_cdr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'c'ode 'd'ownload 'r'equest received\n");
+
+		ret=XBH_HandleCodeDownloadRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN));
+
+		if(0 == ret)
+		{
+            XBH_DEBUG("'c'ode 'd'ownload 'o'kay sent\n");
+			memcpy(output, XBH_CMD[XBH_CMD_cdo], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("'c'ode 'd'ownload 'f'ail sent\n");
+			return (uint16_t) XBH_COMMAND_LEN;
+		}	
+	}/*}}}*/
+
 #if 0
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'r'e'p'ort timestamp 'r'equest received\n");
@@ -863,26 +875,6 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 			output[XBH_COMMAND_LEN+1]= ntoa(ret&0xf);
 			return (uint16_t) XBH_COMMAND_LEN+2;
 		}
-	}/*}}}*/
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_cdr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 'c'ode 'd'ownload 'r'equest received\n");
-
-		resetTimer=resetTimerBase*1;
-
-		ret=XBH_HandleCodeDownloadRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN));
-
-		resetTimer=0;		
-
-		if(0 == ret)
-		{
-            XBH_DEBUG("'c'ode 'd'ownload 'o'kay sent\n");
-			memcpy(output, XBH_CMD[XBH_CMD_cdo], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            XBH_DEBUG("'c'ode 'd'ownload 'f'ail sent\n");
-			return (uint16_t) XBH_COMMAND_LEN;
-		}	
 	}/*}}}*/
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_dpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
