@@ -1,23 +1,36 @@
 #ifndef _XBD_MULTIPACKET_H
 #define _XBD_MULTIPACKET_H
 
+#include <stdbool.h>
+#include <inttypes.h>
 #include "xbh.h"
 #include "xbh_prot.h"
-#include <inttypes.h>
+#include "xbh_xbdcomm.h"
 
 
-#define XBD_ANSWERLENG_MAX 32
-#define XBD_PACKET_SIZE_MAX 255
+struct xbd_multipkt_state{
+#if 0
+uint32_t xbd_genmp_datanext;
+uint32_t xbd_genmp_dataleft;
+uint32_t xbd_genmp_seqn;
+#endif
+
+uint32_t recmp_addr;
+uint32_t recmp_datanext;
+uint32_t recmp_dataleft;
+uint32_t recmp_seqn;
+uint32_t recmp_type;
+};
 
 
-#define XBD_RESULTLEN_EBASH (XBD_COMMAND_LEN+1+2+CRC16SIZE)
+#if 0
+uint32_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint8_t* srcdata, uint8_t* dstbuf, uint32_t dstlenmax, const uint8_t *code);
 
-uint32_t XBD_genSucessiveMultiPacket(const uint8_t* srcdata, uint8_t* dstbuf, uint32_t dstlenmax, const uint8_t *code);
+uint32_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_t* srcdata, uint32_t srclen, uint8_t* dstbuf,const uint8_t *code, uint32_t type, uint32_t addr);
+#endif
 
-uint32_t XBD_genInitialMultiPacket(const uint8_t* srcdata, uint32_t srclen, uint8_t* dstbuf,const uint8_t *code, uint32_t type, uint32_t addr);
+uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const uint8_t *code);
 
-uint8_t XBD_recSucessiveMultiPacket(const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const uint8_t *code);
-
-uint8_t XBD_recInitialMultiPacket(const uint8_t* recdata, uint32_t reclen, const uint8_t *code, uint8_t hastype, uint8_t hasaddr);
+uint8_t XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, const uint8_t *code, bool hastype, bool hasaddr);
 
 #endif /* _XBD_MULTIPACKET_H */

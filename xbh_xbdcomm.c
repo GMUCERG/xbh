@@ -11,6 +11,15 @@
 unsigned char xbd_comm=COMM_I2C;
 
 #if 0/*{{{*/
+#define CE_IDLE			0
+#define CE_ACK_WAIT		1
+#define CE_FAILURE		2
+#define CE_ANSWER_WAIT	3
+#define CE_ANSWER_RECD	4
+#define CE_MAGIC_SEQNUM	0
+#define CE_TIMEOUT_SECS 2
+#define CE_MAX_TIMEOUTS	10
+
 
 #define UART_COMM_BAUDRATE 115200
 #define UART_OVERDRIVE_BAUDRATE 250000
