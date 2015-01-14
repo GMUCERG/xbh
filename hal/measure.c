@@ -37,8 +37,8 @@ QueueHandle_t pwr_sample_q_handle;
 // Timer capture variables/*{{{*/
 static volatile uint32_t wrap_cnt;
 static volatile uint32_t wrap_cap_cnt;
-static volatile uint64_t t_start;
-static volatile uint64_t t_stop;
+volatile uint64_t t_start;
+volatile uint64_t t_stop;
 static volatile uint32_t cap_cnt;
 /*}}}*/
 
@@ -305,6 +305,9 @@ void measure_setup(void){
 }
 
 
+/**
+ * Kicks off measurement start, starting timers, etc
+ */
 void measure_start(void){
     exec_timer_start();
     pwr_sample_start();
@@ -312,7 +315,41 @@ void measure_start(void){
 }
 
 
+/**
+ * Returns false if exection is complete
+ * Basically checks if t_stop is nonzero
+ */
 bool measure_isrunning(void){
     return (0 == t_stop);
 }
 
+/**
+ * Gets stop time
+ * @return Stop time
+ */
+uint64_t measure_get_stop(void){
+    uint64_t time;
+    MAP_IntMasterDisable();{
+        time= t_stop;
+    }
+    return time;
+}
+
+/**
+ * Gets start time
+ * @return Start time
+ */
+uint64_t measure_get_start(void){
+    uint64_t time;
+    MAP_IntMasterDisable();{
+        time= t_start;
+    }
+    return time;
+}
+
+/**
+ * Kicks off only timer and not i2c power measurements
+ */
+void timer_cal_start(void){
+    exec_timer_start();
+}

@@ -150,10 +150,10 @@ void i2c_comm_setup(void){
     MAP_GPIOPinTypeI2CSCL(GPIO_PORTG_BASE, GPIO_PIN_1);
 
     // Configure I2C master and fifos, and flush fifos
-    i2c_setup(I2C1_BASE, true);
+    i2c_setup(I2C2_BASE, true);
 }
 
-// C99 compliance 
+// For linking
 extern inline int i2c_comm_write(uint8_t addr, void *data, size_t len);
 extern inline int i2c_comm_read(uint8_t addr, void *data, size_t len);
 

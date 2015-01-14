@@ -41,7 +41,7 @@
 
 #include "util.h"
 
-#define XBH_REV_DIGITS 7
+#define XBH_REV_DIGITS REVISIZE //could be all less than 40 digits, but just return all
 
 
 /**
@@ -99,7 +99,7 @@ size_t XBH_HandleRevisionRequest(uint8_t* p_answer){/*{{{*/
  * @param socket Sock to stream power measurements to
  * @return 0 if success, 1 if fail.
  */
-static uint8_t XBH_HandleEXecutionRequest(int sock) {/*{{{*/
+static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
     struct pwr_sample sample; 
     int retval;
     // 4 bytes pkt ID + sizeof pwr_sample in ascii hex. Subtract 2 to remove padding
@@ -162,7 +162,7 @@ static uint8_t XBH_HandleEXecutionRequest(int sock) {/*{{{*/
  * @return 0 if success, 1 if fails during program flash request to XBD, 2 if
  * fails during flash download request to XBD
  */
-static uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
+static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
 	uint32_t *cmd_ptr = (uint32_t*)(XBDCommandBuf+XBD_COMMAND_LEN);
 	uint32_t seqn=0,addr=0;
     uint32_t byte_len = len/2; //byte length of len which is  ascii hex length in nybbles
@@ -234,23 +234,31 @@ static uint8_t XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t 
 
 }/*}}}*/
 
-
-#if 0 /*{{{*/
-
-//TODO: Implement
-uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
+/**
+ * Returns number of cycles busy loop has actually waited inside the XBD in
+ * p_answer. Appears to be unused
+ * @param p_answer Buffer to write XBDtco command plus 8 hex digits (XBD_COMMAND_LEN+8)
+ * @return 0 if success, else fail
+ */
+static int XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
 	uint8_t i;
+    uint64_t time;
+    uint32_t cycles;
 
-	constStringToBuffer (XBDCommandBuf, XBDtcr);
+	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_tcr], XBD_COMMAND_LEN);
 	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+NUMBSIZE);
+
+    timer_cal_start();
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+NUMBSIZE);
+    time = timer_cal_stop()-timer_cal_start();
+
 
 	XBH_DEBUG("tcr\n");
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
-	if(0 == memcmp_P(XBDResponseBuf,XBDtco,XBD_COMMAND_LEN))
+	if(0 == memcmp(XBDResponseBuf,XBDtco,XBD_COMMAND_LEN))
 	{	
 
 		for(i=0;i<4;++i)
@@ -265,14 +273,17 @@ uint8_t XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
 		XBH_ERROR("Response wrong [%s\r\n",XBDResponseBuf);
 		return 1;
 	}
-}
-/*}}}*/
-//TODO: Implement 
+
+}/*}}}*/
+
+/**
+ * Returns git revision of XBD code
+ */
 uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 	uint8_t i;
 
-	constStringToBuffer (XBDCommandBuf, XBDtrr);
-	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+REVISIZE);
+	memcpy(XBDCommandBuf, XBDtrr, XBD_COMMAND_LEN);
+	memset(XBDResponseBuf,' ',XBD_COMMAND_LEN+REVISIZE);
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+REVISIZE);
 
@@ -280,7 +291,7 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
-	if(0 == memcmp_P(XBDResponseBuf,XBDtro,XBD_COMMAND_LEN))
+	if(0 == memcmp(XBDResponseBuf,XBDtro,XBD_COMMAND_LEN))
 	{	
 		for(i=0;i<REVISIZE;++i)
 		{
@@ -294,6 +305,38 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 		return 1;
 	}
 
+}/*}}}*/
+
+/**
+ * Reports time taken of last operation
+ * @param p_answer Array to be filled w/ w/ hex in big endian of format 
+ * SSSSSSSSFFFFFFFFCCCCCCCC where S = seconds F = fraction of seconds in cycles,
+ * C = clock rate
+ */
+void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
+
+	uint32_t tmpvar;
+    uint64_t start = measure_get_start();
+    uint64_t stop = measure_get_start();
+    uint64_t time = start - stop;
+
+    //Format is seconds , timestamp % xbh_clk, xbh_clk
+
+	tmpvar = time/g_syshz;
+	for(uint32_t i=0;i<8;++i) {
+		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
+	}
+
+	tmpvar = time%g_syshz;
+	for(uint32_t i=0;i<8;++i) {
+		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
+	}
+
+	tmpvar = (g_syshz);
+	for(i=0;i<8;++i) {
+		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
+	}
+	
 }/*}}}*/
 
 /**
@@ -330,7 +373,6 @@ static uint8_t XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/
 
 /**
  * Download parameters to XBD
- * TODO Clean up code, minimize scope of variables and document them.
  * @param input_buf Buffer containing type code in ascii hex format 
  * @param len Length of buffer in bytes (in hex format)
  * @return 0 if success, 1 if fails during program parameter request to XBD, 2 if
@@ -439,6 +481,8 @@ static uint8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
 }/*}}}*/
 
 
+
+
 /**
  * Retrieve value of computation
  * @param p_answer Buffer to write answer to 
@@ -458,7 +502,7 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 	XBH_DEBUG("\r\n");
 */
 	xbdSend(XBD_CMD[XBD_CMD_urr], XBD_COMMAND_LEN);
-//	_delay_ms(100);
+//	vTaskDelay(100);
 
 
 	xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
@@ -486,7 +530,7 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 	do {
         XBH_DEBUG("Sending 'r'esult 'd'ata 'r'equest to XBD\n");
 		xbdSend(XBD_CMD[XBD_CMD_rdr], XBD_COMMAND_LEN);
-//		_delay_ms(100);
+//		vTaskDelay(100);
 
 	//	XBH_DEBUG("1.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
 		xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
@@ -510,6 +554,33 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 }/*}}}*/
 
 /**
+ * Sets reset pin depending on value of param
+ * @return 0 if valid parameter, 1 if not
+ */
+void XBH_HandleResetControlRequest(bool on) {/*{{{*/
+	//Disable pull-up in input, set to low level if output
+	PORTB &= ~(_BV(PB0));
+
+	if(param == 'y' || param == 'Y')
+	{
+		//set DDR bit -> output
+		DDRB |= _BV(PB0);
+	
+		return 0;
+	}
+	
+	if(param == 'n' || param == 'N')
+	{
+		//clear DDR bit -> input
+		DDRB &=  ~(_BV(PB0));
+
+	
+		return 0;
+	}
+
+}	/*}}}*/
+
+/**
  * Switches from bootloader to application mode
  * @return 0 if success
  */
@@ -524,8 +595,8 @@ static uint8_t XBH_HandleStartApplicationRequest() {/*{{{*/
         XBH_DEBUG("Sending 's'tart 'a'pplication 'r'equest to XBD\n");
 		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sar], XBD_COMMAND_LEN);
 		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-        //TODO Replace _delay_ms w/ ARM-specific function
-		_delay_ms(100);
+        //TODO Replace vTaskDelay w/ ARM-specific function
+		vTaskDelay(100);
 
         XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
 		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir], XBD_COMMAND_LEN);
@@ -540,9 +611,9 @@ static uint8_t XBH_HandleStartApplicationRequest() {/*{{{*/
             XBH_DEBUG("Try %d: [%s]",trys,((uint8_t*)XBDResponseBuf));
             ++trys;
             XBH_HandleResetControlRequest(yes);
-            _delay_ms(100);
+            vTaskDelay(100);
             XBH_HandleResetControlRequest(no);
-            _delay_ms(1000);
+            vTaskDelay(1000);
 		}
 	}
 
@@ -567,7 +638,7 @@ static uint8_t XBH_HandleStartBootloaderRequest() {/*{{{*/
 		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sbr], XBD_COMMAND_LEN);
 		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 
-		_delay_ms(100);
+        vTaskDelay(100);
 
 		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir], XBD_COMMAND_LEN);
         XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
@@ -580,9 +651,9 @@ static uint8_t XBH_HandleStartBootloaderRequest() {/*{{{*/
             XBH_DEBUG("Try %d: [%s]",trys,((uint8_t*)XBDResponseBuf));
 			++trys;
 			XBH_HandleResetControlRequest(yes);
-			_delay_ms(100);
+            vTaskDelay(100);
 			XBH_HandleResetControlRequest(no);
-			_delay_ms(1000);
+            vTaskDelay(1000);
 		}
 	}
     XBH_DEBUG("BL 'v'ersion 'i'nformation 'r'equest to XBD failed\n");
@@ -601,36 +672,7 @@ static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
 }/*}}}*/
 
 
-/**
- * Sets reset pin depending on value of param
- * TODO Change to use c99 bool
- * TODO Actually implement
- * @return 0 if valid parameter, 1 if not
- */
-uint8_t XBH_HandleResetControlRequest(uint8_t param) {/*{{{*/
-	//Disable pull-up in input, set to low level if output
-	PORTB &= ~(_BV(PB0));
-
-	if(param == 'y' || param == 'Y')
-	{
-		//set DDR bit -> output
-		DDRB |= _BV(PB0);
-	
-		return 0;
-	}
-	
-	if(param == 'n' || param == 'N')
-	{
-		//clear DDR bit -> input
-		DDRB &=  ~(_BV(PB0));
-
-	
-		return 0;
-	}
-
-	XBH_ERROR("Invalid Reset Reques\r\n");
-	return 1;
-}	/*}}}*/
+#if 0 /*{{{*
 
 /**
  * Retrieves stack usage information from XBD
@@ -664,95 +706,7 @@ uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
     return -1;
 }/*}}}*/
 
-//TODO: Redefine OCRVAL
-//TODO: Counting cycles probably not accurate on ARM
-
-void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
-
-	uint32_t tmpvar;
-	int32_t rising_fract, falling_fract;
-	
-
-//#ifdef XBH_DEBUG_TIMING
-//	XBH_DEBUG("\nRP, rising: %d s, %d IRQs, clocks:",
-//						risingTimeStamp,
-//						risingIntCtr);
-//	XBD_debugOutHex32Bit(risingTime);
-//
-//	XBH_DEBUG("\nRP, falling: %d s, %d IRQs, clocks:",
-//						fallingTimeStamp,
-//						fallingIntCtr);
-//	XBD_debugOutHex32Bit(fallingTime);
-//#endif
-
-	rising_fract=risingIntCtr*OCRVAL+risingTime;
-
-//#ifdef XBH_DEBUG_TIMING
-//	XBH_DEBUG("\nrising_fract:");
-//	XBD_debugOutHex32Bit(rising_fract);
-//#endif
-
-	falling_fract=fallingIntCtr*OCRVAL+fallingTime;
-//#ifdef XBH_DEBUG_TIMING
-//	XBH_DEBUG("\nfalling_fract:");
-//	XBD_debugOutHex32Bit(falling_fract);
-//#endif
-
-	if(rising_fract < falling_fract)
-	{
-		rising_fract+=F_CPU;
-		--risingTimeStamp;
-	}
-
-//#ifdef XBH_DEBUG_TIMING
-//	XBH_DEBUG("\nrising_fract:");
-//	XBD_debugOutHex32Bit(rising_fract);
-//
-//	XBH_DEBUG("RP, rising: %d s, %d IRQs, %d clocks\r\n",
-//						risingTimeStamp,
-//						risingIntCtr,
-//						risingTime);
-//#endif
-
-
-	tmpvar = (risingTimeStamp-fallingTimeStamp);
-	for(uint32_t i=0;i<8;++i)
-	{
-		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
-	}
-
-#ifdef XBH_DEBUG_TIMING
-	XBH_DEBUG("\ntmpvar:");
-	XBD_debugOutHex32Bit(tmpvar);
-#endif
-					
-	tmpvar = (rising_fract - falling_fract);
-	for(uint32_t i=0;i<8;++i)
-	{
-		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
-	}
-
-#ifdef XBH_DEBUG_TIMING
-	XBH_DEBUG("\ntmpvar:");
-	XBD_debugOutHex32Bit(tmpvar);
-#endif
-
-
-	tmpvar = (F_CPU);
-	for(i=0;i<8;++i)
-	{
-		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
-	}
-	
-#ifdef XBH_DEBUG_TIMING
-	XBH_DEBUG("\ntmpvar:");
-	XBD_debugOutHex32Bit(tmpvar);
-#endif
-}/*}}}*/
 #endif/*}}}*/
-
-
-
 
 
 
@@ -800,25 +754,12 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 		if(0 == ret)
 		{
             XBH_DEBUG("'c'ode 'd'ownload 'o'kay sent\n");
-			memcpy(output, XBH_CMD[XBH_CMD_cdo], XBH_COMMAND_LEN);
+			memcpy(reply, XBH_CMD[XBH_CMD_cdo], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		} else {
             XBH_DEBUG("'c'ode 'd'ownload 'f'ail sent\n");
 			return (uint16_t) XBH_COMMAND_LEN;
 		}	
-	}/*}}}*/
-
-#if 0
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 'r'e'p'ort timestamp 'r'equest received\n");
-
-		resetTimer=resetTimerBase*1;
-		XBH_HandleRePorttimestampRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
-		
-        XBH_DEBUG("'r'e'p'ort timestamp 'o'kay sent\n");
-        memcpy(output, XBH_CMD[XBH_CMD_rpo], XBH_COMMAND_LEN);
-		return (uint16_t) XBH_COMMAND_LEN+(3*TIMESIZE*2);
 	}/*}}}*/
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_tcr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
@@ -835,6 +776,20 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
 	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'r'e'p'ort timestamp 'r'equest received\n");
+
+		resetTimer=resetTimerBase*1;
+		XBH_HandleRePorttimestampRequest(&output[XBH_COMMAND_LEN]);
+		resetTimer=0;
+		
+        XBH_DEBUG("'r'e'p'ort timestamp 'o'kay sent\n");
+        memcpy(reply, XBH_CMD[XBH_CMD_rpo], XBH_COMMAND_LEN);
+		return  XBH_COMMAND_LEN+(3*TIMESIZE*2);
+	}/*}}}*/
+#if 0
+
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_trr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 't'arget 'r'evision 'r'equest received\n");
