@@ -134,8 +134,8 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // 32  // ADC0 Sequence 2
     IntDefaultHandler,                      // 33  // ADC0 Sequence 3
     IntDefaultHandler,                      // 34  // Watchdog Timers 0 and 1
-    exec_timer_cap_isr,                     // 35  // 16/32-Bit Timer 0A
-    exec_timer_wrap_isr,                    // 36  // 16/32-Bit Timer 0B
+    IntDefaultHandler,                      // 35  // 16/32-Bit Timer 0A
+    IntDefaultHandler,                      // 36  // 16/32-Bit Timer 0B
     pwr_sample_timer_isr,                   // 37  // 16/32-Bit Timer 1A
     IntDefaultHandler,                      // 38  // 16/32-Bit Timer 1B
     IntDefaultHandler,                      // 39  // 16/32-Bit Timer 2A
@@ -150,8 +150,8 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // 48  // GPIO Port H
     IntDefaultHandler,                      // 49  // UART2
     IntDefaultHandler,                      // 50  // SSI1
-    IntDefaultHandler,                      // 51  // 16/32-Bit Timer 3A
-    IntDefaultHandler,                      // 52  // 16/32-Bit Timer 3B
+    exec_timer_cap_isr,                     // 51  // 16/32-Bit Timer 3A
+    exec_timer_wrap_isr,                    // 52  // 16/32-Bit Timer 3B
     IntDefaultHandler,                      // 53  // I2C1
     IntDefaultHandler,                      // 54  // CAN 0
     IntDefaultHandler,                      // 55  // CAN1

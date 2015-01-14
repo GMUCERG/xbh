@@ -50,29 +50,29 @@ static volatile uint32_t cap_cnt;
  */
 static void exec_timer_setup(void){/*{{{*/
     // Enable and reset timer 0
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER0);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER3);
+    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER3);
 
     // PA0 is attached to timer0
-    MAP_GPIOPinConfigure(GPIO_PA0_T0CCP0);
-    MAP_GPIOPinTypeTimer(GPIO_PORTA_BASE, GPIO_PIN_0);
+    MAP_GPIOPinConfigure(GPIO_PD4_T3CCP0);
+    MAP_GPIOPinTypeTimer(GPIO_PORTD_BASE, GPIO_PIN_4);
     
     // Split needed for timer capture
     // We use timer A for capture and timer B to count wraparounds of timer A
-    MAP_TimerConfigure(TIMER0_BASE, TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_CAP_TIME_UP|TIMER_CFG_B_PERIODIC_UP);
+    MAP_TimerConfigure(TIMER3_BASE, TIMER_CFG_SPLIT_PAIR|TIMER_CFG_A_CAP_TIME_UP|TIMER_CFG_B_PERIODIC_UP);
 
     // Detect both rising and falling edges
-    MAP_TimerControlEvent(TIMER0_BASE, TIMER_A, TIMER_EVENT_BOTH_EDGES);
+    MAP_TimerControlEvent(TIMER3_BASE, TIMER_A, TIMER_EVENT_BOTH_EDGES);
 
     // Set priorities for the timers
-    MAP_IntPrioritySet(INT_TIMER0A, TIMER_CAP_ISR_PRIO);
-    MAP_IntPrioritySet(INT_TIMER0B, TIMER_WRAP_ISR_PRIO);
+    MAP_IntPrioritySet(INT_TIMER3A, TIMER_CAP_ISR_PRIO);
+    MAP_IntPrioritySet(INT_TIMER3B, TIMER_WRAP_ISR_PRIO);
 
-    MAP_IntEnable(INT_TIMER0A);
-    MAP_IntEnable(INT_TIMER0B);
+    MAP_IntEnable(INT_TIMER3A);
+    MAP_IntEnable(INT_TIMER3B);
 
-    MAP_TimerIntEnable(TIMER0_BASE, TIMER_CAPA_EVENT);
-    MAP_TimerIntEnable(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
+    MAP_TimerIntEnable(TIMER3_BASE, TIMER_CAPA_EVENT);
+    MAP_TimerIntEnable(TIMER3_BASE, TIMER_TIMB_TIMEOUT);
 }/*}}}*/
 
 /**
@@ -84,7 +84,7 @@ static void exec_timer_start(void){/*{{{*/
     t_stop= 0;
     cap_cnt = 0;
 
-    MAP_TimerEnable(TIMER0_BASE, TIMER_BOTH);
+    MAP_TimerEnable(TIMER3_BASE, TIMER_BOTH);
 }/*}}}*/
 
 /**
@@ -97,12 +97,12 @@ void exec_timer_cap_isr(void){/*{{{*/
     uint32_t wrap_cap_cnt_snap;
     uint32_t cap_time;
 
-    MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
+    MAP_TimerIntClear(TIMER3_BASE, TIMER_CAPA_EVENT);
     //Disable interrupts so snap and time read are atomic
     MAP_IntMasterDisable();{
         wrap_cnt_snap = wrap_cnt;
         wrap_cap_cnt_snap = wrap_cap_cnt;
-        cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
+        cap_time = MAP_TimerValueGet(TIMER3_BASE, TIMER_A);
     } MAP_IntMasterEnable();
     
 
@@ -122,7 +122,7 @@ void exec_timer_cap_isr(void){/*{{{*/
         t_start = (wrap_cnt_snap << 16) | cap_time;
     }else if (1 == cap_cnt ){
         t_stop = (wrap_cnt_snap << 16) | cap_time;
-        MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
+        MAP_TimerDisable(TIMER3_BASE, TIMER_BOTH);
     }
 
     MAP_IntMasterDisable();{
@@ -135,7 +135,7 @@ void exec_timer_cap_isr(void){/*{{{*/
  * This ISR should be of higher priority than exec_timer_cap_isr 
  */
 void exec_timer_wrap_isr(void){/*{{{*/
-    TimerIntClear(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
+    TimerIntClear(TIMER3_BASE, TIMER_TIMB_TIMEOUT);
     
     ++wrap_cnt; 
     wrap_cap_cnt = cap_cnt;
@@ -177,27 +177,27 @@ static void pwr_sample_setup(){/*{{{*/
     MAP_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
 
     // Configure I2C pins
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C0);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C0);
-    MAP_GPIOPinConfigure(GPIO_PB2_I2C0SCL);
-    MAP_GPIOPinConfigure(GPIO_PB3_I2C0SDA);
-    MAP_GPIOPinTypeI2C(GPIO_PORTB_BASE, GPIO_PIN_3);
-    MAP_GPIOPinTypeI2CSCL(GPIO_PORTB_BASE, GPIO_PIN_2);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C2);
+    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C2);
+    MAP_GPIOPinConfigure(GPIO_PN4_I2C2SDA);
+    MAP_GPIOPinConfigure(GPIO_PN5_I2C2SCL);
+    MAP_GPIOPinTypeI2C(GPIO_PORTN_BASE, GPIO_PIN_4);
+    MAP_GPIOPinTypeI2CSCL(GPIO_PORTN_BASE, GPIO_PIN_5);
 
     // Configure I2C master and fifos, and flush fifos
-    i2c_setup(I2C0_BASE, true);
+    i2c_setup(I2C2_BASE, true);
 
     // Send configuration to INA219 config register
     cmd_buf[0] = INA219_REG_CONF;
     cmd_buf[1] = INA219_CONF >> 8; 
     cmd_buf[2] = INA219_CONF & 0xFF;
-    i2c_write(I2C0_BASE, INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
+    i2c_write(I2C2_BASE, INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
 
     // Write calibration
     cmd_buf[0] = INA219_REG_CAL; 
     cmd_buf[1] = INA219_CAL >> 8; 
     cmd_buf[2] = INA219_CAL & 0xFF;
-    i2c_write(I2C0_BASE, INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
+    i2c_write(I2C2_BASE, INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
 }/*}}}*/
 
 /**
@@ -232,18 +232,18 @@ static void pwr_sample_task(void *args){/*{{{*/
 
             //Read current
             reg = INA219_REG_CURR;
-            i2c_write(I2C0_BASE, INA219_I2C_ADDR, &reg, 1);
-            i2c_read(I2C0_BASE, INA219_I2C_ADDR, &sample.current, 2);
+            i2c_write(I2C2_BASE, INA219_I2C_ADDR, &reg, 1);
+            i2c_read(I2C2_BASE, INA219_I2C_ADDR, &sample.current, 2);
 
             //Read power 
             reg = INA219_REG_POWR;
-            i2c_write(I2C0_BASE, INA219_I2C_ADDR, &reg, 1);
-            i2c_read(I2C0_BASE, INA219_I2C_ADDR, &sample.power, 2);
+            i2c_write(I2C2_BASE, INA219_I2C_ADDR, &reg, 1);
+            i2c_read(I2C2_BASE, INA219_I2C_ADDR, &sample.power, 2);
 
             //Read voltage. 
             reg = INA219_REG_VOLT;
-            i2c_write(I2C0_BASE, INA219_I2C_ADDR, &reg, 1);
-            i2c_read(I2C0_BASE, INA219_I2C_ADDR, &sample.voltage, 2);
+            i2c_write(I2C2_BASE, INA219_I2C_ADDR, &reg, 1);
+            i2c_read(I2C2_BASE, INA219_I2C_ADDR, &sample.voltage, 2);
 
             //TI documentation is contradictory on whether power or voltage read
             //triggers conversion. TODO: Verify what happens
@@ -256,7 +256,7 @@ static void pwr_sample_task(void *args){/*{{{*/
         //Can't use taskENTER_CRITICAL since wrap counter is higher priority
         IntMasterDisable();{
             wrap_cnt_snap = wrap_cnt;
-            wrap_time_snap = MAP_TimerValueGet(TIMER0_BASE, TIMER_A); 
+            wrap_time_snap = MAP_TimerValueGet(TIMER3_BASE, TIMER_A); 
         }IntMasterEnable();
         
         sample.timestamp = wrap_cnt_snap << 16 | wrap_time_snap;
@@ -281,7 +281,7 @@ static void pwr_sample_start(){/*{{{*/
 
     MAP_TimerEnable(TIMER1_BASE, TIMER_A);
 
-    i2c_flush(I2C0_BASE);
+    i2c_flush(I2C2_BASE);
 
     retval = xTaskCreate( pwr_sample_task,
             "pwr_samp",
@@ -311,7 +311,7 @@ void measure_setup(void){
 void measure_start(void){
     exec_timer_start();
     pwr_sample_start();
-    MAP_TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC|TIMER_1A_SYNC);
+    MAP_TimerSynchronize(TIMER3_BASE, TIMER_3A_SYNC|TIMER_3B_SYNC|TIMER_1A_SYNC);
 }
 
 
