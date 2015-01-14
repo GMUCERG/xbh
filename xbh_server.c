@@ -44,8 +44,8 @@ void start_xbhserver(void){/*{{{*/
 
 
 // Define these outside XBH thread so they sit outside stack space
-uint8_t xbd_cmd[XBD_PACKET_SIZE_MAX];
-uint8_t reply_buf[XBD_ANSWERLENG_MAX];
+uint8_t xbh_cmd[XBH_PACKET_SIZE_MAX];
+uint8_t reply_buf[XBH_ANSWERLENG_MAX];
 /**
  * XBH thread
  */
@@ -96,12 +96,12 @@ static void xbhsrv_task(void *arg){/*{{{*/
             case XBHSRV_CMD: 
                 {
                     size_t len = 0;
-                    retval = recv_waitall(clnt_sock, xbd_cmd, CMDLEN_SZ,0);
+                    retval = recv_waitall(clnt_sock, xbh_cmd, CMDLEN_SZ,0);
                     if(retval <= 0){ goto cmd_err; }
 
                     // Get length of command message in ascii hex format
                     for(size_t i = 0; i < CMDLEN_SZ; i++){
-                        len += htoi(xbd_cmd[i]) << 4*(CMDLEN_SZ-1-i);
+                        len += htoi(xbh_cmd[i]) << 4*(CMDLEN_SZ-1-i);
                     }
 
                     // If data length greater than XBD_PACKET_SIZE_MAX, then
@@ -112,22 +112,22 @@ static void xbhsrv_task(void *arg){/*{{{*/
                     }
 
                     //+1 to account for colon delimiter
-                    retval = recv_waitall(clnt_sock, xbd_cmd+CMDLEN_SZ, len+1,0);
+                    retval = recv_waitall(clnt_sock, xbh_cmd+CMDLEN_SZ, len+1,0);
                     if(retval <= 0){ goto cmd_err; }
 
                     //Validate if command, otherwise abort
-                    if(0 != memcmp(xbd_cmd+CMDLEN_SZ,":XBH",4)){
+                    if(0 != memcmp(xbh_cmd+CMDLEN_SZ,":XBH",4)){
                         goto cmd_err;
                     }else{
 #ifdef DEBUG_XBHNET
                         char cmd[XBH_COMMAND_LEN+1];
                         cmd[XBH_COMMAND_LEN]='\0';
-                        memcpy(cmd, xbd_cmd+CMDLEN_SZ+1, XBH_COMMAND_LEN);
+                        memcpy(cmd, xbh_cmd+CMDLEN_SZ+1, XBH_COMMAND_LEN);
                         DEBUG_OUT("Command: %s\n", cmd);
                         DEBUG_OUT("Command Length: %d\n", len);
 #endif
                     }
-                    len = XBH_handle(clnt_sock, xbd_cmd+CMDLEN_SZ+1,len,reply_buf);
+                    len = XBH_handle(clnt_sock, xbh_cmd+CMDLEN_SZ+1,len,reply_buf);
                     retval = send(clnt_sock, reply_buf, len, 0);
                     COND_ERRMSG(retval < 0, "Failed to send XBH reply\n");
 

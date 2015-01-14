@@ -29,8 +29,8 @@ uint32_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, const uin
 uint32_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_t* srcdata, uint32_t srclen, uint8_t* dstbuf,const uint8_t *code, uint32_t type, uint32_t addr);
 #endif
 
-uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const uint8_t *code);
+uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const char *code);
 
-uint8_t XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, const uint8_t *code, bool hastype, bool hasaddr);
+uint8_t XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, const char *code, bool hastype, bool hasaddr);
 
 #endif /* _XBD_MULTIPACKET_H */

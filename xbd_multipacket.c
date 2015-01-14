@@ -68,7 +68,7 @@ uint32_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const uint8
 }
 #endif/*}}}*/
 
-uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const uint8_t *code) {
+uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const char *code) {
 	uint32_t offset=0;
 	uint32_t cpylen;
 
@@ -107,7 +107,7 @@ uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint
 	return 0;
 }
 
-uint8_t XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, const uint8_t *code, bool hastype, bool hasaddr) {
+uint8_t XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, const char *code, bool hastype, bool hasaddr) {
 	uint32_t offset=0;
 
 	state->recmp_seqn=0;

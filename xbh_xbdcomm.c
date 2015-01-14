@@ -409,7 +409,7 @@ void xbdCommInit(uint8_t commMode)
     }
 }
 
-void xbdSend(void *buf, size_t length) {
+void xbdSend(const void *buf, size_t length) {
     uint16_t crc;
 
     //generate CRC16

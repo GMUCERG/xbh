@@ -20,7 +20,7 @@ enum XBD_COMM_PROT{COMM_I2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
 
 void xbdCommInit(uint8_t commMode);
 void xbdCommExit(void);
-void xbdSend(void *buf, size_t len);
+void xbdSend(const void *buf, size_t len);
 void xbdReceive(void *buf, size_t len);
 
 

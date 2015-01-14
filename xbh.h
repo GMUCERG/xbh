@@ -10,6 +10,8 @@
 
 #define CYCLES_PER_US (g_syshz/1000000)
 
+#define XBH_ANSWERLENG_MAX 1500
+#define XBH_PACKET_SIZE_MAX 255
 size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *reply);
 
 

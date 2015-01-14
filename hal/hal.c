@@ -26,6 +26,8 @@
 
 
 
+#define RESET_PIN 0x10
+
 /**
  * Clock rate in HZ
  */
@@ -70,7 +72,10 @@ void HAL_setup(void){/*{{{*/
     init_ethernet();
 
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+//    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+
+    //Configure reset pin for XBD
+    MAP_GPIODirModeSet(GPIO_PORTP_BASE, RESET_PIN, GPIO_DIR_MODE_OUT);
 
     //Configure UART
     MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
@@ -79,6 +84,7 @@ void HAL_setup(void){/*{{{*/
     MAP_UARTConfigSetExpClk(UART0_BASE, g_syshz, 115200,
                             (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                              UART_CONFIG_PAR_NONE));
+
 
     //Configure measurement stuff
     measure_setup();
@@ -104,3 +110,15 @@ void uart_write_char(char c){
 
 /*}}}*/
 
+/**
+ * Sets reset pin to given value
+ * @param value true to bring reset high, false for low
+ */
+void xbd_reset(bool value){
+    if(value){
+        GPIOPinWrite(GPIO_PORTP_BASE, RESET_PIN, RESET_PIN);
+    }else{
+        GPIOPinWrite(GPIO_PORTP_BASE, RESET_PIN, 0);
+    }
+
+}
