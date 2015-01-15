@@ -2,6 +2,8 @@
 #define _XBH_H
 
 
+#include <stddef.h>
+#include <inttypes.h>
 #include "xbh_config.h"
 #include "hal/hal.h"
 

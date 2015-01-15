@@ -278,8 +278,6 @@ static int XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
  * Returns git revision of XBD code
  */
 uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
-	uint8_t i;
-
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_trr], XBD_COMMAND_LEN);
 	memset(XBDResponseBuf,' ',XBD_COMMAND_LEN+REVISIZE);
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
@@ -289,12 +287,8 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
-	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_tro],XBD_COMMAND_LEN))
-	{	
-		for(i=0;i<REVISIZE;++i)
-		{
-			p_answer[i] = XBDResponseBuf[XBD_COMMAND_LEN+i];
-		}
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_tro],XBD_COMMAND_LEN)) {	
+        memcpy(p_answer, XBDResponseBuf+XBD_COMMAND_LEN, REVISIZE);
 		return 0;
 	}
 	else
@@ -455,31 +449,6 @@ static uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uin
 }/*}}}*/
 
 
-/**
- * Asks XBD to calculate checksum
- * @return 0 if success, 1 if fail.
- */
-static uint8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
-	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_ccr], XBD_COMMAND_LEN);
-    XBH_DEBUG("Sending 'c'hecksum 'c'alc 'r'equest to XBD\n");
-	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
-	
-
-	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_cco],XBD_COMMAND_LEN)) {	
-        XBH_DEBUG("Received 'c'hecksum 'c'alc 'o'kay from XBD\n");
-/*		XBH_DEBUG("Took %d s, %d IRQs, %d clocks\r\n",
-				risingTimeStamp-fallingTimeStamp,
-				risingIntCtr-fallingIntCtr,
-				risingTime-fallingTime);
-*/		return 0;
-	} else {
-        XBH_DEBUG("Did not receive 'c'hecksum 'c'alc 'o'kay from XBD\n");
-		return 1;
-	}
-}/*}}}*/
-
-
 
 
 /**
@@ -489,7 +458,7 @@ static uint8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
  */
 static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 	uint8_t ret;
-    struct xbd_multipkt_state *state;
+    struct xbd_multipkt_state state;
     XBH_DEBUG("Sending 'u'pload 'r'esults 'r'equest to XBD\n");
 
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_urr], XBD_COMMAND_LEN);
@@ -506,7 +475,7 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 
 	xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
 	
-	if(0 == XBD_recInitialMultiPacket(state, XBDResponseBuf,XBD_ANSWERLENG_MAX-CRC16SIZE, XBD_CMD[XBD_CMD_uro], true /*hastype*/, false /*hasaddr*/)){
+	if(0 == XBD_recInitialMultiPacket(&state, XBDResponseBuf,XBD_ANSWERLENG_MAX-CRC16SIZE, XBD_CMD[XBD_CMD_uro], true /*hastype*/, false /*hasaddr*/)){
         XBH_DEBUG("Received 'u'pload 'r'esults 'o'kay from XBD\n");
     }else{
         XBH_DEBUG("Error with 'u'pload 'r'esults 'o'kay from XBD\n");
@@ -533,26 +502,50 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 
 	//	XBH_DEBUG("1.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
 		xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
-		ret=XBD_recSucessiveMultiPacket(state, XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE, p_answer, XBH_ANSWERLENG_MAX-XBH_COMMAND_LEN, XBD_CMD[XBD_CMD_rdo]);
+		ret=XBD_recSucessiveMultiPacket(&state, XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE, p_answer, XBH_ANSWERLENG_MAX-XBH_COMMAND_LEN, XBD_CMD[XBD_CMD_rdo]);
 	//	XBH_DEBUG("2.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
 	//	XBH_DEBUG("ret: %\r\n",ret);
-	} while(state->recmp_dataleft != 0 && 0 == ret); 
+	} while(state.recmp_dataleft != 0 && 0 == ret); 
 
 
 	if(ret==0 && 0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_rdo],XBD_COMMAND_LEN)) {	
-		for(int32_t i=state->recmp_datanext-1;i>=0; --i)
+		for(int32_t i=state.recmp_datanext-1;i>=0; --i)
 		{
 			p_answer[2*i] = ntoa(p_answer[i]>>4);
 			p_answer[2*i+1] = ntoa(p_answer[i]&0xf);
 		}
-		return 0;
+		return state.recmp_datanext*2;
 	} else {
         XBH_DEBUG("'r'esult 'd'ata 'r'equest to XBD failed\n");
-		return 0x80+ret;
+		return -(0x80+ret);
 	}
 }/*}}}*/
 
 
+#if 0 /*{{{*/
+/**
+ * Asks XBD to calculate checksum
+ * @return 0 if success, 1 if fail.
+ */
+static uint8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
+	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_ccr], XBD_COMMAND_LEN);
+    XBH_DEBUG("Sending 'c'hecksum 'c'alc 'r'equest to XBD\n");
+	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
+	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+	
+
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_cco],XBD_COMMAND_LEN)) {	
+        XBH_DEBUG("Received 'c'hecksum 'c'alc 'o'kay from XBD\n");
+/*		XBH_DEBUG("Took %d s, %d IRQs, %d clocks\r\n",
+				risingTimeStamp-fallingTimeStamp,
+				risingIntCtr-fallingIntCtr,
+				risingTime-fallingTime);
+*/		return 0;
+	} else {
+        XBH_DEBUG("Did not receive 'c'hecksum 'c'alc 'o'kay from XBD\n");
+		return 1;
+	}
+}/*}}}*/
 /**
  * Switches from bootloader to application mode
  * @return 0 if success
@@ -640,7 +633,6 @@ static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
 }/*}}}*/
 
 
-#if 0 /*{{{*/
 
 /**
  * Retrieves stack usage information from XBD
@@ -778,11 +770,12 @@ if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
 		ret=XBH_HandleUploadResultsRequest(&reply[XBH_COMMAND_LEN]);
 
 
-		if(0 == ret) {
+		if(0 < ret) {
             XBH_DEBUG("'u'pload 'r'esults 'o'kay sent\n");
 			memcpy(reply, XBH_CMD[XBH_CMD_uro], XBH_COMMAND_LEN);
-			return (uint16_t)XBH_COMMAND_LEN+xbd_recmp_datanext*2;
+			return XBH_COMMAND_LEN+ret;
 		} else {
+            ret = -ret;
             XBH_DEBUG("'u'pload 'r'esults 'f'ail sent\n");
 			memcpy(reply, XBH_CMD[XBH_CMD_urf], XBH_COMMAND_LEN);
             // Append return value of XBH_HandleUploadResultsRequest 

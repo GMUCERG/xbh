@@ -53,7 +53,7 @@ static void xbhsrv_task(void *arg){/*{{{*/
     struct sockaddr_in listen_addr;
     struct sockaddr_in clnt_addr;
 
-    int srv_sock, clnt_sock;
+    int srv_sock = -1, clnt_sock = -1;
 
     socklen_t clnt_addr_sz;
     int retval;

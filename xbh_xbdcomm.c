@@ -347,19 +347,6 @@ void xbdCommUdpGet(unsigned char index)
 
 
 
-void xbdCommExit()
-{
-    switch(xbd_comm) {
-        case COMM_I2C:
-            i2cExit();
-            break;
-        case COMM_UART:
-        case COMM_UART_OVERDRIVE:
-        case COMM_ETHERNET:
-            break;
-    }
-
-}
 
 void xbdCommUdpInit()
 {
@@ -378,6 +365,18 @@ void xbdCommUdpInit()
 #endif/*}}}*/
 
 
+void xbdCommExit()
+{
+    switch(xbd_comm) {
+        case COMM_I2C:
+            break;
+        case COMM_UART:
+        case COMM_UART_OVERDRIVE:
+        case COMM_ETHERNET:
+            break;
+    }
+
+}
 
 void xbdCommInit(uint8_t commMode)
 {

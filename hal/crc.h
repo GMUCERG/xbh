@@ -9,7 +9,7 @@
 
 #include <driverlib/sw_crc.h>
 
-inline uint16_t crc16_create(void *buf, size_t len){
+inline uint16_t crc16_create(const void *buf, size_t len){
     return MAP_Crc16(0, buf, len);
 }
 

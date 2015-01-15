@@ -46,7 +46,7 @@ void i2c_setup(uint32_t base, bool highspeed){
  * @param len Length of data
  * @return 0 if success, else value of I2CMasterErr
  */
-uint32_t i2c_write(uint32_t base, uint8_t addr, void *data, size_t len){
+uint32_t i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     size_t offset = 0;
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
@@ -154,6 +154,6 @@ void i2c_comm_setup(void){
 }
 
 // For linking
-extern inline int i2c_comm_write(uint8_t addr, void *data, size_t len);
+extern inline int i2c_comm_write(uint8_t addr, const void *data, size_t len);
 extern inline int i2c_comm_read(uint8_t addr, void *data, size_t len);
 

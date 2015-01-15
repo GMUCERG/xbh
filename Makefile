@@ -22,6 +22,7 @@ XBH_SOURCES += $(PROJECT_ROOT)/main.c
 XBH_SOURCES += $(PROJECT_ROOT)/util.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh_xbdcomm.c
+XBH_SOURCES += $(PROJECT_ROOT)/xbd_multipacket.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh_server.c
 
 

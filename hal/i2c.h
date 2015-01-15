@@ -13,7 +13,7 @@
 ///*{{{*/
 void i2c_flush(uint32_t base);
 void i2c_setup(uint32_t base, bool highspeed);
-uint32_t i2c_write(uint32_t base, uint8_t addr, void *data, size_t len);
+uint32_t i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len);
 uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len);
 /*}}}*/
 
@@ -27,7 +27,7 @@ void i2c_comm_setup(void);
  * @param len Length of data
  * @return 0 if success, 1 if error
  */
-inline int i2c_comm_write(uint8_t addr, void *data, size_t len){
+inline int i2c_comm_write(uint8_t addr, const void *data, size_t len){
     return i2c_write(I2C_COMM_BASE, addr, data, len);
 }
 /**

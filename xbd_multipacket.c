@@ -72,7 +72,7 @@ uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint
 	uint32_t offset=0;
 	uint32_t cpylen;
 
-	if(0 == xbd_recmp_dataleft)
+	if(0 == state->recmp_dataleft)
 		return 0;
 
 	if(memcmp(code,recdata,XBD_COMMAND_LEN))

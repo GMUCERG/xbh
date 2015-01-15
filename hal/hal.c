@@ -116,9 +116,9 @@ void uart_write_char(char c){
  */
 void xbd_reset(bool value){
     if(value){
-        GPIOPinWrite(GPIO_PORTP_BASE, RESET_PIN, RESET_PIN);
+        MAP_GPIOPinWrite(GPIO_PORTP_BASE, RESET_PIN, RESET_PIN);
     }else{
-        GPIOPinWrite(GPIO_PORTP_BASE, RESET_PIN, 0);
+        MAP_GPIOPinWrite(GPIO_PORTP_BASE, RESET_PIN, 0);
     }
 
 }

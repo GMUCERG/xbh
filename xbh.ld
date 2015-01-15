@@ -45,6 +45,9 @@ MEMORY
 
 SECTIONS
 {
+    __exidx_start = .;
+    .ARM.exidx : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) }
+    __exidx_end = .;
     .text :
     {
         _text = .;
@@ -53,6 +56,7 @@ SECTIONS
         *(.rodata*)
         _etext = .;
     } > FLASH
+
 
     .data : AT(ADDR(.text) + SIZEOF(.text))
     {
@@ -70,3 +74,4 @@ SECTIONS
         _ebss = .;
     } > SRAM
 }
+
