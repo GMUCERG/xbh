@@ -307,26 +307,23 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
  */
 void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
 
-	uint32_t tmpvar;
     uint64_t start = measure_get_start();
     uint64_t stop = measure_get_start();
     uint64_t time = start - stop;
+    lldiv_t result = lldiv(time, g_syshz);
 
     //Format is seconds , timestamp % xbh_clk, xbh_clk
 
-	tmpvar = time/g_syshz;
 	for(uint32_t i=0;i<8;++i) {
-		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
+		*p_answer++ = ntoa((result.quot>>(28-(4*i)))&0xf);
 	}
 
-	tmpvar = time%g_syshz;
 	for(uint32_t i=0;i<8;++i) {
-		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
+		*p_answer++ = ntoa((result.rem>>(28-(4*i)))&0xf);
 	}
 
-	tmpvar = (g_syshz);
 	for(uint32_t i=0;i<8;++i) {
-		*p_answer++ = ntoa((tmpvar>>(28-(4*i)))&0xf);
+		*p_answer++ = ntoa((g_syshz>>(28-(4*i)))&0xf);
 	}
 	
 }/*}}}*/
@@ -448,9 +445,6 @@ static uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uin
 	return 0;
 }/*}}}*/
 
-
-
-
 /**
  * Retrieve value of computation
  * @param p_answer Buffer to write answer to 
@@ -522,7 +516,6 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 }/*}}}*/
 
 
-#if 0 /*{{{*/
 /**
  * Asks XBD to calculate checksum
  * @return 0 if success, 1 if fail.
@@ -546,6 +539,10 @@ static uint8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
 		return 1;
 	}
 }/*}}}*/
+
+
+#if 0 /*{{{*/
+
 /**
  * Switches from bootloader to application mode
  * @return 0 if success
@@ -737,16 +734,6 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 		}
 	}/*}}}*/
 
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 'r'e'p'ort timestamp 'r'equest received\n");
-
-		XBH_HandleRePorttimestampRequest(&reply[XBH_COMMAND_LEN]);
-		
-        XBH_DEBUG("'r'e'p'ort timestamp 'o'kay sent\n");
-        memcpy(reply, XBH_CMD[XBH_CMD_rpo], XBH_COMMAND_LEN);
-		return  XBH_COMMAND_LEN+(3*TIMESIZE*2);
-	}/*}}}*/
-
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_trr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 't'arget 'r'evision 'r'equest received\n");
 		//resetTimer=resetTimerBase*2;
@@ -759,6 +746,51 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 		} else {
             XBH_DEBUG("'t'arget 'r'evision 'o'kay sent\n");
             memcpy(reply, XBH_CMD[XBH_CMD_trf], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		}
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'r'e'p'ort timestamp 'r'equest received\n");
+
+		XBH_HandleRePorttimestampRequest(&reply[XBH_COMMAND_LEN]);
+		
+        XBH_DEBUG("'r'e'p'ort timestamp 'o'kay sent\n");
+        memcpy(reply, XBH_CMD[XBH_CMD_rpo], XBH_COMMAND_LEN);
+		return  XBH_COMMAND_LEN+(3*TIMESIZE*2);
+	}/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_scr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 's'et 'c'ommunication 'r'equest received\n");
+
+		ret=XBH_HandleSetCommunicationRequest(input[XBH_COMMAND_LEN]);
+		
+		if(ret==0)	{
+            XBH_DEBUG("'s'et 'c'ommunication 'o'kay sent\n");
+			memcpy(reply, XBH_CMD[XBH_CMD_sco], XBH_COMMAND_LEN);
+        }else{
+            XBH_DEBUG("'s'et 'c'ommunication 'f'ail sent\n");
+			memcpy(reply, XBH_CMD[XBH_CMD_scf], XBH_COMMAND_LEN);
+        }
+		return (uint16_t) XBH_COMMAND_LEN;
+	}	/*}}}*/
+
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_dpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'd'ownload 'p'arameters 'r'equest received\n");
+
+
+		//prepare TWI transmission to XBD here
+        //TODO Find parameter requirements 
+		ret=XBH_HandleDownloadParametersRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN)/2);
+
+
+		if(0 == ret) {
+            XBH_DEBUG("'d'ownload 'p'arameters 'o'kay sent\n");
+			memcpy(reply, XBH_CMD[XBH_CMD_dpo], XBH_COMMAND_LEN);
+			return (uint16_t) XBH_COMMAND_LEN;
+		} else {
+            XBH_DEBUG("'d'ownload 'p'arameters 'f'ail sent\n");
+			memcpy(reply, XBH_CMD[XBH_CMD_dpf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
 	}/*}}}*/
@@ -787,43 +819,25 @@ if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
 		}
 	}/*}}}*/
 
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_dpr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 'd'ownload 'p'arameters 'r'equest received\n");
-
-
-		//prepare TWI transmission to XBD here
-        //TODO Find parameter requirements 
-		ret=XBH_HandleDownloadParametersRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN)/2);
-
+	if ( (0 == memcmp(XBH_CMD[XBH_CMD_ccr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'c'hecksum 'c'alc 'r'equest received\n");
+		ret=XBH_HandleChecksumCalcRequest();
 
 		if(0 == ret) {
-            XBH_DEBUG("'d'ownload 'p'arameters 'o'kay sent\n");
-			memcpy(reply, XBH_CMD[XBH_CMD_dpo], XBH_COMMAND_LEN);
+            XBH_DEBUG("Handle 'c'hecksum 'c'alc 'o'kay sent\n");
+            memcpy(reply, XBH_CMD[XBH_CMD_cco], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		} else {
-            XBH_DEBUG("'d'ownload 'p'arameters 'f'ail sent\n");
-			memcpy(reply, XBH_CMD[XBH_CMD_dpf], XBH_COMMAND_LEN);
+            XBH_DEBUG("Handle 'c'hecksum 'c'alc 'f'ail sent\n");
+            memcpy(reply, XBH_CMD[XBH_CMD_ccf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
 	}/*}}}*/
 
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_scr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 's'et 'c'ommunication 'r'equest received\n");
 
-		ret=XBH_HandleSetCommunicationRequest(input[XBH_COMMAND_LEN]);
-		
-		if(ret==0)	{
-            XBH_DEBUG("'s'et 'c'ommunication 'o'kay sent\n");
-			memcpy(reply, XBH_CMD[XBH_CMD_sco], XBH_COMMAND_LEN);
-        }else{
-            XBH_DEBUG("'s'et 'c'ommunication 'f'ail sent\n");
-			memcpy(reply, XBH_CMD[XBH_CMD_scf], XBH_COMMAND_LEN);
-        }
-		return (uint16_t) XBH_COMMAND_LEN;
-	}	/*}}}*/
-#if 0
 
 	
+#if 0
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_str],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'st'atus 'r'equest received\n");
 		resetTimer=resetTimerBase*1;
@@ -904,23 +918,6 @@ if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
 		}
 	}/*}}}*/
 
-
-	if ( (0 == memcmp(XBH_CMD[XBH_CMD_ccr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper 'c'hecksum 'c'alc 'r'equest received\n");
-		resetTimer=resetTimerBase*60;
-		ret=XBH_HandleChecksumCalcRequest();
-		resetTimer=0;
-
-		if(0 == ret) {
-            XBH_DEBUG("Handle 'c'hecksum 'c'alc 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_cco], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
-            XBH_DEBUG("Handle 'c'hecksum 'c'alc 'f'ail sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_ccf], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		}
-	}/*}}}*/
 
 #endif
     memcpy(reply, XBH_CMD[XBH_CMD_unk], XBH_COMMAND_LEN);

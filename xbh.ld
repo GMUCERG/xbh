@@ -45,6 +45,7 @@ MEMORY
 
 SECTIONS
 {
+/* Needed for 64-bit divide */
     __exidx_start = .;
     .ARM.exidx : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) }
     __exidx_end = .;
