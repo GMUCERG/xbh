@@ -21,6 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <inttypes.h>
+#include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -275,9 +276,11 @@ static int XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
 }/*}}}*/
 
 /**
- * Returns git revision of XBD code
+ * Returns git revision of XBD code in p_answer
+ * @param p_answer Buffer to return XBD response command and git revision
+ * @returnr 0 if success, 1 if failure
  */
-uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
+int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_trr], XBD_COMMAND_LEN);
 	memset(XBDResponseBuf,' ',XBD_COMMAND_LEN+REVISIZE);
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
@@ -290,9 +293,7 @@ uint8_t XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_tro],XBD_COMMAND_LEN)) {	
         memcpy(p_answer, XBDResponseBuf+XBD_COMMAND_LEN, REVISIZE);
 		return 0;
-	}
-	else
-	{
+	} else {
 	        XBH_ERROR("trr fai\r\n");
 		return 1;
 	}
@@ -334,7 +335,7 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
  * overdriven UART, 'I' for I2C, 'E' for ethernet.
  * @return 0 if successful, 2 if invalid
  */
-static uint8_t XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/*{{{*/
+static int XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/*{{{*/
     switch(requestedComm) {
         case 'U':
             xbdCommExit();
@@ -367,7 +368,7 @@ static uint8_t XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/
  * @return 0 if success, 1 if fails during program parameter request to XBD, 2 if
  * fails during program download request to XBD
  */
-static uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
+static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
 	uint32_t *cmd_ptr = (uint32_t*)(XBDCommandBuf+XBD_COMMAND_LEN);//+TYPESIZE+ADDRSIZE);
 	uint32_t seqn=0,temp=0;
     uint32_t byte_len = len/2; //byte length of len which is  ascii hex length in nybbles
@@ -448,9 +449,10 @@ static uint8_t XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uin
 /**
  * Retrieve value of computation
  * @param p_answer Buffer to write answer to 
- * @return 0 if success
+ * @return length of data in p_answer without XBD_COMMAND_LEN. Negative if
+ * failure
  */
-static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
+static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 	uint8_t ret;
     struct xbd_multipkt_state state;
     XBH_DEBUG("Sending 'u'pload 'r'esults 'r'equest to XBD\n");
@@ -520,7 +522,7 @@ static uint8_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
  * Asks XBD to calculate checksum
  * @return 0 if success, 1 if fail.
  */
-static uint8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
+static int XBH_HandleChecksumCalcRequest() {/*{{{*/
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_ccr], XBD_COMMAND_LEN);
     XBH_DEBUG("Sending 'c'hecksum 'c'alc 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
@@ -540,8 +542,6 @@ static uint8_t XBH_HandleChecksumCalcRequest() {/*{{{*/
 	}
 }/*}}}*/
 
-
-#if 0 /*{{{*/
 
 /**
  * Switches from bootloader to application mode
@@ -621,7 +621,6 @@ static uint8_t XBH_HandleStartBootloaderRequest() {/*{{{*/
 
 /**
  * Returns bootloader/application status in p_answer
- * @param p_answer pointer to buffer to receive status
  */
 static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir],XBD_COMMAND_LEN);
@@ -634,10 +633,10 @@ static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
 /**
  * Retrieves stack usage information from XBD
  */
-uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
+int XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
     XBH_DEBUG("Sending 's'tack 'r'equest to XBD\n");
 
-    memcpy(output, XBH_CMD[XBD_CMD_sur], XBH_COMMAND_LEN);
+    memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sur], XBH_COMMAND_LEN);
 //	XBH_DEBUG("sur\n");
 
 	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+NUMBSIZE);
@@ -648,7 +647,7 @@ uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
-	if(0 == memcmp_P(XBDResponseBuf,XBDsuo,XBD_COMMAND_LEN)) {	
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_suo],XBD_COMMAND_LEN)) {	
         XBH_DEBUG("'s'tack 'u'sage 'o'kay received from XBD\n");
 		//Copy to Stack Usage information for transmission to the XBS
 		for(uint32_t i=0;i<4;++i) {
@@ -663,7 +662,6 @@ uint8_t XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
     return -1;
 }/*}}}*/
 
-#endif/*}}}*/
 
 
 
@@ -837,89 +835,80 @@ if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
 
 
 	
-#if 0
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_str],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'st'atus 'r'equest received\n");
-		resetTimer=resetTimerBase*1;
-		XBH_HandleSTatusRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
+		XBH_HandleSTatusRequest(&reply[XBH_COMMAND_LEN]);
 		
-        memcpy(output, XBH_CMD[XBH_CMD_sto], XBH_COMMAND_LEN);
+        memcpy(reply, XBH_CMD[XBH_CMD_sto], XBH_COMMAND_LEN);
         XBH_DEBUG("'st'atus 'o'kay sent\n");
 		return (uint16_t) 2*XBH_COMMAND_LEN;
 	}/*}}}*/
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_rcr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'r'eset 'c'ontrol 'r'equest received\n");
-		resetTimer=resetTimerBase*1;
-		ret=XBH_HandleResetControlRequest(input[XBH_COMMAND_LEN]);
-		resetTimer=0;		
-		
-		if(0 == ret) {
-            XBH_DEBUG("'r'eset 'c'ontrol 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_rco], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN;
-		} else {
+        if(input[XBH_COMMAND_LEN] == 'y'){
+            xbd_reset(true);
+        }else if (input[XBH_COMMAND_LEN] == 'n'){
+            xbd_reset(false);
+        }else{
             XBH_DEBUG("'r'eset 'c'ontrol 'f'ail sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_rcf], XBH_COMMAND_LEN);
+            memcpy(reply, XBH_CMD[XBH_CMD_rcf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
-		}
+        }
+
+		
+        XBH_DEBUG("'r'eset 'c'ontrol 'o'kay sent\n");
+        memcpy(reply, XBH_CMD[XBH_CMD_rco], XBH_COMMAND_LEN);
+        return (uint16_t) XBH_COMMAND_LEN;
 	}/*}}}*/
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sar],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 's'tart 'a'pplication 'r'equest received\n");
-		resetTimer=resetTimerBase*2;		
 		ret=XBH_HandleStartApplicationRequest();
-		resetTimer=0;
 		
 		if(0 == ret)
 		{
             XBH_DEBUG("'s'tart 'a'pplication 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_sao], XBH_COMMAND_LEN);
+            memcpy(reply, XBH_CMD[XBH_CMD_sao], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		} else {
             XBH_DEBUG("'s'tart 'a'pplication 'f'ail sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_saf], XBH_COMMAND_LEN);
+            memcpy(reply, XBH_CMD[XBH_CMD_saf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
 	}/*}}}*/
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sur],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 's'tack 'u'sage 'r'equest received\n");
-		resetTimer=resetTimerBase*1;
-		ret=XBH_HandleStackUsageRequest(&output[XBH_COMMAND_LEN]);
-		resetTimer=0;
+		ret=XBH_HandleStackUsageRequest(&reply[XBH_COMMAND_LEN]);
 		
 		if(0 == ret) {
             XBH_DEBUG("'s'tack 'u'sage 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_suo], XBH_COMMAND_LEN);
+            memcpy(reply, XBH_CMD[XBH_CMD_suo], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
 		} else {
             XBH_DEBUG("'s'tack 'u'sage 'f'ail sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_suf], XBH_COMMAND_LEN);
+            memcpy(reply, XBH_CMD[XBH_CMD_suf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
 	}/*}}}*/
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_sbr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 's'tart 'b'ootloader 'r'equest received\n");
-		resetTimer=resetTimerBase*2;	
 		ret=XBH_HandleStartBootloaderRequest();
-		resetTimer=0;
 		
 		if(0 == ret) {
             XBH_DEBUG("'s'tart 'b'ootloader 'o'kay sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_sbo], XBH_COMMAND_LEN);
+            memcpy(reply, XBH_CMD[XBH_CMD_sbo], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		} else {
             XBH_DEBUG("'s'tart 'b'ootloader 'f'ail sent\n");
-            memcpy(output, XBH_CMD[XBH_CMD_sbf], XBH_COMMAND_LEN);
+            memcpy(reply, XBH_CMD[XBH_CMD_sbf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
 	}/*}}}*/
 
 
-#endif
     memcpy(reply, XBH_CMD[XBH_CMD_unk], XBH_COMMAND_LEN);
     XBH_DEBUG("'un'known command 'r'eceived (len: %d)\n", input_len);
     for(uint8_t u=0;u<input_len;++u) {

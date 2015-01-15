@@ -188,7 +188,7 @@ extern void assert_called(const char * const filename, uint32_t line);
 #define INCLUDE_vTaskSuspend                    1
 #define INCLUDE_xResumeFromISR                  0
 #define INCLUDE_vTaskDelayUntil                 0
-#define INCLUDE_vTaskDelay                      0
+#define INCLUDE_vTaskDelay                      1
 #define INCLUDE_xTaskGetSchedulerState          0
 #define INCLUDE_xTaskGetCurrentTaskHandle       0
 #define INCLUDE_uxTaskGetStackHighWaterMark     1
