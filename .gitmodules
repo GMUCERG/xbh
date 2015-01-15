@@ -1,3 +1,9 @@
 [submodule "deps/lwip"]
 	path = deps/lwip
 	url = git://git.sv.gnu.org/lwip.git
+[submodule "tools/tiva-c_xtools"]
+	path = tools/tiva-c_xtools
+	url = git@github.com:jhnphm/tiva-c_xtools.git
+[submodule "tools/crosstool-ng"]
+	path = tools/crosstool-ng
+	url = https://github.com/crosstool-ng/crosstool-ng.git
