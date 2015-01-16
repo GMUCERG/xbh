@@ -1,6 +1,6 @@
 PROJECT_ROOT   := ${shell pwd}
 
-FREERTOS_ROOT      := ${PROJECT_ROOT}/FreeRTOS/FreeRTOS/
+FREERTOS_ROOT      := ${PROJECT_ROOT}/deps/FreeRTOS/FreeRTOS/
 FREERTOS_MAKE_ROOT := ${PROJECT_ROOT}/make/freertos
 
 LWIP_ROOT      := ${PROJECT_ROOT}/deps/lwip
