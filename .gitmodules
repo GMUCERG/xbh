@@ -7,3 +7,6 @@
 [submodule "tools/crosstool-ng"]
 	path = tools/crosstool-ng
 	url = https://github.com/crosstool-ng/crosstool-ng.git
+[submodule "deps/TivaWare_tm4c1294xl"]
+	path = deps/TivaWare_tm4c1294xl
+	url = git@github.com:jhnphm/TivaWare_tm4c1294xl.git
