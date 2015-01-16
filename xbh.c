@@ -311,16 +311,18 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
     uint64_t start = measure_get_start();
     uint64_t stop = measure_get_start();
     uint64_t time = start - stop;
-    lldiv_t result = lldiv(time, g_syshz);
+    uint32_t quot = time / g_syshz;
+    uint32_t rem = time % g_syshz;
+    //lldiv_t result = lldiv(time, g_syshz);
 
     //Format is seconds , timestamp % xbh_clk, xbh_clk
 
 	for(uint32_t i=0;i<8;++i) {
-		*p_answer++ = ntoa((result.quot>>(28-(4*i)))&0xf);
+		*p_answer++ = ntoa((quot>>(28-(4*i)))&0xf);
 	}
 
 	for(uint32_t i=0;i<8;++i) {
-		*p_answer++ = ntoa((result.rem>>(28-(4*i)))&0xf);
+		*p_answer++ = ntoa((rem>>(28-(4*i)))&0xf);
 	}
 
 	for(uint32_t i=0;i<8;++i) {

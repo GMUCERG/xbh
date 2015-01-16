@@ -58,12 +58,14 @@ char *ltoa(long N, char *str, int base)
       {
             for (i = 1; uarg; ++i)
             {
-                  register ldiv_t r;
+                  long quot;
+                  long rem;
 
-                  r       = ldiv(uarg, base);
-                  *tail-- = (char)(r.rem + ((9L < r.rem) ?
+                  quot       = uarg/base; 
+                  rem        = uarg%base; 
+                  *tail-- = (char)(rem + ((9L < rem) ?
                                   ('A' - 10L) : '0'));
-                  uarg    = r.quot;
+                  uarg    = quot;
             }
       }
       else  *tail-- = '0';
