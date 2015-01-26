@@ -16,7 +16,6 @@
 #include "hal/i2c_comm.h"
 
 #define MAX_FIFO_BURST 8
-#define HIGHSPEED
 
 /**
  * Flushes I2C fifos
@@ -140,7 +139,7 @@ error:
 }
 
 
-void i2c_comm_setup(void){
+void i2c_xbdcomm_setup(void){
     // Configure I2C pins
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C2);
     MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C2);
@@ -150,14 +149,10 @@ void i2c_comm_setup(void){
     MAP_GPIOPinTypeI2CSCL(GPIO_PORTL_BASE, GPIO_PIN_1);
 
     // Configure I2C master and fifos, and flush fifos
-#ifdef HIGHSPEED
     i2c_setup(I2C2_BASE, true);
-#else
-    i2c_setup(I2C2_BASE, false);
-#endif
 }
 
 // For linking
-extern inline int i2c_comm_write(uint8_t addr, const void *data, size_t len);
-extern inline int i2c_comm_read(uint8_t addr, void *data, size_t len);
+extern inline int i2c_xbdcomm_write(uint8_t addr, const void *data, size_t len);
+extern inline int i2c_xbdcomm_read(uint8_t addr, void *data, size_t len);
 

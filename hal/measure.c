@@ -177,12 +177,12 @@ static void pwr_sample_setup(){/*{{{*/
     MAP_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
 
     // Configure I2C pins
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C2);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C2);
-    MAP_GPIOPinConfigure(GPIO_PL1_I2C2SCL);
-    MAP_GPIOPinConfigure(GPIO_PL0_I2C2SDA);
-    MAP_GPIOPinTypeI2C(GPIO_PORTL_BASE, GPIO_PIN_0);
-    MAP_GPIOPinTypeI2CSCL(GPIO_PORTL_BASE, GPIO_PIN_1);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C7);
+    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C7);
+    MAP_GPIOPinConfigure(GPIO_PD0_I2C7SCL);
+    MAP_GPIOPinConfigure(GPIO_PD1_I2C7SDA);
+    MAP_GPIOPinTypeI2CSCL(GPIO_PORTD_BASE, GPIO_PIN_0);
+    MAP_GPIOPinTypeI2C(GPIO_PORTD_BASE, GPIO_PIN_1);
 
     // Configure I2C master and fifos, and flush fifos
     i2c_setup(I2C2_BASE, true);
