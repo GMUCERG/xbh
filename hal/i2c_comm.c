@@ -16,6 +16,7 @@
 #include "hal/i2c_comm.h"
 
 #define MAX_FIFO_BURST 8
+#define HIGHSPEED
 
 /**
  * Flushes I2C fifos
@@ -54,8 +55,8 @@ uint32_t i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     
     MAP_I2CMasterSlaveAddrSet(base, addr, false);
     
+    MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
     for(offset = 0; offset < (len-1)/MAX_FIFO_BURST; offset++){
-        MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
         for(size_t i = 0; i < MAX_FIFO_BURST; ++i){
             MAP_I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
         }
@@ -104,9 +105,9 @@ uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     
     // Send configuration to INA219 config register
     MAP_I2CMasterSlaveAddrSet(base, addr, true);
-    
+    MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
+
     for(offset = 0; offset < (len-1)/MAX_FIFO_BURST; offset++){
-        MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
         for(size_t i = 0; i < MAX_FIFO_BURST; ++i){
             ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = MAP_I2CFIFODataGet(base);
         }
@@ -141,15 +142,19 @@ error:
 
 void i2c_comm_setup(void){
     // Configure I2C pins
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C9);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C9);
-    MAP_GPIOPinConfigure(GPIO_PA0_I2C9SCL);
-    MAP_GPIOPinConfigure(GPIO_PA1_I2C9SDA);
-    MAP_GPIOPinTypeI2C(GPIO_PORTA_BASE, GPIO_PIN_0);
-    MAP_GPIOPinTypeI2CSCL(GPIO_PORTA_BASE, GPIO_PIN_1);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C2);
+    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C2);
+    MAP_GPIOPinConfigure(GPIO_PL1_I2C2SCL);
+    MAP_GPIOPinConfigure(GPIO_PL0_I2C2SDA);
+    MAP_GPIOPinTypeI2C(GPIO_PORTL_BASE, GPIO_PIN_0);
+    MAP_GPIOPinTypeI2CSCL(GPIO_PORTL_BASE, GPIO_PIN_1);
 
     // Configure I2C master and fifos, and flush fifos
+#ifdef HIGHSPEED
     i2c_setup(I2C2_BASE, true);
+#else
+    i2c_setup(I2C2_BASE, false);
+#endif
 }
 
 // For linking
