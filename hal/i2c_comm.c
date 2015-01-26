@@ -52,7 +52,6 @@ uint32_t i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
     uint32_t err; 
     
-    // Send configuration to INA219 config register
     MAP_I2CMasterSlaveAddrSet(base, addr, false);
     
     for(offset = 0; offset < (len-1)/MAX_FIFO_BURST; offset++){

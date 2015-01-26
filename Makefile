@@ -14,7 +14,7 @@ include ${LWIP_MAKE_ROOT}/lwip.make
 
 XBH_SOURCES += $(PROJECT_ROOT)/hal/crc.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
-XBH_SOURCES += $(PROJECT_ROOT)/hal/i2c.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/i2c_comm.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/measure.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/startup_gcc.c
@@ -63,8 +63,9 @@ SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
 
 CFLAGSgcc+=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
-#CFLAGSgcc+=-g -Os -flto
-#LDFLAGS+=-flto -fuse-linker-plugin
+
+#CFLAGSgcc+=-g -Os -flto=8
+#LDFLAGS+=-flto=8 -fuse-linker-plugin
 
 CFLAGSgcc+=-DDEBUG -DLWIP_DEBUG -ggdb3 -Og
 CFLAGSgcc+=-DDEBUG_STACK
@@ -74,7 +75,6 @@ ifneq (${MAKECMDGOALS},clean)
 XBH_DEPS := $(XBH_OBJECTS:%.o=%.d)
 -include ${XBH_DEPS} __dummy__
 endif
-
 
 distclean: clean
 	rm -rf build lib
