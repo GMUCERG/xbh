@@ -21,7 +21,7 @@
 #include "hal/hal.h"
 #include "hal/measure.h"
 #include "hal/isr_prio.h"
-#include "hal/i2c.h"
+#include "hal/i2c_comm.h"
 
 #include "util.h"
 

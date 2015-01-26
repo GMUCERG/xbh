@@ -1,5 +1,5 @@
-#ifndef _I2C_H
-#define _I2C_H
+#ifndef _I2C_COMM_H
+#define _I2C_COMM_H
 
 #include <inttypes.h>
 #include <stdbool.h>

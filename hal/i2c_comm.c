@@ -13,7 +13,7 @@
 #include <driverlib/i2c.h>
 
 #include "hal/hal.h"
-#include "hal/i2c.h"
+#include "hal/i2c_comm.h"
 
 #define MAX_FIFO_BURST 8
 

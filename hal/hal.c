@@ -21,7 +21,7 @@
 #include "FreeRTOSConfig.h"
 #include "util.h"
 #include "hal/lwip_eth.h"
-#include "hal/i2c.h"
+#include "hal/i2c_comm.h"
 #include "hal/measure.h"
 
 

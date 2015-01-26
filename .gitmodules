@@ -7,9 +7,9 @@
 [submodule "tools/crosstool-ng"]
 	path = tools/crosstool-ng
 	url = https://github.com/crosstool-ng/crosstool-ng.git
-[submodule "deps/TivaWare_tm4c1294xl"]
-	path = deps/TivaWare_tm4c1294xl
-	url = git@github.com:jhnphm/TivaWare_tm4c1294xl.git
 [submodule "deps/FreeRTOS"]
 	path = deps/FreeRTOS
 	url = https://github.com/jhnphm/FreeRTOS.git
+[submodule "deps/TivaWare_driverlib"]
+	path = deps/TivaWare_driverlib
+	url = git@github.com:jhnphm/TivaWare_driverlib.git
