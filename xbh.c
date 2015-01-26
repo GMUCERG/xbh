@@ -207,13 +207,12 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
 	fd_idx = ADDRSIZE;
 	cmd_ptr = (uint32_t *)&XBDCommandBuf[XBD_COMMAND_LEN];
     // Loop through, sending code in 128 byte packets + code
-    //TODO Find out why 128 is hardcoded in here. XBD_PACKET_SIZE_MAX/2 ? 
     //
 	while(len_remaining != 0) {
         uint32_t i;
 		*cmd_ptr = htons(seqn);
 		++seqn;
-		for(i=0; i < (len_remaining<128?len_remaining:128) ; ++i) {
+		for(i=0; i < (len_remaining<XBD_PKT_PAYLOAD_MAX?len_remaining:XBD_PKT_PAYLOAD_MAX) ; ++i) {
 			XBDCommandBuf[XBD_COMMAND_LEN+SEQNSIZE+i]=
 				htoi(input_buf[((fd_idx+i)*2)])<<4 |
 				htoi(input_buf[((fd_idx+i)*2)+1]);
