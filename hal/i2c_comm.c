@@ -139,7 +139,7 @@ error:
 }
 
 
-void i2c_xbdcomm_setup(void){
+void i2c_comm_setup(void){
     // Configure I2C pins
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C2);
     MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C2);

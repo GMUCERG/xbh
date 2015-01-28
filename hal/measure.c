@@ -158,6 +158,14 @@ void exec_timer_wrap_isr(void){/*{{{*/
 #define INA219_OVF 0x1
 #define INA219_I2C_ADDR 0x46
 
+#ifdef USE_SEPARATE_I2C
+#define I2C_WRITE(addr, data, len) i2c_write(I2C2_BASE, addr, data, len)
+#define I2C_READ(addr, data, len) i2c_read(I2C2_BASE, addr, data, len)
+#else
+#define I2C_WRITE(addr, data, len) i2c_comm_write(addr, data, len)
+#define I2C_READ(addr, data, len) i2c_comm_read(addr, data, len)
+#endif
+
 
 
 static void pwr_sample_setup(){/*{{{*/
@@ -176,6 +184,9 @@ static void pwr_sample_setup(){/*{{{*/
     MAP_IntEnable(INT_TIMER1A);
     MAP_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
 
+#ifdef USE_SEPARATE_I2C
+#define INA219_I2C_BASE I2C2_BASE
+
     // Configure I2C pins
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C7);
     MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C7);
@@ -186,18 +197,20 @@ static void pwr_sample_setup(){/*{{{*/
 
     // Configure I2C master and fifos, and flush fifos
     i2c_setup(I2C2_BASE, true);
+#endif
+
 
     // Send configuration to INA219 config register
     cmd_buf[0] = INA219_REG_CONF;
     cmd_buf[1] = INA219_CONF >> 8; 
     cmd_buf[2] = INA219_CONF & 0xFF;
-    i2c_write(I2C2_BASE, INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
+    I2C_WRITE(INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
 
     // Write calibration
     cmd_buf[0] = INA219_REG_CAL; 
     cmd_buf[1] = INA219_CAL >> 8; 
     cmd_buf[2] = INA219_CAL & 0xFF;
-    i2c_write(I2C2_BASE, INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
+    I2C_WRITE(INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
 }/*}}}*/
 
 /**
@@ -232,18 +245,18 @@ static void pwr_sample_task(void *args){/*{{{*/
 
             //Read current
             reg = INA219_REG_CURR;
-            i2c_write(I2C2_BASE, INA219_I2C_ADDR, &reg, 1);
-            i2c_read(I2C2_BASE, INA219_I2C_ADDR, &sample.current, 2);
+            I2C_WRITE(INA219_I2C_ADDR, &reg, 1);
+            I2C_READ(INA219_I2C_ADDR, &sample.current, 2);
 
             //Read power 
             reg = INA219_REG_POWR;
-            i2c_write(I2C2_BASE, INA219_I2C_ADDR, &reg, 1);
-            i2c_read(I2C2_BASE, INA219_I2C_ADDR, &sample.power, 2);
+            I2C_WRITE(INA219_I2C_ADDR, &reg, 1);
+            I2C_READ(INA219_I2C_ADDR, &sample.power, 2);
 
             //Read voltage. 
             reg = INA219_REG_VOLT;
-            i2c_write(I2C2_BASE, INA219_I2C_ADDR, &reg, 1);
-            i2c_read(I2C2_BASE, INA219_I2C_ADDR, &sample.voltage, 2);
+            I2C_WRITE(INA219_I2C_ADDR, &reg, 1);
+            I2C_READ(INA219_I2C_ADDR, &sample.voltage, 2);
 
             //TI documentation is contradictory on whether power or voltage read
             //triggers conversion. TODO: Verify what happens

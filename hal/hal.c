@@ -90,7 +90,7 @@ void HAL_setup(void){/*{{{*/
     measure_setup();
 
     //Configure xbd i2c comm
-    i2c_xbdcomm_setup();
+    i2c_comm_setup();
 }/*}}}*/
 
 
