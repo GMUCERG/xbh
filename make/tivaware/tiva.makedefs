@@ -107,8 +107,7 @@ CFLAGS+=-mthumb             \
        -std=c99            \
        -Wall               \
        -pedantic           \
-       -DPART_${PART}      \
-       -c
+       -DPART_${PART}      
 
 #
 # The command for calling the library archiver.
@@ -123,22 +122,22 @@ LD=${PREFIX}-gcc
 #
 # The flags passed to the linker.
 #
-LDFLAGS+=-Wl,--gc-sections
+LDFLAGS+=-Wl,--gc-sections ${CFLAGS} 
 
 #
 # Get the location of libgcc.a from the GCC front-end.
 #
-LIBGCC:=${shell ${CC} ${CFLAGS} -print-libgcc-file-name}
+LIBGCC=${shell ${CC} ${CFLAGS} -print-libgcc-file-name}
 
 #
 # Get the location of libc.a from the GCC front-end.
 #
-LIBC:=${shell ${CC} ${CFLAGS} -print-file-name=libc.a}
+LIBC=${shell ${CC} ${CFLAGS} -print-file-name=libc.a}
 
 #
 # Get the location of libm.a from the GCC front-end.
 #
-LIBM:=${shell ${CC} ${CFLAGS} -print-file-name=libm.a}
+LIBM=${shell ${CC} ${CFLAGS} -print-file-name=libm.a}
 
 #
 # The command for extracting images from the linked executables.
@@ -150,7 +149,7 @@ OBJCOPY=${PREFIX}-objcopy
 # variable is set.
 #
 ifdef DEBUG
-CFLAGS+=-g -D DEBUG -O0
+CFLAGS+=-ggdb3 -D DEBUG -Og
 else
 CFLAGS+=-Os
 endif
@@ -176,9 +175,9 @@ ${BUILDDIR}/%.o: %.c
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
 	 else                                                 \
-	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}; \
+	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} -c ${<}; \
 	 fi
-	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}
+	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} -c ${<}
 ifneq ($(findstring CYGWIN, ${os}), )
 	@if [ -e ${@:.o=.d} ];                                   \
 	then                                                     \

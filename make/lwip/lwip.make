@@ -20,9 +20,9 @@ ${BUILDDIR}/lwip/%.o: ${LWIP_ROOT}/%.c | ${BUILDDIR}/lwip
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
 	 else                                                 \
-	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}; \
+	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} -c ${<}; \
 	 fi
-	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}
+	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} -c ${<}
 ifneq ($(findstring CYGWIN, ${os}), )
 	@sed -i -r 's/ ([A-Za-z]):/ \/cygdrive\/\1/g' ${@:.o=.d}
 endif
@@ -33,9 +33,9 @@ ${BUILDDIR}/lwip/port/%.o: ${LWIP_PORT}/%.c | ${BUILDDIR}/lwip
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
 	 else                                                 \
-	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}; \
+	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} -c ${<}; \
 	 fi
-	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}
+	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} -c ${<}
 ifneq ($(findstring CYGWIN, ${os}), )
 	@sed -i -r 's/ ([A-Za-z]):/ \/cygdrive\/\1/g' ${@:.o=.d}
 endif

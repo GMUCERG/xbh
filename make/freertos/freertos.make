@@ -17,9 +17,9 @@ ${BUILDDIR}/freertos/%.o: ${FREERTOS_ROOT}/%.c | ${BUILDDIR}/freertos
 	 then                                                 \
 	     echo "  CC    ${<}";                             \
 	 else                                                 \
-	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}; \
+	     echo ${CC} ${CFLAGS} -D${COMPILER} -o ${@} -c ${<}; \
 	 fi
-	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} ${<}
+	@${CC} ${CFLAGS} -D${COMPILER} -o ${@} -c ${<}
 ifneq ($(findstring CYGWIN, ${os}), )
 	@sed -i -r 's/ ([A-Za-z]):/ \/cygdrive\/\1/g' ${@:.o=.d}
 endif
