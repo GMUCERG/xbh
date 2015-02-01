@@ -11,6 +11,14 @@ include ${TIVA_MAKE_ROOT}/tiva.make
 include ${FREERTOS_MAKE_ROOT}/freertos.make
 include ${LWIP_MAKE_ROOT}/lwip.make
 
+CFLAGS +=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
+#CFLAGS += -Os -ggdb3 #-flto=8 -fuse-linker-plugin# -ffat-lto-objects
+#CFLAGS += -Os -ggdb3 #-flto=8 -fuse-linker-plugin# -ffat-lto-objects
+
+#${BUILDDIR}/xbh/hal/startup_gcc.o: CFLAGS+=-fno-lto
+
+CFLAGS+=-DDEBUG -DLWIP_DEBUG -ggdb3 -Og -fno-lto
+CFLAGS+=-DDEBUG_STACK
 
 XBH_SOURCES += $(PROJECT_ROOT)/hal/crc.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
@@ -62,13 +70,7 @@ ${BUILDDIR}/xbh.axf: xbh.ld
 SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
 
-CFLAGSgcc+=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
 
-#CFLAGSgcc+=-g -Os -flto=8
-#LDFLAGS+=-flto=8 -fuse-linker-plugin
-
-CFLAGSgcc+=-DDEBUG -DLWIP_DEBUG -ggdb3 -Og
-CFLAGSgcc+=-DDEBUG_STACK
 
 
 ifneq (${MAKECMDGOALS},clean)
@@ -79,7 +81,7 @@ endif
 distclean: clean
 	rm -rf build lib
 clean:
-	rm -rf build/*.o build/*.d build/*.bin build/*.axf build/xbh tags 
+	rm -rf build/*.o build/*.d build/*.bin build/*.axf build/xbh tags openocd.log
 tags: 
 	ctags -R . \
 		${TIVA_ROOT}/driverlib \
