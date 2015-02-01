@@ -96,7 +96,7 @@ extern void pwr_sample_timer_isr(void);
 // Comments pulled from inc/hw_ints.h
 //
 //*****************************************************************************
-__attribute__ ((section(".isr_vector")))
+__attribute__ ((section(".isr_vector"),used ))
 void (* const g_pfnVectors[])(void) =
 {
     (void (*)(void))((uint32_t)pui32Stack + sizeof(pui32Stack)), // The initial stack pointer // O
