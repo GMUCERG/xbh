@@ -99,12 +99,12 @@ err_t xReturn = ERR_MEM;
  *---------------------------------------------------------------------------*/
 void sys_mbox_free( sys_mbox_t *pxMailBox )
 {
+	#if SYS_STATS
 unsigned long ulMessagesWaiting;
 
 	ulMessagesWaiting = uxQueueMessagesWaiting( *pxMailBox );
 	configASSERT( ( ulMessagesWaiting == 0 ) );
 
-	#if SYS_STATS
 	{
 		if( ulMessagesWaiting != 0UL )
 		{
