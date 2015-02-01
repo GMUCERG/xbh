@@ -9,6 +9,8 @@
 #include <driverlib/debug.h>
 #include <driverlib/emac.h>
 #include <driverlib/gpio.h>
+#include <driverlib/flash.h>
+#include <driverlib/interrupt.h>
 #include <driverlib/pin_map.h>
 #include <driverlib/rom_map.h>
 #include <driverlib/sysctl.h>
