@@ -86,8 +86,8 @@ void HAL_setup(void){/*{{{*/
                              UART_CONFIG_PAR_NONE));
 
 
-    //Configure measurement stuff
-    measure_setup();
+//    //Configure measurement stuff
+//    measure_setup();
 
     //Configure xbd i2c comm
     i2c_comm_setup();
