@@ -1,9 +1,9 @@
 [submodule "deps/lwip"]
 	path = deps/lwip
-	url = git@github.com:jhnphm/lwip.git
+	url = https://github.com/jhnphm/lwip.git
 [submodule "tools/tiva-c_xtools"]
 	path = tools/tiva-c_xtools
-	url = git@github.com:jhnphm/tiva-c_xtools.git
+	url = https://github.com/jhnphm/tiva-c_xtools.git
 [submodule "tools/crosstool-ng"]
 	path = tools/crosstool-ng
 	url = https://github.com/crosstool-ng/crosstool-ng.git
@@ -12,4 +12,4 @@
 	url = https://github.com/jhnphm/FreeRTOS.git
 [submodule "deps/TivaWare_driverlib"]
 	path = deps/TivaWare_driverlib
-	url = git@github.com:jhnphm/TivaWare_driverlib.git
+	url = https://github.com/jhnphm/TivaWare_driverlib.git
