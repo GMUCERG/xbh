@@ -18,7 +18,7 @@ uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len);
 /*}}}*/
 
 /** Sets up i2c tranceiver for XBD comm */
-void i2c_xbdcomm_setup(void);
+void i2c_comm_setup(void);
 
 /**
  * Reads array over I2C from address given
