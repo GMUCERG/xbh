@@ -53,7 +53,7 @@ static void exec_timer_setup(void){/*{{{*/
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER0);
 
-    // PA0 is attached to timer0
+    // PL4 is attached to timer0
     MAP_GPIOPinConfigure(GPIO_PL4_T0CCP0);
     MAP_GPIOPinTypeTimer(GPIO_PORTL_BASE, GPIO_PIN_4);
     
