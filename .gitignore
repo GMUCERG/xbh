@@ -6,3 +6,4 @@ tags
 examples
 trash
 *.d
+*.log
