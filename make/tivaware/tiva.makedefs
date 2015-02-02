@@ -144,15 +144,16 @@ LIBM=${shell ${CC} ${CFLAGS} -print-file-name=libm.a}
 #
 OBJCOPY=${PREFIX}-objcopy
 
+## Commented out; we define this in toplevel makefile
 #
-# Tell the compiler to include debugging information if the DEBUG environment
-# variable is set.
-#
-ifdef DEBUG
-CFLAGS+=-ggdb3 -D DEBUG -Og
-else
-CFLAGS+=-Os
-endif
+## Tell the compiler to include debugging information if the DEBUG environment
+## variable is set.
+##
+#ifdef DEBUG
+#CFLAGS+=-ggdb3 -D DEBUG -Og
+#else
+#CFLAGS+=-Os
+#endif
 
 INCLUDE:=${INCLUDE}:${TIVA_ROOT}:$(TIVA_ROOT)/inc
 
