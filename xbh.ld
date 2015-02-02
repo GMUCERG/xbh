@@ -60,7 +60,6 @@ SECTIONS
         __exidx_end = .;
     } > FLASH
     .data : AT(ADDR(.ARM.exidx) + SIZEOF(.ARM.exidx))
-    /*.data : AT(ADDR(.text) + SIZEOF(.text))*/
     {
         _data = .;
         *(vtable)

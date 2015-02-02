@@ -306,7 +306,6 @@ int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
  * C = clock rate
  */
 void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
-
     uint64_t start = measure_get_start();
     uint64_t stop = measure_get_start();
     uint64_t time = start - stop;
