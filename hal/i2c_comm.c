@@ -141,15 +141,15 @@ error:
 
 void i2c_comm_setup(void){
     // Configure I2C pins
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C2);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C2);
-    MAP_GPIOPinConfigure(GPIO_PL1_I2C2SCL);
-    MAP_GPIOPinConfigure(GPIO_PL0_I2C2SDA);
-    MAP_GPIOPinTypeI2C(GPIO_PORTL_BASE, GPIO_PIN_0);
-    MAP_GPIOPinTypeI2CSCL(GPIO_PORTL_BASE, GPIO_PIN_1);
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C0);
+    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C0);
+    MAP_GPIOPinConfigure(GPIO_PB2_I2C0SCL);
+    MAP_GPIOPinConfigure(GPIO_PB3_I2C0SDA);
+    MAP_GPIOPinTypeI2CSCL(GPIO_PORTB_BASE, GPIO_PIN_2);
+    MAP_GPIOPinTypeI2C(GPIO_PORTB_BASE, GPIO_PIN_3);
 
     // Configure I2C master and fifos, and flush fifos
-    i2c_setup(I2C2_BASE, true);
+    i2c_setup(I2C0_BASE, true);
 }
 
 // For linking

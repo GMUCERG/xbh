@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <inc/hw_memmap.h>
 
-#define I2C_COMM_BASE I2C2_BASE
+#define I2C_COMM_BASE I2C0_BASE
 
 // Do not use these 4 functions outside HAL, since device-specific base
 // parameter required 
