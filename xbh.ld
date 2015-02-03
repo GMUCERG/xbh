@@ -45,7 +45,6 @@ MEMORY
 
 SECTIONS
 {
-/* Needed for 64-bit divide */
     .text :
     {
         _text = .;
@@ -54,6 +53,7 @@ SECTIONS
         *(.rodata*)
         _etext = .;
     } > FLASH
+/* Needed for 64-bit divide */
     .ARM.exidx : { 
         __exidx_start = .;
         *(.ARM.exidx* .gnu.linkonce.armexidx.*) 
