@@ -1,11 +1,13 @@
 target remote | openocd
 file build/xbh.axf
 
-define hook-step
+define hook-stop
 monitor reg primask 1
 end
-define hookpost-step
+define hook-run
 monitor reg primask 0
 end
-
+define hook-continue
+monitor reg primask 0
+end
 
