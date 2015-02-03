@@ -179,7 +179,7 @@ static void tcpip_init_cb(void *args){/*{{{*/
     dhcp_start(&lwip_netif);
 
 #if DEBUG_STACK
-    DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
+    //DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
 #endif
 }/*}}}*/
 

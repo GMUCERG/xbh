@@ -191,7 +191,9 @@ extern void assert_called(const char * const filename, uint32_t line);
 #define INCLUDE_vTaskDelay                      1
 #define INCLUDE_xTaskGetSchedulerState          0
 #define INCLUDE_xTaskGetCurrentTaskHandle       0
+#if DEBUG_STACK
 #define INCLUDE_uxTaskGetStackHighWaterMark     1
+#endif
 #define INCLUDE_xTaskGetIdleTaskHandle          0
 #define INCLUDE_xTimerGetTimerDaemonTaskHandle  0
 #define INCLUDE_pcTaskGetTaskName               0
