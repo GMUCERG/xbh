@@ -6,7 +6,7 @@
 #include "xbd_multipacket.h"
 
 //I2C Slave address
-#define SLAVE_ADR (0x75)
+#define SLAVE_ADDR (0x75)
 
 unsigned char xbd_comm=COMM_I2C;
 
@@ -422,7 +422,7 @@ void xbdSend(const void *buf, size_t length) {
 
     switch(xbd_comm) {
         case COMM_I2C:
-            i2c_comm_write(SLAVE_ADR, buf, length);
+            i2c_comm_write(SLAVE_ADDR, buf, length);
             break;
             //TODO: Implement other modes/*{{{*/
 #if 0
@@ -535,7 +535,7 @@ void xbdReceive(void *buf, size_t length) {
 
     switch(xbd_comm) {
         case COMM_I2C:
-            i = i2c_comm_read(SLAVE_ADR, buf, length);
+            i = i2c_comm_read(SLAVE_ADDR, buf, length);
             if( i != 0 ) {
                 XBH_ERROR("I2C Receive error: %d\n",i);
             }
