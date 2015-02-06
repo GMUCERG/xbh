@@ -294,8 +294,6 @@ static void pwr_sample_start(){/*{{{*/
 
     MAP_TimerEnable(TIMER1_BASE, TIMER_A);
 
-    i2c_flush(I2C2_BASE);
-
     retval = xTaskCreate( pwr_sample_task,
             "pwr_samp",
             PWR_SAMP_STACK,
