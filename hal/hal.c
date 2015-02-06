@@ -74,7 +74,7 @@ void HAL_setup(void){/*{{{*/
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
 
     //Configure reset pin for XBD
-    MAP_GPIODirModeSet(GPIO_PORTC_BASE, RESET_PIN, GPIO_DIR_MODE_OUT);
+    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, RESET_PIN);
 
     //Configure UART
     MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
