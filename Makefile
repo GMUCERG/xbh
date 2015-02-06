@@ -16,7 +16,7 @@ CFLAGS +=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
 
 #${BUILDDIR}/xbh/hal/startup_gcc.o: CFLAGS+=-fno-lto
 
-CFLAGS+=-DDEBUG -DLWIP_DEBUG -ggdb3 -Og -fno-lto
+CFLAGS+=-DDEBUG -DLWIP_DEBUG -ggdb3 -O0 -fno-lto
 #CFLAGS+=-DDEBUG_STACK
 
 XBH_SOURCES += $(PROJECT_ROOT)/hal/crc.c
