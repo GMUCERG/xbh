@@ -78,9 +78,9 @@ XBH_DEPS := $(XBH_OBJECTS:%.o=%.d)
 endif
 
 distclean: clean
-	rm -rf build lib
+	rm -rf build lib tags
 clean:
-	rm -rf build/*.o build/*.d build/*.bin build/*.axf build/xbh tags openocd.log
+	rm -rf build/*.o build/*.d build/*.bin build/*.axf build/xbh openocd.log
 tags: 
 	ctags -R . \
 		${TIVA_ROOT}/driverlib \
