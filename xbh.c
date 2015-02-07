@@ -742,7 +742,7 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
             memcpy(reply, XBH_CMD[XBH_CMD_tro], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN+REVISIZE;
 		} else {
-            XBH_DEBUG("'t'arget 'r'evision 'o'kay sent\n");
+            XBH_DEBUG("'t'arget 'r'evision 'f'ail sent\n");
             memcpy(reply, XBH_CMD[XBH_CMD_trf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		}
