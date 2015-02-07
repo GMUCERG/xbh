@@ -12,7 +12,7 @@ enum XBD_COMM_PROT{COMM_I2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
 #define TYPESIZE sizeof(uint32_t)
 #define TIMESIZE sizeof(uint64_t)
 #define NUMBSIZE sizeof(uint32_t)
-#define REVISIZE 40	//GIT revisions are 40 digit hex numbers
+#define REVISIZE 7	//GIT revisions are 40 digit hex numbers, only use first 7 
 
 //TODO: XXX Make sure these buffer sizes do not overflow 
 //
@@ -28,7 +28,7 @@ enum XBD_COMM_PROT{COMM_I2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
 void xbdCommInit(uint8_t commMode);
 void xbdCommExit(void);
 void xbdSend(const void *buf, size_t len);
-void xbdReceive(void *buf, size_t len);
+int xbdReceive(void *buf, size_t len);
 
 
 #endif
