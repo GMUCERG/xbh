@@ -141,9 +141,9 @@ static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
 
 
     // Receive status from XBD
-	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 	
-	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_exo], XBD_COMMAND_LEN)) {	
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_exo], XBD_COMMAND_LEN) && 0 == retval) {	
         XBH_DEBUG("Received 'ex'ecution 'o'kay from XBD\n");
 /*		XBH_DEBUG("Took %d s, %d IRQs, %d clocks\r\n",
 						risingTimeStamp-fallingTimeStamp,
@@ -171,6 +171,7 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
 	uint32_t len_remaining; //bytes left to send to XBD
     uint32_t fd_idx; // offset of packet to send to XBD
     uint32_t numbytes; // bytes written to XBD
+    int retval;
 
     memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_pfr], XBD_COMMAND_LEN);
 
@@ -191,10 +192,10 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
 
     XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE);
-	xbdReceive(XBDCommandBuf, XBD_COMMAND_LEN);
+	retval = xbdReceive(XBDCommandBuf, XBD_COMMAND_LEN);
 
 	
-	if(0 != memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN)) {
+	if(0 != memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN) || 0 !=retval) {
         XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD!\n");
 		return 1;
 	}else{
@@ -220,9 +221,9 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
 		numbytes=i;
         XBH_DEBUG("Sending 'f'lash 'd'ownload 'r'equest to XBD\n");
 		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+SEQNSIZE+numbytes);
-		xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+		retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 				
-		if(0 == memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN)) {
+		if(0 == memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN) && 0 == retval) {
             XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
 			len_remaining-=numbytes;
 			fd_idx+=numbytes;
@@ -243,21 +244,21 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
  */
 static int XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
 	uint8_t i;
+    int retval;
 
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_tcr], XBD_COMMAND_LEN);
 	memset(XBDResponseBuf,'-',XBD_COMMAND_LEN+NUMBSIZE);
 
     timer_cal_start();
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+NUMBSIZE);
+	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+NUMBSIZE);
 
 
 	XBH_DEBUG("tcr\n");
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
-	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_tco],XBD_COMMAND_LEN))
-	{	
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_tco],XBD_COMMAND_LEN) && 0 == retval ) {	
 
 		for(i=0;i<4;++i)
 		{
@@ -265,9 +266,7 @@ static int XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
 			p_answer[2*i+1] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]&0xf);
 		}
 		return 0;
-	}
-	else
-	{
+	} else {
 		XBH_ERROR("Response wrong [%s\r\n",XBDResponseBuf);
 		return 1;
 	}
@@ -280,20 +279,18 @@ static int XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
  * @returnr 0 if success, 1 if failure
  */
 int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
+    int retval;
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_trr], XBD_COMMAND_LEN);
 	memset(XBDResponseBuf,' ',XBD_COMMAND_LEN+REVISIZE);
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+REVISIZE);
-
-	XBH_DEBUG("trr\n");
+	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+REVISIZE);
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
-	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_tro],XBD_COMMAND_LEN)) {	
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_tro],XBD_COMMAND_LEN) && 0 == retval) {	
         memcpy(p_answer, XBDResponseBuf+XBD_COMMAND_LEN, REVISIZE);
 		return 0;
 	} else {
-	        XBH_ERROR("trr fai\r\n");
 		return 1;
 	}
 
@@ -306,6 +303,7 @@ int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
  * C = clock rate
  */
 void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
+#if 1
     uint64_t start = measure_get_start();
     uint64_t stop = measure_get_start();
     uint64_t time = start - stop;
@@ -326,6 +324,7 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
 	for(uint32_t i=0;i<8;++i) {
 		*p_answer++ = ntoa((g_syshz>>(28-(4*i)))&0xf);
 	}
+#endif
 	
 }/*}}}*/
 
@@ -376,6 +375,7 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
     uint32_t fd_idx; // offset of packet to send to XBD
     uint32_t numbytes; // bytes written to XBD
     uint32_t i;
+    int retval;
 
     memcpy(XBDCommandBuf,XBD_CMD[XBD_CMD_ppr], XBD_COMMAND_LEN);
 
@@ -406,10 +406,10 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
 
     XBH_DEBUG("Sending 'p'rogram 'p'arameters 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+TYPESIZE+ADDRSIZE+LENGSIZE);
-	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 
 	
-	if(0 != memcmp(XBD_CMD[XBD_CMD_ppo],XBDResponseBuf,XBH_COMMAND_LEN)) {
+	if(0 != memcmp(XBD_CMD[XBD_CMD_ppo],XBDResponseBuf,XBH_COMMAND_LEN) || retval != 0) {
         XBH_DEBUG("Did not receive 'p'rogram 'p'arameters 'o'kay from XBD\n");
 		return 1;
 	}
@@ -432,9 +432,9 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
 		numbytes=i;
         XBH_DEBUG("Sending 'p'rogram 'd'ownload 'r'equest to XBD\n");
 		xbdSend(XBDCommandBuf, byte_len=XBD_COMMAND_LEN+SEQNSIZE+numbytes);
-		xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+		retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 
-		if(0 == memcmp(XBD_CMD[XBD_CMD_pdo],XBDResponseBuf,XBH_COMMAND_LEN)) {
+		if(0 == memcmp(XBD_CMD[XBD_CMD_pdo],XBDResponseBuf,XBH_COMMAND_LEN) && 0 == retval) {
             XBH_DEBUG("Received 'p'rogram 'd'ownload 'o'kay from XBD\n");
 			len_remaining-=numbytes;
 			fd_idx+=numbytes;
@@ -453,6 +453,7 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
  * failure
  */
 static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
+    int retval;
 	uint8_t ret;
     struct xbd_multipkt_state state;
     XBH_DEBUG("Sending 'u'pload 'r'esults 'r'equest to XBD\n");
@@ -469,9 +470,9 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 //	vTaskDelay(100);
 
 
-	xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
+	retval = xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
 	
-	if(0 == XBD_recInitialMultiPacket(&state, XBDResponseBuf,XBD_ANSWERLENG_MAX-CRC16SIZE, XBD_CMD[XBD_CMD_uro], true /*hastype*/, false /*hasaddr*/)){
+	if(0 == retval && 0 == XBD_recInitialMultiPacket(&state, XBDResponseBuf,XBD_ANSWERLENG_MAX-CRC16SIZE, XBD_CMD[XBD_CMD_uro], true /*hastype*/, false /*hasaddr*/)){
         XBH_DEBUG("Received 'u'pload 'r'esults 'o'kay from XBD\n");
     }else{
         XBH_DEBUG("Error with 'u'pload 'r'esults 'o'kay from XBD\n");
@@ -497,14 +498,14 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 //		vTaskDelay(100);
 
 	//	XBH_DEBUG("1.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
-		xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
+		retval = xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
 		ret=XBD_recSucessiveMultiPacket(&state, XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE, p_answer, XBH_ANSWERLENG_MAX-XBH_COMMAND_LEN, XBD_CMD[XBD_CMD_rdo]);
 	//	XBH_DEBUG("2.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
 	//	XBH_DEBUG("ret: %\r\n",ret);
-	} while(state.recmp_dataleft != 0 && 0 == ret); 
+	} while(state.recmp_dataleft != 0 && 0 == ret && 0 == retval); 
 
 
-	if(ret==0 && 0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_rdo],XBD_COMMAND_LEN)) {	
+	if( 0 == retval && ret==0 && 0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_rdo],XBD_COMMAND_LEN)) {	
 		for(int32_t i=state.recmp_datanext-1;i>=0; --i)
 		{
 			p_answer[2*i] = ntoa(p_answer[i]>>4);
@@ -523,13 +524,14 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
  * @return 0 if success, 1 if fail.
  */
 static int XBH_HandleChecksumCalcRequest() {/*{{{*/
+    int retval;
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_ccr], XBD_COMMAND_LEN);
     XBH_DEBUG("Sending 'c'hecksum 'c'alc 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 	
 
-	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_cco],XBD_COMMAND_LEN)) {	
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_cco],XBD_COMMAND_LEN) && 0 == retval) {	
         XBH_DEBUG("Received 'c'hecksum 'c'alc 'o'kay from XBD\n");
 /*		XBH_DEBUG("Took %d s, %d IRQs, %d clocks\r\n",
 				risingTimeStamp-fallingTimeStamp,
@@ -549,6 +551,7 @@ static int XBH_HandleChecksumCalcRequest() {/*{{{*/
  */
 static uint8_t XBH_HandleStartApplicationRequest() {/*{{{*/
     uint16_t trys;
+    int retval;
 
 	trys=0;
 	while(trys<3) {
@@ -561,10 +564,10 @@ static uint8_t XBH_HandleStartApplicationRequest() {/*{{{*/
         XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
 		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir], XBD_COMMAND_LEN);
 		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-		xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+		retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 	
 
-        if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_AFo],XBD_COMMAND_LEN)) {	
+        if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_AFo],XBD_COMMAND_LEN) && 0 == retval) {	
             XBH_DEBUG("Recieved 'A'pplication 'F' version 'o'kay from XBD\n");
             return 0;
         }	else {
@@ -589,6 +592,7 @@ static uint8_t XBH_HandleStartApplicationRequest() {/*{{{*/
  */
 static uint8_t XBH_HandleStartBootloaderRequest() {/*{{{*/
 	uint16_t trys;
+    int retval;
 
 	trys=0;
 	while(trys<3) {
@@ -601,8 +605,8 @@ static uint8_t XBH_HandleStartBootloaderRequest() {/*{{{*/
 		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir], XBD_COMMAND_LEN);
         XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
 		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-		xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
-		if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_BLo],XBD_COMMAND_LEN)) {	
+		retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
+		if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_BLo],XBD_COMMAND_LEN) && 0 == retval) {	
             XBH_DEBUG("Recieved 'B'oot'L'oader version 'o'kay from XBD\n");
 			return 0;
 		} else {
@@ -625,6 +629,7 @@ static uint8_t XBH_HandleStartBootloaderRequest() {/*{{{*/
 static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir],XBD_COMMAND_LEN);
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
+    //TODO Check if valid 
 	xbdReceive(p_answer, XBD_COMMAND_LEN);
 }/*}}}*/
 
@@ -634,6 +639,7 @@ static void XBH_HandleSTatusRequest(uint8_t* p_answer) {/*{{{*/
  * Retrieves stack usage information from XBD
  */
 int XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
+    int retval;
     XBH_DEBUG("Sending 's'tack 'r'equest to XBD\n");
 
     memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sur], XBH_COMMAND_LEN);
@@ -643,11 +649,11 @@ int XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
 
 
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-	xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+NUMBSIZE);
+	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+NUMBSIZE);
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
-	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_suo],XBD_COMMAND_LEN)) {	
+	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_suo],XBD_COMMAND_LEN) && 0 == retval) {	
         XBH_DEBUG("'s'tack 'u'sage 'o'kay received from XBD\n");
 		//Copy to Stack Usage information for transmission to the XBS
 		for(uint32_t i=0;i<4;++i) {
