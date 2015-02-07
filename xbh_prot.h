@@ -3,6 +3,7 @@
 #include "util.h"
 
 #define XBH_PROTO_VER "05"
+#define XBD_PROTO_VER "04"
 
 #define XBH_CMD_DEF(X) "XBH"XBH_PROTO_VER#X,
 #define XBD_CMD_DEF(X) "XBD"XBH_PROTO_VER#X,

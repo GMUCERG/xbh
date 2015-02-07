@@ -56,7 +56,7 @@ const char *XBH_CMD[] = {
 /**
  * XBD Command String Constants */
 const char *XBD_CMD[] = {
-     FOREACH_XBH_CMD(XBD_CMD_DEF)
+     FOREACH_XBD_CMD(XBD_CMD_DEF)
 };
 
 static uint8_t XBDCommandBuf[XBD_PACKET_SIZE_MAX];
