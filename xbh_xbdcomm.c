@@ -1,5 +1,6 @@
 #include <string.h>
 #include "hal/i2c_comm.h"
+#include "hal/crc_wrap.h"
 #include "xbh.h"
 #include "util.h"
 #include "xbh_xbdcomm.h"
@@ -408,6 +409,11 @@ void xbdCommInit(uint8_t commMode)
     }
 }
 
+/**
+ * Sends buf to XBD
+ * @param buf Buffer to send to XBD
+ * @param length Length of buffer
+ */
 void xbdSend(const void *buf, size_t length) {
     uint16_t crc;
 
@@ -526,7 +532,13 @@ void xbdSend(const void *buf, size_t length) {
 }
 
 
-void xbdReceive(void *buf, size_t length) {
+/**
+ * Receives buf from XBD
+ * @param buf Buffer to receive from XBD
+ * @param length Length of buffer
+ * @return -1 if fail, 0 if success
+ */
+int xbdReceive(void *buf, size_t length) {
     int i;
     uint16_t crc;
     //XBH_DEBUG("XBD: Waiting for %d byte\n",length);
@@ -662,9 +674,10 @@ void xbdReceive(void *buf, size_t length) {
 
     if(crc != crc16_create(buf, length-CRC16SIZE) ) {
         //XBD_debugOutBuffer("wrong CRC", buf, length);
-        XBH_ERROR("wrong CRC");
+        XBH_ERROR("wrong CRC\n");
         memcpy(buf, XBD_CMD[XBD_CMD_ccf], XBD_COMMAND_LEN);
-        return;
+        return -1;
     }
+    return 0;
 
 }

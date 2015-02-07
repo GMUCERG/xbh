@@ -46,7 +46,7 @@ void i2c_setup(uint32_t base, bool highspeed){
  * @param len Length of data
  * @return 0 if success, else value of I2CMasterErr
  */
-uint32_t i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
+int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     size_t offset = 0;
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
@@ -82,9 +82,11 @@ uint32_t i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     if(err != I2C_MASTER_ERR_NONE){
         goto error;
     }
-    while(MAP_I2CMasterBusy(base));
+    while(!(MAP_I2CFIFOStatus(base) & I2C_FIFO_TX_EMPTY));
     return 0;
 error:
+    MAP_I2CTxFIFOFlush(base);
+    MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_ERROR_STOP);
     return err;
 }
 
@@ -96,7 +98,7 @@ error:
  * @param len Length of data
  * @return 0 if success, else value of I2CMasterErr
  */
-uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
+int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     size_t offset = 0;
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
@@ -107,13 +109,13 @@ uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
 
     for(offset = 0; offset < (len-1)/MAX_FIFO_BURST; offset++){
-        for(size_t i = 0; i < MAX_FIFO_BURST; ++i){
-            ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = MAP_I2CFIFODataGet(base);
-        }
         if(0 == offset){
             MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_START);
         }else{
             MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_CONT);
+        }
+        for(size_t i = 0; i < MAX_FIFO_BURST; ++i){
+            ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = MAP_I2CFIFODataGet(base);
         }
         err = MAP_I2CMasterErr(base);
         if(err != I2C_MASTER_ERR_NONE){
@@ -121,13 +123,13 @@ uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
         }
     }
     MAP_I2CMasterBurstLengthSet(base, final_burst);
-    for(size_t i = 0; i < final_burst; ++i){
-        ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = MAP_I2CFIFODataGet(base);
-    }
     if(len <= MAX_FIFO_BURST){
         MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_SINGLE_RECEIVE);
     }else{
         MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_FINISH);
+    }
+    for(size_t i = 0; i < final_burst; ++i){
+        ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = MAP_I2CFIFODataGet(base);
     }
     err = MAP_I2CMasterErr(base);
     if(err != I2C_MASTER_ERR_NONE){
@@ -135,21 +137,35 @@ uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     }
     return 0;
 error:
+    MAP_I2CRxFIFOFlush(base);
+    MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_ERROR_STOP);
     return err;
 }
 
 
 void i2c_comm_setup(void){
+
+#if 0
+    //Debug stuff
+    MAP_GPIOPinTypeGPIOOutputOD(GPIO_PORTB_BASE, GPIO_PIN_3);
+    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, GPIO_PIN_2);
+    while(1){
+        MAP_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_2);
+        MAP_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2|GPIO_PIN_3, GPIO_PIN_3);
+    }
+#else
     // Configure I2C pins
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C2);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C2);
-    MAP_GPIOPinConfigure(GPIO_PL1_I2C2SCL);
-    MAP_GPIOPinConfigure(GPIO_PL0_I2C2SDA);
-    MAP_GPIOPinTypeI2C(GPIO_PORTL_BASE, GPIO_PIN_0);
-    MAP_GPIOPinTypeI2CSCL(GPIO_PORTL_BASE, GPIO_PIN_1);
+
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C0);
+    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C0);
+    MAP_GPIOPinConfigure(GPIO_PB2_I2C0SCL);
+    MAP_GPIOPinConfigure(GPIO_PB3_I2C0SDA);
+    MAP_GPIOPinTypeI2CSCL(GPIO_PORTB_BASE, GPIO_PIN_2);
+    MAP_GPIOPinTypeI2C(GPIO_PORTB_BASE, GPIO_PIN_3);
 
     // Configure I2C master and fifos, and flush fifos
-    i2c_setup(I2C2_BASE, true);
+    i2c_setup(I2C0_BASE, true);
+#endif
 }
 
 // For linking

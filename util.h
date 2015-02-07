@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-#include "hal/crc.h"
 #include "hal/hal.h"
 
 // For htonl/htons

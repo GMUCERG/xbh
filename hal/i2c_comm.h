@@ -6,15 +6,15 @@
 #include <stddef.h>
 #include <inc/hw_memmap.h>
 
-#define I2C_COMM_BASE I2C2_BASE
+#define I2C_COMM_BASE I2C0_BASE
 
 // Do not use these 4 functions outside HAL, since device-specific base
 // parameter required 
 ///*{{{*/
 void i2c_flush(uint32_t base);
 void i2c_setup(uint32_t base, bool highspeed);
-uint32_t i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len);
-uint32_t i2c_read(uint32_t base, uint8_t addr, void *data, size_t len);
+int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len);
+int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len);
 /*}}}*/
 
 /** Sets up i2c tranceiver for XBD comm */

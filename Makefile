@@ -16,10 +16,10 @@ CFLAGS +=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
 
 #${BUILDDIR}/xbh/hal/startup_gcc.o: CFLAGS+=-fno-lto
 
-CFLAGS+=-DDEBUG -DLWIP_DEBUG -ggdb3 -Og -fno-lto
+CFLAGS+=-DDEBUG -DLWIP_DEBUG -ggdb3 -O0 -fno-lto
 #CFLAGS+=-DDEBUG_STACK
 
-XBH_SOURCES += $(PROJECT_ROOT)/hal/crc.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/crc_wrap.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/i2c_comm.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c
@@ -78,9 +78,9 @@ XBH_DEPS := $(XBH_OBJECTS:%.o=%.d)
 endif
 
 distclean: clean
-	rm -rf build lib
+	rm -rf build lib tags
 clean:
-	rm -rf build/*.o build/*.d build/*.bin build/*.axf build/xbh tags openocd.log
+	rm -rf build/*.o build/*.d build/*.bin build/*.axf build/xbh openocd.log
 tags: 
 	ctags -R . \
 		${TIVA_ROOT}/driverlib \

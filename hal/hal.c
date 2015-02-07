@@ -26,7 +26,7 @@
 
 
 
-#define RESET_PIN 0xe
+#define RESET_PIN GPIO_PIN_7
 
 /**
  * Clock rate in HZ
@@ -72,7 +72,6 @@ void HAL_setup(void){/*{{{*/
     init_ethernet();
 
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-//    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 
     //Configure reset pin for XBD
     MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, RESET_PIN);

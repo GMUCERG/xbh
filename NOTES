@@ -8,10 +8,26 @@ Issue encountered: Original xbx code didn't delimit messages over TCP; working
 on raw packets not guaranteed to work correctly w/ fragmentation, etc
 
 
-
-
-
 Justify Switch to RTOS
+
+Link-time optimization requires attributes to prevent optimizing out of
+interrupt vector
+
+64-bit division requires .ARM.exidx section. Adding this section requires
+updating initialization code to account for moved .data section in ROM
+
+OpenOCD requires patch and hla_serial parameter to select correct device when
+using two Tiva launchpads as xbh/xbd
+
+
+Issue encountered: i2c hardware does not have builtin pullup resistors
+
+I2c control to receive must be sent before reads
+
+XBD Response Buffer was too small for git revision request, causing buffer
+overflow
+
+
 
 
 
