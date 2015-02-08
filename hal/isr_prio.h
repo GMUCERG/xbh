@@ -38,4 +38,5 @@
 // Set to sample, use max syscall-safe priority
 #define PWR_SAMPLE_ISR_PRIO ISR_PRIO_ENC(MAX_SYSCALL_PRIO_RAW)
 
+#define WATCHDOG_ISR_PRIO ISR_PRIO_ENC(MAX_SYSCALL_PRIO_RAW-1)
 #endif

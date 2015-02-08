@@ -86,6 +86,7 @@ extern void lwIP_eth_isr(void);
 extern void exec_timer_cap_isr(void);
 extern void exec_timer_wrap_isr(void);
 extern void pwr_sample_timer_isr(void);
+extern void watchdog_isr(void);
 
 
 //*****************************************************************************
@@ -133,7 +134,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // 31  // ADC0 Sequence 1
     IntDefaultHandler,                      // 32  // ADC0 Sequence 2
     IntDefaultHandler,                      // 33  // ADC0 Sequence 3
-    IntDefaultHandler,                      // 34  // Watchdog Timers 0 and 1
+    watchdog_isr,                           // 34  // Watchdog Timers 0 and 1
     IntDefaultHandler,                      // 35  // 16/32-Bit Timer 0A
     IntDefaultHandler,                      // 36  // 16/32-Bit Timer 0B
     pwr_sample_timer_isr,                   // 37  // 16/32-Bit Timer 1A

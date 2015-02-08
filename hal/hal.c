@@ -90,6 +90,9 @@ void HAL_setup(void){/*{{{*/
 
     //Configure xbd i2c comm
     i2c_comm_setup();
+
+    //Setup watchdog
+    watchdog_setup();
 }/*}}}*/
 
 
