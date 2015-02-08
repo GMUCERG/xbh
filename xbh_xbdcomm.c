@@ -1,6 +1,6 @@
 #include <string.h>
 #include "hal/i2c_comm.h"
-#include "hal/crc_wrap.h"
+#include "hal/crc.h"
 #include "xbh.h"
 #include "util.h"
 #include "xbh_xbdcomm.h"

@@ -19,7 +19,7 @@ CFLAGS +=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
 CFLAGS+=-DDEBUG -DLWIP_DEBUG -ggdb3 -O0 -fno-lto
 #CFLAGS+=-DDEBUG_STACK
 
-XBH_SOURCES += $(PROJECT_ROOT)/hal/crc_wrap.c
+XBH_SOURCES += $(PROJECT_ROOT)/hal/crc.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/i2c_comm.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/lwip_eth.c

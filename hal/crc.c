@@ -1,4 +1,4 @@
-#include "hal/crc_wrap.h"
+#include "hal/crc.h"
 
 #ifdef USE_DRIVERLIB_CRC
 // Required to compile inline w/ c99
