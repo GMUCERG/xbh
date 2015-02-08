@@ -17,6 +17,7 @@
 
 #define MAX_FIFO_BURST 8
 
+
 /**
  * Flushes I2C fifos
  * @param base Base address of I2C transceiver
@@ -104,6 +105,7 @@ int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
     uint32_t err; 
     
+
     // Send configuration to INA219 config register
     MAP_I2CMasterSlaveAddrSet(base, addr, true);
     MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
@@ -132,6 +134,8 @@ int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
         ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = MAP_I2CFIFODataGet(base);
     }
     err = MAP_I2CMasterErr(base);
+
+
     if(err != I2C_MASTER_ERR_NONE){
         goto error;
     }
@@ -143,6 +147,18 @@ error:
 }
 
 
+/**
+ * Resets I2C state if stuck
+ */
+void i2c_comm_abort(void){
+    i2c_flush(I2C0_BASE);
+    MAP_I2CMasterControl(I2C0_BASE, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_ERROR_STOP);
+    MAP_I2CMasterControl(I2C0_BASE, I2C_MASTER_CMD_FIFO_BURST_SEND_ERROR_STOP);
+}
+
+/**
+ * Configures i2c pins
+ */
 void i2c_comm_setup(void){
 
 #if 0
@@ -168,7 +184,45 @@ void i2c_comm_setup(void){
 #endif
 }
 
-// For linking
-extern inline int i2c_comm_write(uint8_t addr, const void *data, size_t len);
-extern inline int i2c_comm_read(uint8_t addr, void *data, size_t len);
+
+
+#ifndef NO_WATCHDOG
+// Time to give watchdog per byte sent
+#define I2C_MS_PER_BYTE 10
+#define I2C_WATCHDOG_START(x) watchdog_start(I2C_MS_PER_BYTE*x)
+#define I2C_WATCHDOG_STOP watchdog_stop()
+#else
+#define I2C_WATCHDOG_START(x) 
+#define I2C_WATCHDOG_STOP 
+#endif
+
+/**
+ * Reads array over I2C from address given
+ * @param addr Address of I2C device to read from
+ * @param data Data to read
+ * @param len Length of data
+ * @return 0 if success, 1 if error
+ */
+int i2c_comm_write(uint8_t addr, const void *data, size_t len){
+    return 
+    int retval;
+    I2C_WATCHDOG_START(len);
+    retval = i2c_write(I2C_COMM_BASE, addr, data, len);
+    I2C_WATCHDOG_STOP;
+    return retval;
+}
+/**
+ * Writes array over I2C to address given
+ * @param addr Address of I2C device to write to
+ * @param data Data to write
+ * @param len Length of data
+ * @return 0 if success, 1 if error
+ */
+int i2c_comm_read(uint8_t addr, void *data, size_t len){
+    int retval;
+    I2C_WATCHDOG_START(len);
+    retval = i2c_read(I2C_COMM_BASE, addr, data, len);
+    I2C_WATCHDOG_STOP;
+    return retval;
+}
 
