@@ -23,6 +23,7 @@
 #include "hal/lwip_eth.h"
 #include "hal/i2c_comm.h"
 #include "hal/measure.h"
+#include "hal/watchdog.h"
 
 
 
@@ -75,6 +76,8 @@ void HAL_setup(void){/*{{{*/
 
     //Configure reset pin for XBD
     MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, RESET_PIN);
+    //Reset XBD
+    xbd_reset(true);
 
     //Configure UART
     MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
@@ -93,6 +96,9 @@ void HAL_setup(void){/*{{{*/
 
     //Setup watchdog
     watchdog_setup();
+
+    //Unreset XBD
+    xbd_reset(false);
 }/*}}}*/
 
 
@@ -116,11 +122,11 @@ void uart_write_char(char c){
  * Sets reset pin to given value
  * @param value true to bring reset high, false for low
  */
-void xbd_reset(bool value){
+void xbd_reset(bool value){/*{{{*/
     if(value){
         MAP_GPIOPinWrite(GPIO_PORTC_BASE, RESET_PIN, RESET_PIN);
     }else{
         MAP_GPIOPinWrite(GPIO_PORTC_BASE, RESET_PIN, 0);
     }
 
-}
+}/*}}}*/
