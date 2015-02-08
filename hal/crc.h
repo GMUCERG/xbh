@@ -1,5 +1,5 @@
-#ifndef _CRC_H_
-#define _CRC_H_
+#ifndef _HAL_CRC_H_
+#define _HAL_CRC_H_
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
