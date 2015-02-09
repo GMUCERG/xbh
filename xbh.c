@@ -192,7 +192,7 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
 
     XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE);
-	retval = xbdReceive(XBDCommandBuf, XBD_COMMAND_LEN);
+	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 
 	
 	if(0 != memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN) || 0 !=retval) {
@@ -211,7 +211,7 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
     //
 	while(len_remaining != 0) {
         uint32_t i;
-		*cmd_ptr = htons(seqn);
+		*cmd_ptr = htonl(seqn);
 		++seqn;
 		for(i=0; i < (len_remaining<XBD_PKT_PAYLOAD_MAX?len_remaining:XBD_PKT_PAYLOAD_MAX) ; ++i) {
 			XBDCommandBuf[XBD_COMMAND_LEN+SEQNSIZE+i]=
@@ -418,7 +418,7 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
 	fd_idx = ADDRSIZE+TYPESIZE;
 	cmd_ptr = (uint32_t *)&XBDCommandBuf[XBD_COMMAND_LEN];
 	while(len_remaining != 0) {
-		*cmd_ptr =  htons(seqn);
+		*cmd_ptr =  htonl(seqn);
 		++seqn;
 		for(i=0; i < (len_remaining<128?len_remaining:128) ; ++i)
 		{
@@ -716,6 +716,7 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 			return (uint16_t) XBH_COMMAND_LEN;
 		} else {
             XBH_DEBUG("'c'ode 'd'ownload 'f'ail sent\n");
+			memcpy(reply, XBH_CMD[XBH_CMD_cdf], XBH_COMMAND_LEN);
 			return (uint16_t) XBH_COMMAND_LEN;
 		}	
 	}/*}}}*/
