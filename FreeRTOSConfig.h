@@ -203,4 +203,8 @@ extern void assert_called(const char * const filename, uint32_t line);
 
 
 
+#ifdef DEBUG
+#define configCHECK_FOR_STACK_OVERFLOW 2
+#endif
+
 #endif /* FREERTOS_CONFIG_H */
