@@ -96,7 +96,7 @@ static void xbhsrv_task(void *arg){/*{{{*/
                 break;
             case XBHSRV_CMD: 
                 {
-                    ssize_t len = recv(clnt_sock, xbh_cmd, XBD_PACKET_SIZE_MAX,0);
+                    ssize_t len = recv(clnt_sock, xbh_cmd, XBH_PACKET_SIZE_MAX,0);
                     if(len <= 0){ goto cmd_err; }
                     len = XBH_handle(clnt_sock, xbh_cmd, len, reply_buf);
                     retval = send(clnt_sock, reply_buf, len, 0);
