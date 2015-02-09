@@ -303,7 +303,6 @@ int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
  * C = clock rate
  */
 void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
-#if 1
     uint64_t start = measure_get_start();
     uint64_t stop = measure_get_start();
     uint64_t time = start - stop;
@@ -324,8 +323,6 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
 	for(uint32_t i=0;i<8;++i) {
 		*p_answer++ = ntoa((g_syshz>>(28-(4*i)))&0xf);
 	}
-#endif
-	
 }/*}}}*/
 
 /**
