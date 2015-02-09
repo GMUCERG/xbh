@@ -8,6 +8,8 @@ Issue encountered: Original xbx code didn't delimit messages over TCP; working
 on raw packets not guaranteed to work correctly w/ fragmentation, etc
 
 
+Some note about atomic wraparound algorithm
+
 Justify Switch to RTOS
 
 Link-time optimization requires attributes to prevent optimizing out of
@@ -29,7 +31,15 @@ overflow
 
 Failure to reenable interrupts after atomic reads causes failure in
 vListInsert() in FreeRTOS
+ 
 
+
+XBX stuff
+In XBX tempfile needs to be reimplemented, does not exist on non-debian systems
+as it is part of debianutils. REplace w/ mktemp which is part of coreutils
+
+.data section of bootloader goes past FLASH_MIN_ADDR and gets overwritten by XBD
+app code. Use lma_regions combined w/ LOADADDR
 
 
 
