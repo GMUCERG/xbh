@@ -921,7 +921,7 @@ if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         if(u % 32 == 0){ 
             XBH_DEBUG("\n");
         }
-        XBH_DEBUG("%x",input[u]);
+        XBH_DEBUG("%x\n",input[u]);
     }
     XBH_DEBUG("\n");
 	
