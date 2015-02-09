@@ -89,7 +89,7 @@ void HAL_setup(void){/*{{{*/
 
 
 //    //Configure measurement stuff
-//    measure_setup();
+    measure_setup();
 
     //Configure xbd i2c comm
     i2c_comm_setup();

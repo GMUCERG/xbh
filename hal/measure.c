@@ -314,7 +314,7 @@ static void pwr_sample_start(){/*{{{*/
  */
 void measure_setup(void){
     exec_timer_setup();
-    pwr_sample_setup();
+//    pwr_sample_setup();
 }
 
 
