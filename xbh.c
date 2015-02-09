@@ -184,11 +184,11 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
 	}
 
     //XBD expects big endian
-	*cmd_ptr = htons(addr);
+	*cmd_ptr = htonl(addr);
 
 	//place LENG (in correct endianess)
 	++cmd_ptr; //ADDRSIZE == sizeof(uint32_t)
-	*cmd_ptr = htons((uint32_t)(byte_len-ADDRSIZE));
+	*cmd_ptr = htonl((uint32_t)(byte_len-ADDRSIZE));
 
     XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE);
