@@ -10,7 +10,7 @@ enum XBD_COMM_PROT{COMM_I2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
 #define LENGSIZE sizeof(uint32_t) //bytes used to store length
 #define SEQNSIZE sizeof(uint32_t) //bytes used to store sequence counter
 #define TYPESIZE sizeof(uint32_t)
-#define TIMESIZE sizeof(uint64_t)
+#define TIMESIZE sizeof(uint32_t)
 #define NUMBSIZE sizeof(uint32_t)
 #define REVISIZE 7	//GIT revisions are 40 digit hex numbers, only use first 7 
 

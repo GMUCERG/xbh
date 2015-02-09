@@ -304,8 +304,8 @@ int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
  */
 void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
     uint64_t start = measure_get_start();
-    uint64_t stop = measure_get_start();
-    uint64_t time = start - stop;
+    uint64_t stop = measure_get_stop();
+    uint64_t time = stop - start;
     uint32_t quot = time / g_syshz;
     uint32_t rem = time % g_syshz;
     //lldiv_t result = lldiv(time, g_syshz);
