@@ -41,5 +41,6 @@ inline int i2c_comm_read(uint8_t addr, void *data, size_t len){
     return i2c_read(I2C_COMM_BASE, addr, data, len);
 }
 
+extern bool g_inI2C;
 
 #endif

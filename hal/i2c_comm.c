@@ -18,6 +18,12 @@
 #define MAX_FIFO_BURST 8
 
 /**
+ * Global indicating XBH busy in I2C function. Since system most likely to hang
+ * up in I2C, if watchdog interrupt triggered here, do not service watchdog
+ */
+bool g_inI2C = false;
+
+/**
  * Flushes I2C fifos
  * @param base Base address of I2C transceiver
  */
@@ -51,6 +57,7 @@ int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
     uint32_t err; 
+    g_inI2C = true;
     
     MAP_I2CMasterSlaveAddrSet(base, addr, false);
     
@@ -83,10 +90,12 @@ int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
         goto error;
     }
     while(!(MAP_I2CFIFOStatus(base) & I2C_FIFO_TX_EMPTY));
+    g_inI2C = false;
     return 0;
 error:
     MAP_I2CTxFIFOFlush(base);
     MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_ERROR_STOP);
+    g_inI2C = false;
     return err;
 }
 
@@ -103,7 +112,8 @@ int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
     uint32_t err; 
-    
+    g_inI2C = true;
+
     // Send configuration to INA219 config register
     MAP_I2CMasterSlaveAddrSet(base, addr, true);
     MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
@@ -135,10 +145,12 @@ int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
     if(err != I2C_MASTER_ERR_NONE){
         goto error;
     }
+    g_inI2C = false;
     return 0;
 error:
     MAP_I2CRxFIFOFlush(base);
     MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_ERROR_STOP);
+    g_inI2C = false;
     return err;
 }
 

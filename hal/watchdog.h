@@ -8,9 +8,7 @@
 #include "hal/i2c_comm.h"
 
 void watchdog_setup(void);
-void watchdog_refresh(uint32_t ms);
-void watchdog_start(uint32_t ms);
-void watchdog_stop(void);
+void watchdog_setinterval(uint32_t ms);
 void watchdog_isr(void);
 
 

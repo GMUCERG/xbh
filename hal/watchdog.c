@@ -13,41 +13,44 @@
 #include "hal/isr_prio.h"
 #include "hal/hal.h"
 #include "hal/i2c_comm.h"
+#include "util.h"
 
-#define TIME_MAX 0xFFFFFFFF
-static bool watchdog_en = false;
+// Set watchdog to reset 
+#define WATCHDOG_INTERVAL 500
 
 void watchdog_setup(void){
+#ifndef DISABLE_WATCHDOG
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_WDOG0);
-    if(MAP_WatchdogLockState(WATCHDOG0_BASE) == true) {
-        MAP_WatchdogUnlock(WATCHDOG0_BASE);
-    }
-    MAP_WatchdogResetDisable(WATCHDOG0_BASE);
-    MAP_WatchdogReloadSet(WATCHDOG0_BASE, TIME_MAX);
+    watchdog_setinterval(WATCHDOG_INTERVAL);
+    MAP_WatchdogStallEnable(WATCHDOG0_BASE);
     MAP_IntPrioritySet(INT_WATCHDOG, WATCHDOG_ISR_PRIO);
-//    MAP_WatchdogStallEnable(WATCHDOG0_BASE);
-    MAP_WatchdogIntEnable(WATCHDOG0_BASE);
+    MAP_IntEnable(INT_WATCHDOG);
+    MAP_WatchdogResetEnable(WATCHDOG0_BASE);
+    MAP_WatchdogEnable(WATCHDOG0_BASE);
+#endif
 }
 
-void watchdog_refresh(uint32_t ms){
+void watchdog_setinterval(uint32_t ms){
     uint32_t t_wd = g_syshz/1000*ms;
     MAP_WatchdogReloadSet(WATCHDOG0_BASE, t_wd);
 }
 
-void watchdog_start(uint32_t ms){
-    watchdog_refresh(ms);
-//    MAP_WatchdogResetEnable(WATCHDOG0_BASE);
-    watchdog_en = true;
-}
-void watchdog_stop(void){
-    MAP_WatchdogResetDisable(WATCHDOG0_BASE);
-    MAP_WatchdogReloadSet(WATCHDOG0_BASE, TIME_MAX);
-    watchdog_en = false;
-}
 void watchdog_isr(void){
-    MAP_WatchdogIntClear(WATCHDOG0_BASE);
-    if(watchdog_en){
-        i2c_comm_abort();
+    static uint8_t wd_count = 0; 
+    //If watchdog triggered twice while in i2c, trigger reset immediately.
+    //If ISR is somehow stuck, reset will also occur.
+
+    if(g_inI2C){
+        wd_count++;
+    }else{
+        wd_count = 0;
+    }
+    if(wd_count < 2){
+        MAP_WatchdogIntClear(WATCHDOG0_BASE);
+        return;
+    }else{
+        //Trigger reset immediately 
+        MAP_SysCtlReset();
     }
 }
 
