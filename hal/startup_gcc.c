@@ -238,7 +238,7 @@ void (* const g_pfnVectors[])(void) =
 //
 //*****************************************************************************
 extern uint32_t _etext;
-extern uint32_t __exidx_end;
+extern uint32_t _ldata;
 extern uint32_t _data;
 extern uint32_t _edata;
 extern uint32_t _bss;
@@ -262,7 +262,7 @@ ResetISR(void)
     //
     // Copy the data segment initializers from flash to SRAM.
     //
-    pui32Src = &__exidx_end;
+    pui32Src = &_ldata;
     for(pui32Dest = &_data; pui32Dest < &_edata; )
     {
         *pui32Dest++ = *pui32Src++;
