@@ -213,7 +213,7 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
         uint32_t i;
 		*cmd_ptr = htonl(seqn);
 		++seqn;
-		for(i=0; i < (len_remaining<XBD_PKT_PAYLOAD_MAX?len_remaining:XBD_PKT_PAYLOAD_MAX) ; ++i) {
+		for(i=0; i < (len_remaining<(XBD_PKT_PAYLOAD_MAX-SEQNSIZE)?len_remaining:(XBD_PKT_PAYLOAD_MAX-SEQNSIZE)) ; ++i) {
 			XBDCommandBuf[XBD_COMMAND_LEN+SEQNSIZE+i]=
 				htoi(input_buf[((fd_idx+i)*2)])<<4 |
 				htoi(input_buf[((fd_idx+i)*2)+1]);
