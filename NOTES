@@ -27,6 +27,9 @@ I2c control to receive must be sent before reads
 XBD Response Buffer was too small for git revision request, causing buffer
 overflow
 
+Failure to reenable interrupts after atomic reads causes failure in
+vListInsert() in FreeRTOS
+
 
 
 
