@@ -344,7 +344,7 @@ uint64_t measure_get_stop(void){
     uint64_t time;
     MAP_IntMasterDisable();{
         time= t_stop;
-    }
+    } MAP_IntMasterEnable();
     return time;
 }
 
@@ -356,7 +356,7 @@ uint64_t measure_get_start(void){
     uint64_t time;
     MAP_IntMasterDisable();{
         time= t_start;
-    }
+    } MAP_IntMasterEnable();
     return time;
 }
 
