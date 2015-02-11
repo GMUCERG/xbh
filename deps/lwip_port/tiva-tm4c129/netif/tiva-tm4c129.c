@@ -335,7 +335,7 @@ tivaif_hwinit(struct netif *psNetif)
   ui16Val = EMACPHYRead(EMAC0_BASE, PHY_PHYS_ADDR, EPHY_MISR1);
 
   /**
-   * Set MAC filtering options.  We receive all broadcast and mui32ticast
+   * Set MAC filtering options.  We receive all broadcast and multicast
    * packets along with those addressed specifically for us.
    */
   EMACFrameFilterSet(EMAC0_BASE, (EMAC_FRMFILTER_HASH_AND_PERFECT |
