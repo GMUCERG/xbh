@@ -2177,7 +2177,9 @@
 /**
  * LWIP_IPV6==1: Enable IPv6
  */
+#ifndef LWIP_IPV6
 #define LWIP_IPV6                       0
+#endif
 
 /**
  * LWIP_IPV6_NUM_ADDRESSES: Number of IPv6 addresses per netif.

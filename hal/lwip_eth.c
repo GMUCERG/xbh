@@ -27,6 +27,9 @@
 #include <lwip/tcpip.h>
 #include <lwip/dhcp.h>
 #include <lwip/netif.h>
+#if LWIP_IPV6
+#include <lwip/ethip6.h>
+#endif
 #include <netif/tivaif.h>
 
 #include "hal/hal.h"
@@ -171,42 +174,88 @@ static void tcpip_init_cb(void *args){/*{{{*/
     netif_set_default(&lwip_netif);
 
 #if LWIP_IPV6
+    lwip_netif.ip6_autoconfig_enabled = 1;
+    lwip_netif.output_ip6 = ethip6_output;
+
     //IPv6, enable linklocal addresses and SLAAC
-    netif_create_ip6_linklocal_address(&lwip_netif, mac_addr);
-    lwip_netif.autoconfig_enabled = 1;
+    netif_create_ip6_linklocal_address(&lwip_netif, 1);
+    netif_ip6_addr_set_state((&lwip_netif), 0, IP6_ADDR_TENTATIVE); 
+
 #endif
 
     dhcp_start(&lwip_netif);
 
 #if DEBUG_STACK
-    //DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
+    DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
 #endif
 }/*}}}*/
+
+#if LWIP_IPV6
+static void poll_ip6_addr(TimerHandle_t pxTimer){
+    struct netif *netif_arg = (struct netif *) pvTimerGetTimerID( pxTimer ); 
+    bool slaac_done = false;
+
+    //0th  address is link local, assume 1th address is SLAAC
+    for(int i = 0; i < 4; i++){
+        if(netif_arg->ip6_addr[1].addr[i] != 0){
+            slaac_done = true;
+            break;
+        }
+    }
+    if(slaac_done){
+        for(int i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++){
+            uart_printf("IPv6 Address %d of interface %c%c set "
+                    "to %04hx:%04hx:%04hx:%04hx:%04hx:%04hx:%04hx:%04hx\n",
+                    i,
+                    netif_arg->name[0], netif_arg->name[1],
+                    IP6_ADDR_BLOCK1(&netif_arg->ip6_addr[i]),
+                    IP6_ADDR_BLOCK2(&netif_arg->ip6_addr[i]),
+                    IP6_ADDR_BLOCK3(&netif_arg->ip6_addr[i]),
+                    IP6_ADDR_BLOCK4(&netif_arg->ip6_addr[i]),
+                    IP6_ADDR_BLOCK5(&netif_arg->ip6_addr[i]),
+                    IP6_ADDR_BLOCK6(&netif_arg->ip6_addr[i]),
+                    IP6_ADDR_BLOCK7(&netif_arg->ip6_addr[i]),
+                    IP6_ADDR_BLOCK8(&netif_arg->ip6_addr[i]));
+        }
+        xTimerStop( pxTimer, 0 );
+    }
+}
+#endif
 
 /**
  * Outputs link status on serial console
  */
 static void link_status(struct netif *arg){/*{{{*/
-  uart_printf("IP address of interface %c%c set to %hd.%hd.%hd.%hd\n",
-    arg->name[0], arg->name[1],
-    ip4_addr1_16(&arg->ip_addr),
-    ip4_addr2_16(&arg->ip_addr),
-    ip4_addr3_16(&arg->ip_addr),
-    ip4_addr4_16(&arg->ip_addr));
-  uart_printf("Netmask of interface %c%c set to %hd.%hd.%hd.%hd\n",
-    arg->name[0], arg->name[1],
-    ip4_addr1_16(&arg->netmask),
-    ip4_addr2_16(&arg->netmask),
-    ip4_addr3_16(&arg->netmask),
-    ip4_addr4_16(&arg->netmask));
-  uart_printf("Gateway of interface %c%c set to %hd.%hd.%hd.%hd\n",
-    arg->name[0], arg->name[1],
-    ip4_addr1_16(&arg->gw),
-    ip4_addr2_16(&arg->gw),
-    ip4_addr3_16(&arg->gw),
-    ip4_addr4_16(&arg->gw));
-  uart_printf("Hostname of interface %c%c set to %s\n",
-    arg->name[0], arg->name[1], arg->hostname);
+    TimerHandle_t poll_timer;
+    uart_printf("IP address of interface %c%c set to %hd.%hd.%hd.%hd\n",
+            arg->name[0], arg->name[1],
+            ip4_addr1_16(&arg->ip_addr),
+            ip4_addr2_16(&arg->ip_addr),
+            ip4_addr3_16(&arg->ip_addr),
+            ip4_addr4_16(&arg->ip_addr));
+    uart_printf("Netmask of interface %c%c set to %hd.%hd.%hd.%hd\n",
+            arg->name[0], arg->name[1],
+            ip4_addr1_16(&arg->netmask),
+            ip4_addr2_16(&arg->netmask),
+            ip4_addr3_16(&arg->netmask),
+            ip4_addr4_16(&arg->netmask));
+    uart_printf("Gateway of interface %c%c set to %hd.%hd.%hd.%hd\n",
+            arg->name[0], arg->name[1],
+            ip4_addr1_16(&arg->gw),
+            ip4_addr2_16(&arg->gw),
+            ip4_addr3_16(&arg->gw),
+            ip4_addr4_16(&arg->gw));
+    uart_printf("Hostname of interface %c%c set to %s\n",
+            arg->name[0], arg->name[1], arg->hostname);
+#if LWIP_IPV6
+    poll_timer = xTimerCreate
+        ( "poll_ipv6_addr",
+          1000 / portTICK_PERIOD_MS,
+          pdTRUE,
+          arg,
+          poll_ip6_addr);
+    xTimerStart(poll_timer, 0);
+#endif
 }/*}}}*/
 
 
