@@ -71,6 +71,7 @@ int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
         }else{
             MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_CONT);
         }
+        while(MAP_I2CMasterBusy(base));
         err = MAP_I2CMasterErr(base);
         if(err != I2C_MASTER_ERR_NONE){
             goto error;
@@ -85,6 +86,7 @@ int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     }else{
         MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_FINISH);
     }
+    while(MAP_I2CMasterBusy(base));
     err = MAP_I2CMasterErr(base);
     if(err != I2C_MASTER_ERR_NONE){
         goto error;
