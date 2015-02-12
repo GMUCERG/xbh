@@ -119,6 +119,7 @@ static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 
 
+#if 0
     // Run power measurement/*{{{*/
     while(measure_isrunning()){
         // Dequeue data packets, waiting for a max of 2 ticks
@@ -138,6 +139,7 @@ static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
             }
         }
     }/*}}}*/
+#endif
 
 
     // Receive status from XBD
@@ -463,7 +465,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 	}
 	XBH_DEBUG("\r\n");
 */
-	xbdSend(XBD_CMD[XBD_CMD_urr], XBD_COMMAND_LEN);
+	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 //	vTaskDelay(100);
 
 
@@ -491,7 +493,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_rdr], XBD_COMMAND_LEN);
 	do {
         XBH_DEBUG("Sending 'r'esult 'd'ata 'r'equest to XBD\n");
-		xbdSend(XBD_CMD[XBD_CMD_rdr], XBD_COMMAND_LEN);
+		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 //		vTaskDelay(100);
 
 	//	XBH_DEBUG("1.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
@@ -690,7 +692,7 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 	}/*}}}*/
 
 	if ( (0 == memcmp(XBH_CMD[XBH_CMD_exr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
-        XBH_DEBUG("Proper handle 'ex'ecution 'r'equest received\n");
+        XBH_DEBUG("Proper 'ex'ecution 'r'equest received\n");
 		ret=XBH_HandleEXecutionRequest(sock);
 
 		if(0 == ret) {
