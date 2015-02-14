@@ -17,5 +17,7 @@ BUILDDIR       := ${PROJECT_ROOT}/build
 PART           := TM4C129XNCZAD
 TIVA_ROOT      := ${PROJECT_ROOT}/deps/TivaWare_driverlib
 TIVA_MAKE_ROOT := ${PROJECT_ROOT}/make/tivaware
-#CFLAGS         += -DTARGET_IS_TM4C129_RA0
 
+## Defined in Makefile
+#CFLAGS += -DTARGET_IS_TM4C129_RA0
+DEBUG=1

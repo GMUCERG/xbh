@@ -12,14 +12,21 @@ include ${FREERTOS_MAKE_ROOT}/freertos.make
 include ${LWIP_MAKE_ROOT}/lwip.make
 
 CFLAGS +=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
-#CFLAGS += -Os -ggdb3 # -flto=8 -fuse-linker-plugin# -ffat-lto-objects
 
-#${BUILDDIR}/xbh/hal/startup_gcc.o: CFLAGS+=-fno-lto
-
-CFLAGS+=-DDISABLE_WATCHDOG
-CFLAGS+=-DDEBUG -ggdb3 -O0 -fno-lto
-#CFLAGS+=-DDEBUG_STACK
-#CFLAGS+=-DLWIP_DEBUG
+ifeq (${DEBUG}, 1)
+	CFLAGS+=-DDEBUG
+	CFLAGS+=-DDISABLE_WATCHDOG
+	#CFLAGS+=-DDEBUG_STACK
+	#CFLAGS+=-DLWIP_DEBUG
+	#CFLAGS+=-ggdb3 -Og
+	CFLAGS+=-ggdb3 -O0
+else
+	CFLAGS += -Os -ggdb3 -flto=8 -fuse-linker-plugin # -ffat-lto-objects
+	CFLAGS += -DTARGET_IS_TM4C129_RA0
+endif
+ifeq (IPV6, 1)
+	CFLAGS+=-DLWIP_IPV6
+endif
 
 XBH_SOURCES += $(PROJECT_ROOT)/hal/crc.c
 XBH_SOURCES += $(PROJECT_ROOT)/hal/hal.c
@@ -76,7 +83,7 @@ SCATTERgcc_xbh=xbh.ld
 ENTRY_xbh=ResetISR
 
 
-
+$(shell find ${PROJECT_ROOT} -name '*.o'): ${PROJECT_ROOT}/Makefile ${PROJECT_ROOT}/makedefs
 
 ifneq (${MAKECMDGOALS},clean)
 XBH_DEPS := $(XBH_OBJECTS:%.o=%.d)
@@ -88,8 +95,10 @@ distclean: clean
 clean:
 	rm -rf build/*.o build/*.d build/*.bin build/*.axf build/xbh openocd.log
 tags: 
-	ctags -R . \
-		${TIVA_ROOT}/driverlib \
+	ctags -R \
+		*.c *.h \
+		hal \
+	    ${TIVA_ROOT}/driverlib \
 		${TIVA_ROOT}/inc \
 		${LWIP_ROOT} \
 		${LWIP_PORT} \
