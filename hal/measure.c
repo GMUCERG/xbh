@@ -94,29 +94,14 @@ static void exec_timer_start(void){/*{{{*/
  */
 void exec_timer_cap_isr(void){/*{{{*/
     uint32_t wrap_cnt_snap;
-    uint32_t wrap_cap_cnt_snap;
     uint32_t cap_time;
 
     MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
     //Disable interrupts so snap and time read are atomic
     MAP_IntMasterDisable();{
         wrap_cnt_snap = wrap_cnt;
-        wrap_cap_cnt_snap = wrap_cap_cnt;
         cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
     } MAP_IntMasterEnable();
-    
-
-    // If cap count when wrap happens equal to timer A value when wrap_cnt was incremented was equal to cap timer, then
-    // wrap must have been triggered during or after cap timer
-    if(wrap_cap_cnt_snap == cap_cnt){
-        // If capture time was shortly before wraparound point, let's say halfway
-        // through counter (0xFFFF/2), than wraparound probably happened after
-        // and thus decrement to compensate
-        if(cap_time > (0xFFFF >> 1)){
-            --wrap_cnt_snap;
-        }  
-    }
-
 
     if(0 == cap_cnt){
         t_start = (wrap_cnt_snap << 16) | cap_time;
@@ -124,10 +109,11 @@ void exec_timer_cap_isr(void){/*{{{*/
         t_stop = (wrap_cnt_snap << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
     }
+    ++cap_cnt;
+    
 
-    MAP_IntMasterDisable();{
-        ++cap_cnt;
-    } MAP_IntMasterEnable();
+
+
 }/*}}}*/
 
 /**
@@ -135,10 +121,13 @@ void exec_timer_cap_isr(void){/*{{{*/
  * This ISR should be of higher priority than exec_timer_cap_isr 
  */
 void exec_timer_wrap_isr(void){/*{{{*/
-    TimerIntClear(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
+    MAP_TimerIntClear(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
     
     ++wrap_cnt; 
-    wrap_cap_cnt = cap_cnt;
+    wrap_cap_cnt = wrap_cnt;
+    if(MAP_TimerIntStatus(TIMER0_BASE, true)&TIMER_CAPA_EVENT){
+        --wrap_cap_cnt;
+    }
 }/*}}}*/
 /*}}}*/
 
@@ -267,10 +256,10 @@ static void pwr_sample_task(void *args){/*{{{*/
 
         //Pick up timestamp where valid value is available
         //Can't use taskENTER_CRITICAL since wrap counter is higher priority
-        IntMasterDisable();{
+        MAP_IntMasterDisable();{
             wrap_cnt_snap = wrap_cnt;
             wrap_time_snap = MAP_TimerValueGet(TIMER0_BASE, TIMER_A); 
-        }IntMasterEnable();
+        }MAP_IntMasterEnable();
         
         sample.timestamp = wrap_cnt_snap << 16 | wrap_time_snap;
 
