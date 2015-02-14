@@ -105,13 +105,15 @@ static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
     struct pwr_sample sample; 
     int retval;
     // 4 bytes pkt ID + sizeof pwr_sample in ascii hex. Subtract 2 to remove padding
-    char pkt_buf[4+2*(sizeof(struct pwr_sample)-2)]; 
+    uint8_t pkt_buf[4+2*(sizeof(struct pwr_sample)-2)]; 
     
     memcpy(pkt_buf, "PWRD", 4);
 
 
     //Kick off power measurement
-    measure_start();
+    //measure_start();
+    //exec_timer_start();
+    timer_cal_start();
 
     // Send execution request to XBD
     XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
@@ -385,7 +387,7 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
 				  htoi(input_buf[(i*2)+1]))
 				) <<((3-i)*8);
 	}
-	*cmd_ptr = htons(temp);
+	*cmd_ptr = htonl(temp);
 	++cmd_ptr; //TYPESIZE == sizeof(uint32_t)
 	temp=0;
 	//place and endian-convert ADDR (4 bytes)
@@ -395,12 +397,12 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
 				  htoi(input_buf[(TYPESIZE+i)*2+1]))
 				) <<((3-i)*8);
 	}
-	*cmd_ptr = htons(temp);
+	*cmd_ptr = htonl(temp);
 	++cmd_ptr; //ADDRSIZE == sizeof(uint32_t)
 	temp=0;
 
 	//place LENG (in correct endianess)
-	*cmd_ptr =  htons((uint32_t)(byte_len-ADDRSIZE-TYPESIZE));
+	*cmd_ptr =  htonl((uint32_t)(byte_len-ADDRSIZE-TYPESIZE));
 
 
     XBH_DEBUG("Sending 'p'rogram 'p'arameters 'r'equest to XBD\n");
@@ -785,7 +787,7 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 
 		//prepare TWI transmission to XBD here
         //TODO Find parameter requirements 
-		ret=XBH_HandleDownloadParametersRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN)/2);
+		ret=XBH_HandleDownloadParametersRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN));
 
 
 		if(0 == ret) {

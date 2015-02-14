@@ -42,7 +42,8 @@ as it is part of debianutils. REplace w/ mktemp which is part of coreutils
 app code. Use lma_regions combined w/ LOADADDR
 
 
-
+xbdSend modifies buffer to add CRC, do not directly send XBD_CMD constants,
+        otherwise fault will occur
 
 TODO: Tune DMA burst sizes
 TODO: PTPD? 

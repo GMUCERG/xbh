@@ -81,7 +81,7 @@ uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint
 	if(offset > reclen)
 		return 2;	//rec'd packet too shor
 
-	if(state->recmp_seqn==ntohs(*((uint32_t*) (recdata + offset))))
+	if(state->recmp_seqn==ntohl(*((uint32_t*) (recdata + offset))))
 	{
 		offset+=SEQNSIZE;
 		if(offset > reclen)
@@ -122,20 +122,20 @@ uint8_t XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_
 		return 2;	//rec'd packet too short
 
 	if(hastype) {
-		state->recmp_type=ntohs(*((uint32_t*) (recdata + offset)));
+		state->recmp_type=ntohl(*((uint32_t*) (recdata + offset)));
 		offset+=TYPESIZE;
 		if(offset > reclen)
 			return 2;	//rec'd packet too short
 	}
 
 	if(hasaddr) {
-		state->recmp_addr=ntohs(*((uint32_t*) (recdata + offset)));
+		state->recmp_addr=ntohl(*((uint32_t*) (recdata + offset)));
 		offset+=ADDRSIZE;
 		if(offset > reclen)
 			return 2;	//rec'd packet too short
 	}
 
-	state->recmp_dataleft=ntohs(*((uint32_t*) (recdata + offset)));
+	state->recmp_dataleft=ntohl(*((uint32_t*) (recdata + offset)));
 	offset+=LENGSIZE;
 	if(offset > reclen)
 		return 2;	//rec'd packet too short
