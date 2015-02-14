@@ -131,7 +131,7 @@
 #define configUSE_RECURSIVE_MUTEXES             0
 #define configUSE_COUNTING_SEMAPHORES           1
 #define configUSE_ALTERNATIVE_API               0 /* Deprecated! */
-#define configQUEUE_REGISTRY_SIZE               0 // Not using RTOS aware debugger. TODO: Look this up. Default 10
+#define configQUEUE_REGISTRY_SIZE               0 // Not using RTOS aware debugger.  Default 10
 #define configUSE_QUEUE_SETS                    0
 #define configUSE_TIME_SLICING                  1
 #define configUSE_NEWLIB_REENTRANT              0
