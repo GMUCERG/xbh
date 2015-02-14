@@ -35,6 +35,9 @@ XBH_SOURCES += $(PROJECT_ROOT)/xbh.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh_server.c
 XBH_SOURCES += $(PROJECT_ROOT)/xbh_xbdcomm.c
 
+# Something wrong w/ hardware that prevents i2c.o from being compiled w/o DEBUG
+# and still work. Possibly timing issues coupled w/ hardware.
+${BUILDDIR}/driverlib/i2c.o: CFLAGS+=-DDEBUG -fno-lto
 
 
 

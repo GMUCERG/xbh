@@ -64,27 +64,27 @@ int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
     for(offset = 0; offset < (len-1)/MAX_FIFO_BURST; offset++){
         for(size_t i = 0; i < MAX_FIFO_BURST; ++i){
-            MAP_I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
+            I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
         }
         if( 0 == offset){
-            MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_START);
+            I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_START);
         }else{
-            MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_CONT);
+            I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_CONT);
         }
-        while(MAP_I2CMasterBusy(base));
-        err = MAP_I2CMasterErr(base);
+        while(I2CMasterBusy(base));
+        err = I2CMasterErr(base);
         if(err != I2C_MASTER_ERR_NONE){
             goto error;
         }
     }
     MAP_I2CMasterBurstLengthSet(base, final_burst);
     for(size_t i = 0; i < final_burst; ++i){
-        MAP_I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
+        I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
     }
     if(len <= MAX_FIFO_BURST){
-        MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_SINGLE_SEND);
+        I2CMasterControl(base, I2C_MASTER_CMD_FIFO_SINGLE_SEND);
     }else{
-        MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_FINISH);
+        I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_FINISH);
     }
     while(MAP_I2CMasterBusy(base));
     err = MAP_I2CMasterErr(base);
@@ -122,26 +122,26 @@ int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
 
     for(offset = 0; offset < (len-1)/MAX_FIFO_BURST; offset++){
         if(0 == offset){
-            MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_START);
+            I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_START);
         }else{
-            MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_CONT);
+            I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_CONT);
         }
         for(size_t i = 0; i < MAX_FIFO_BURST; ++i){
-            ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = MAP_I2CFIFODataGet(base);
+            ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = I2CFIFODataGet(base);
         }
-        err = MAP_I2CMasterErr(base);
+        err = I2CMasterErr(base);
         if(err != I2C_MASTER_ERR_NONE){
             goto error;
         }
     }
     MAP_I2CMasterBurstLengthSet(base, final_burst);
     if(len <= MAX_FIFO_BURST){
-        MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_SINGLE_RECEIVE);
+        I2CMasterControl(base, I2C_MASTER_CMD_FIFO_SINGLE_RECEIVE);
     }else{
-        MAP_I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_FINISH);
+        I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_FINISH);
     }
     for(size_t i = 0; i < final_burst; ++i){
-        ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = MAP_I2CFIFODataGet(base);
+        ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = I2CFIFODataGet(base);
     }
     err = MAP_I2CMasterErr(base);
     if(err != I2C_MASTER_ERR_NONE){
