@@ -27,6 +27,7 @@
 **  Parameters: 1 - number to be converted
 **              2 - buffer in which to build the converted string
 **              3 - number base to use for conversion
+**              4 - case
 **
 **  Returns:  A character pointer to the converted string if
 **            successful, a NULL pointer if the number base specified
@@ -36,45 +37,54 @@
 
 #define BUFSIZE (sizeof(long) * 8 + 1)
 
-char *ltoa(long N, char *str, int base)
+char *ltoa(long N, char *str, int base, bool lowercase)
 {
-      register int i = 2;
-      long uarg;
-      char *tail, *head = str, buf[BUFSIZE];
+    register int i = 2;
+    long uarg;
+    char *tail, *head = str, buf[BUFSIZE];
+    char a; 
+    if(lowercase){
+        a='a';
+    }else{
+        a='A';
+    }
+    if (36 < base || 2 > base)
+        base = 10;                    /* can only use 0-9, A-Z        */
+    tail = &buf[BUFSIZE - 1];           /* last character position      */
+    *tail-- = '\0';
 
-      if (36 < base || 2 > base)
-            base = 10;                    /* can only use 0-9, A-Z        */
-      tail = &buf[BUFSIZE - 1];           /* last character position      */
-      *tail-- = '\0';
+    if (10 == base && N < 0L)
+    {
+        *head++ = '-';
+        uarg    = -N;
+    }
+    else  uarg = N;
 
-      if (10 == base && N < 0L)
-      {
-            *head++ = '-';
-            uarg    = -N;
-      }
-      else  uarg = N;
+    if (uarg)
+    {
+        for (i = 1; uarg; ++i)
+        {
+            long quot;
+            long rem;
 
-      if (uarg)
-      {
-            for (i = 1; uarg; ++i)
-            {
-                  long quot;
-                  long rem;
+            quot       = uarg/base; 
+            rem        = uarg%base; 
+            *tail-- = (char)(rem + ((9L < rem) ?
+                        (a - 10L) : '0'));
+            uarg    = quot;
+        }
+    }
+    else  *tail-- = '0';
 
-                  quot       = uarg/base; 
-                  rem        = uarg%base; 
-                  *tail-- = (char)(rem + ((9L < rem) ?
-                                  ('A' - 10L) : '0'));
-                  uarg    = quot;
-            }
-      }
-      else  *tail-- = '0';
-
-      memcpy(head, ++tail, i);
-      return str;
+    memcpy(head, ++tail, i);
+    return str;
 }/*}}}*/
 
 //Serial output code /*{{{*/
+
+//
+//TODO: Possibly buffer serial messages using FreeRTOS queue
+//
 
 //from usart.c in XBH, modified a bit
 static void uart_vwriteP(const char *Buffer, va_list *list) {/*{{{*/
@@ -87,7 +97,9 @@ static void uart_vwriteP(const char *Buffer, va_list *list) {/*{{{*/
 	char *ptr;
     uint8_t base;
     bool is_signed;
+    bool is_lower = true;
     uint8_t field_sz;
+    
 		
 	//Ausgabe der Zeichen
 	for(;;) {
@@ -163,6 +175,8 @@ static void uart_vwriteP(const char *Buffer, va_list *list) {/*{{{*/
                     is_signed = false;
                     base = 8;
 					goto ConversionLoop;
+                case 'X':
+                    is_lower = false;
 				case 'x':
 				case 'p':
                     is_signed = false;
@@ -176,16 +190,16 @@ static void uart_vwriteP(const char *Buffer, va_list *list) {/*{{{*/
                         case 4:
                         default:
                             if(is_signed){
-                                ltoa((int32_t)va_arg(*list,int), str_buffer, base);
+                                ltoa((int32_t)va_arg(*list,int), str_buffer, base, is_lower);
                             }else{
-                                ltoa((uint32_t)va_arg(*list,unsigned int), str_buffer, base);
+                                ltoa((uint32_t)va_arg(*list,unsigned int), str_buffer, base, is_lower);
                             }
                             break;
                         case 8:
                             if(is_signed){
-                                ltoa((int64_t)va_arg(*list,long long), str_buffer, base);
+                                ltoa((int64_t)va_arg(*list,long long), str_buffer, base, is_lower);
                             }else{
-                                ltoa((uint64_t)va_arg(*list,unsigned long long), str_buffer, base);
+                                ltoa((uint64_t)va_arg(*list,unsigned long long), str_buffer, base, is_lower);
                             }
                             break;
                     }

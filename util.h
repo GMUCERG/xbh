@@ -83,7 +83,7 @@
 #define htonll(x) __builtin_bswap64(x)
 #define ntohll(x) __builtin_bswap64(x)
 
-char *ltoa(long val, char *str, int base);
+char *ltoa(long val, char *str, int base, bool lowercase);
 void uart_printf(const char *buffer,...) ;
 int recv_waitall(int s, void *mem, size_t len, int flags);
 
