@@ -226,7 +226,9 @@ static void poll_ip6_addr(TimerHandle_t pxTimer){
  * Outputs link status on serial console
  */
 static void link_status(struct netif *arg){/*{{{*/
+#if LWIP_IPV6
     TimerHandle_t poll_timer;
+#endif
     uart_printf("IP address of interface %c%c set to %hd.%hd.%hd.%hd\n",
             arg->name[0], arg->name[1],
             ip4_addr1_16(&arg->ip_addr),
