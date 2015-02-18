@@ -113,10 +113,10 @@ static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
     //Kick off power measurement
     //measure_start();
     //exec_timer_start();
-    timer_cal_start();
 
     // Send execution request to XBD
     XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
+    timer_cal_start();
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_exr], XBD_COMMAND_LEN);
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 
