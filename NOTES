@@ -32,7 +32,7 @@ overflow
 Failure to reenable interrupts after atomic reads causes failure in
 vListInsert() in FreeRTOS
  
-
+va_args w/ long long requires stack to be aligned to 8 bytes
 
 XBX stuff
 In XBX tempfile needs to be reimplemented, does not exist on non-debian systems
