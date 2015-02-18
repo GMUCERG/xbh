@@ -95,6 +95,10 @@ static void exec_timer_start(void){/*{{{*/
 void exec_timer_cap_isr(void){/*{{{*/
     uint32_t wrap_cnt_snap;
     uint32_t cap_time;
+#ifdef DEBUG
+    static uint32_t s_wrap_cnt_snap;
+    static uint32_t s_cap_time;
+#endif
 
     MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
     //Disable interrupts so snap and time read are atomic
@@ -105,14 +109,23 @@ void exec_timer_cap_isr(void){/*{{{*/
 
     if(0 == cap_cnt){
         t_start = (wrap_cnt_snap << 16) | cap_time;
+#ifdef DEBUG
+        s_cap_time = cap_time;
+        s_wrap_cnt_snap = wrap_cnt_snap;
+#endif
     }else if (1 == cap_cnt ){
         t_stop = (wrap_cnt_snap << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
+        DEBUG_OUT("s_wrap_cnt: %u\n", s_wrap_cnt_snap);
+        DEBUG_OUT("s_cap_time: %u\n", s_cap_time);
+        DEBUG_OUT("wrap_cnt: %u\n", wrap_cnt_snap);
+        DEBUG_OUT("cap_time: %u\n", cap_time);
+        DEBUG_OUT("t_start: %lu\n", t_start);
+        DEBUG_OUT("t_stop: %llu\n", t_stop);
+        DEBUG_OUT("t_elapsed: %lld\n", (int32_t)t_start-t_stop);
     }
     ++cap_cnt;
     
-
-
 
 }/*}}}*/
 
