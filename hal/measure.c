@@ -100,12 +100,12 @@ void exec_timer_cap_isr(void){/*{{{*/
     static uint32_t s_cap_time;
 #endif
 
-    MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
-    //Disable interrupts so snap and time read are atomic
-    MAP_IntMasterDisable();{
+    dint();{
+        MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
+        //Disable interrupts so snap and time read are atomic
         wrap_cnt_snap = wrap_cnt;
         cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
-    } MAP_IntMasterEnable();
+    } eint();
 
     if(0 == cap_cnt){
         t_start = (wrap_cnt_snap << 16) | cap_time;
@@ -122,7 +122,7 @@ void exec_timer_cap_isr(void){/*{{{*/
         DEBUG_OUT("cap_time: %u\n", cap_time);
         DEBUG_OUT("t_start: %lu\n", t_start);
         DEBUG_OUT("t_stop: %llu\n", t_stop);
-        DEBUG_OUT("t_elapsed: %lld\n", (int32_t)t_start-t_stop);
+        DEBUG_OUT("t_elapsed: %lld\n", (int32_t)t_stop-t_start);
     }
     ++cap_cnt;
     
@@ -344,9 +344,9 @@ bool measure_isrunning(void){
  */
 uint64_t measure_get_stop(void){
     uint64_t time;
-    MAP_IntMasterDisable();{
-        time= t_stop;
-    } MAP_IntMasterEnable();
+    dint();{
+        time = t_stop;
+    }eint();
     return time;
 }
 
@@ -356,9 +356,9 @@ uint64_t measure_get_stop(void){
  */
 uint64_t measure_get_start(void){
     uint64_t time;
-    MAP_IntMasterDisable();{
-        time= t_start;
-    } MAP_IntMasterEnable();
+    dint();{
+        time = t_start;
+    }eint();
     return time;
 }
 
