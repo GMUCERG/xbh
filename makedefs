@@ -15,7 +15,7 @@ BUILDDIR       := ${PROJECT_ROOT}/build
 
 
 PART           := TM4C129XNCZAD
-TIVA_ROOT      := ${PROJECT_ROOT}/deps/TivaWare_driverlib
+TIVA_ROOT      := ${PROJECT_ROOT}/deps/tiva-c_driverlib
 TIVA_MAKE_ROOT := ${PROJECT_ROOT}/make/tivaware
 
 ## Defined in Makefile
