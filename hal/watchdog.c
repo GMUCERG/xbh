@@ -16,7 +16,7 @@
 #include "util.h"
 
 // Set watchdog to reset 
-#define WATCHDOG_INTERVAL 500
+#define WATCHDOG_INTERVAL 15000
 
 void watchdog_setup(void){
 #ifndef DISABLE_WATCHDOG
