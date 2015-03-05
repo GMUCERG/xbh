@@ -71,6 +71,11 @@ uint32_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const uint8
 uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint8_t* recdata, uint32_t reclen, uint8_t* dstbuf, uint32_t dstlenmax, const char *code) {
 	uint32_t offset=0;
 	uint32_t cpylen;
+    uint32_t recmp_seqn;
+
+    memcpy(&recmp_seqn, recdata+offset, sizeof(recmp_seqn));
+    recmp_seqn = ntohl(recmp_seqn);
+
 
 	if(0 == state->recmp_dataleft)
 		return 0;
@@ -81,7 +86,7 @@ uint8_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const uint
 	if(offset > reclen)
 		return 2;	//rec'd packet too shor
 
-	if(state->recmp_seqn==ntohl(*((uint32_t*) (recdata + offset))))
+	if(state->recmp_seqn==recmp_seqn)
 	{
 		offset+=SEQNSIZE;
 		if(offset > reclen)
@@ -122,20 +127,23 @@ uint8_t XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const uint8_
 		return 2;	//rec'd packet too short
 
 	if(hastype) {
-		state->recmp_type=ntohl(*((uint32_t*) (recdata + offset)));
+        memcpy(&state->recmp_type, recdata+offset, sizeof(state->recmp_type));
+		state->recmp_type=ntohl(state->recmp_type);
 		offset+=TYPESIZE;
 		if(offset > reclen)
 			return 2;	//rec'd packet too short
 	}
 
 	if(hasaddr) {
-		state->recmp_addr=ntohl(*((uint32_t*) (recdata + offset)));
+        memcpy(&state->recmp_addr, recdata+offset, sizeof(state->recmp_addr));
+		state->recmp_addr=ntohl(state->recmp_addr);
 		offset+=ADDRSIZE;
 		if(offset > reclen)
 			return 2;	//rec'd packet too short
 	}
 
-	state->recmp_dataleft=ntohl(*((uint32_t*) (recdata + offset)));
+    memcpy(&state->recmp_dataleft, recdata+offset, sizeof(state->recmp_dataleft));
+    state->recmp_dataleft=ntohl(state->recmp_dataleft);
 	offset+=LENGSIZE;
 	if(offset > reclen)
 		return 2;	//rec'd packet too short
