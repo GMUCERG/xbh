@@ -45,8 +45,20 @@ app code. Use lma_regions combined w/ LOADADDR
 xbdSend modifies buffer to add CRC, do not directly send XBD_CMD constants,
         otherwise fault will occur
 
+Stack painter has to have attribute to prevent inlining, which makes positioning
+of stack beacon indeterminate
+
 Stack must be 8-byte aligned
 
-TODO: Tune DMA burst sizes
-TODO: PTPD? 
+Hole support added to xbhtool- holes are filled w/ zeros
+
+highrom to be avoided as it bloats code pointer sizes
+
+debug stuff always incased in macros in order to string literals to be removed
+during compilation to save size
+
+msp430 hal strict aliasing disabled
+
+
+
 
