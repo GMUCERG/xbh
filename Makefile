@@ -11,7 +11,7 @@ include ${TIVA_MAKE_ROOT}/tiva.make
 include ${FREERTOS_MAKE_ROOT}/freertos.make
 include ${LWIP_MAKE_ROOT}/lwip.make
 
-CFLAGS +=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"'
+CFLAGS +=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"' -Wall
 
 ifeq (${DEBUG}, 1)
 	CFLAGS+=-DDEBUG
