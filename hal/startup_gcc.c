@@ -44,6 +44,7 @@
 //*****************************************************************************
 
 #include <stdint.h>
+#include <stdalign.h>
 #include "inc/hw_nvic.h"
 #include "inc/hw_types.h"
 
@@ -69,7 +70,7 @@ extern int main(void);
 // Reserve space for the system stack.
 //
 //*****************************************************************************
-static uint32_t pui32Stack[128] __attribute__((aligned(8)));
+static alignas(sizeof(uint64_t)) uint32_t pui32Stack[128];
 
 
 /*

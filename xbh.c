@@ -22,6 +22,7 @@
  */
 #include <inttypes.h>
 #include <sys/types.h>
+#include <stdalign.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -59,14 +60,9 @@ const char *XBD_CMD[] = {
      FOREACH_XBD_CMD(XBD_CMD_DEF)
 };
 
-static uint8_t XBDCommandBuf[XBD_PACKET_SIZE_MAX];
-static uint8_t XBDResponseBuf[XBD_ANSWERLENG_MAX];
+static alignas(sizeof(uint32_t)) uint8_t XBDCommandBuf[XBD_PACKET_SIZE_MAX];
+static alignas(sizeof(uint32_t)) uint8_t XBDResponseBuf[XBD_ANSWERLENG_MAX];
 
-
-// From xbd_multipacket.h
-// TODO Put these into a state struct
-extern uint32_t xbd_recmp_datanext;
-extern uint32_t xbd_recmp_dataleft;
 
 
 /**
