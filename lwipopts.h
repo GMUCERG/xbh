@@ -47,6 +47,13 @@
 #include "task_prio.h"
 
 
+
+//Define optimal byteswap functions
+#define LWIP_PLATFORM_BYTESWAP 1
+#define LWIP_PLATFORM_HTONL(x) __builtin_bswap32(x)
+#define LWIP_PLATFORM_HTONS(x) __builtin_bswap16(x)
+
+
 /*
  * Stellaris/lwIP port options
  * Use default options
