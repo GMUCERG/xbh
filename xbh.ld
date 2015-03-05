@@ -55,12 +55,13 @@ SECTIONS
     } > FLASH
 /* Needed for 64-bit divide */
     .ARM.exidx : { 
+        . = ALIGN(4);
         __exidx_start = .;
         *(.ARM.exidx* .gnu.linkonce.armexidx.*) 
         __exidx_end = .;
     } > FLASH
-    .data :
-    {
+    .data : ALIGN(4) {
+        . = ALIGN(4);
         _data = .;
         *(vtable)
         *(.data*)
@@ -70,6 +71,7 @@ SECTIONS
 
     .bss :
     {
+        . = ALIGN(4);
         _bss = .;
         *(.bss*)
         *(COMMON)
