@@ -96,8 +96,43 @@ static void xbhsrv_task(void *arg){/*{{{*/
                 break;
             case XBHSRV_CMD: 
                 {
-                    ssize_t len = recv(clnt_sock, xbh_cmd, XBH_PACKET_SIZE_MAX,0);
-                    if(len <= 0){ goto cmd_err; }
+                    size_t len = 0;
+                    retval = recv(clnt_sock, xbh_cmd, XBD_PACKET_SIZE_MAX,0);
+                    if(retval <= 0){ goto cmd_err; }
+#if 0
+                    retval = recv_waitall(clnt_sock, xbh_cmd, CMDLEN_SZ,0);
+                    if(retval <= 0){ goto cmd_err; }
+
+                    // Get length of command message in ascii hex format
+                    for(size_t i = 0; i < CMDLEN_SZ; i++){
+                        len += htoi(xbh_cmd[i]) << 4*(CMDLEN_SZ-1-i);
+                    }
+
+                    // If data length greater than XBD_PACKET_SIZE_MAX, then
+                    // overlow would happen, so error out, close connection, and
+                    // return to listening 
+                    if(len+CMDLEN_SZ+1 > XBD_PACKET_SIZE_MAX){
+                        goto cmd_err;
+                    }
+
+                    //+1 to account for colon delimiter
+                    retval = recv_waitall(clnt_sock, xbh_cmd+CMDLEN_SZ, len+1,0);
+                    if(retval <= 0){ goto cmd_err; }
+
+                    //Validate if command, otherwise abort
+                    if(0 != memcmp(xbh_cmd+CMDLEN_SZ,":XBH",4)){
+                        goto cmd_err;
+                    }else{
+#ifdef DEBUG_XBHNET
+                        char cmd[XBH_COMMAND_LEN+1];
+                        cmd[XBH_COMMAND_LEN]='\0';
+                        memcpy(cmd, xbh_cmd+CMDLEN_SZ+1, XBH_COMMAND_LEN);
+                        DEBUG_OUT("Command: %s\n", cmd);
+                        DEBUG_OUT("Command Length: %d\n", len);
+#endif
+                    }
+                    len = XBH_handle(clnt_sock, xbh_cmd+CMDLEN_SZ+1,len,reply_buf);
+#endif
                     len = XBH_handle(clnt_sock, xbh_cmd, len, reply_buf);
                     retval = send(clnt_sock, reply_buf, len, 0);
                     COND_ERRMSG(retval < 0, "Failed to send XBH reply\n");
