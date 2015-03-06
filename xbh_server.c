@@ -97,9 +97,6 @@ static void xbhsrv_task(void *arg){/*{{{*/
             case XBHSRV_CMD: 
                 {
                     size_t len = 0;
-                    retval = recv(clnt_sock, xbh_cmd, XBD_PACKET_SIZE_MAX,0);
-                    if(retval <= 0){ goto cmd_err; }
-#if 0
                     retval = recv_waitall(clnt_sock, xbh_cmd, CMDLEN_SZ,0);
                     if(retval <= 0){ goto cmd_err; }
 
@@ -132,8 +129,6 @@ static void xbhsrv_task(void *arg){/*{{{*/
 #endif
                     }
                     len = XBH_handle(clnt_sock, xbh_cmd+CMDLEN_SZ+1,len,reply_buf);
-#endif
-                    len = XBH_handle(clnt_sock, xbh_cmd, len, reply_buf);
                     retval = send(clnt_sock, reply_buf, len, 0);
                     COND_ERRMSG(retval < 0, "Failed to send XBH reply\n");
 
