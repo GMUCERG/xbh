@@ -106,30 +106,38 @@ static void xbhsrv_task(void *arg){/*{{{*/
                     }
 
                     // If data length greater than XBD_PACKET_SIZE_MAX, then
-                    // overlow would happen, so error out, close connection, and
+                    // overflow would happen, so error out, close connection, and
                     // return to listening 
-                    if(len+CMDLEN_SZ+1 > XBD_PACKET_SIZE_MAX){
+                    if(len+CMDLEN_SZ > XBD_PACKET_SIZE_MAX){
                         goto cmd_err;
                     }
 
-                    //+1 to account for colon delimiter
-                    retval = recv_waitall(clnt_sock, xbh_cmd+CMDLEN_SZ, len+1,0);
+                    //msg format is [length, 4 hex digit decimal][8 byte command]
+                    retval = recv_waitall(clnt_sock, xbh_cmd+CMDLEN_SZ, len,0);
                     if(retval <= 0){ goto cmd_err; }
 
                     //Validate if command, otherwise abort
-                    if(0 != memcmp(xbh_cmd+CMDLEN_SZ,":XBH",4)){
+                    if(0 != memcmp(xbh_cmd+CMDLEN_SZ,"XBH",4)){
                         goto cmd_err;
                     }else{
 #ifdef DEBUG_XBHNET
                         char cmd[XBH_COMMAND_LEN+1];
                         cmd[XBH_COMMAND_LEN]='\0';
-                        memcpy(cmd, xbh_cmd+CMDLEN_SZ+1, XBH_COMMAND_LEN);
+                        memcpy(cmd, xbh_cmd+CMDLEN_SZ, XBH_COMMAND_LEN);
                         DEBUG_OUT("Command: %s\n", cmd);
                         DEBUG_OUT("Command Length: %d\n", len);
 #endif
                     }
-                    len = XBH_handle(clnt_sock, xbh_cmd+CMDLEN_SZ+1,len,reply_buf);
-                    retval = send(clnt_sock, reply_buf, len, 0);
+                    // Add 4 to reply buff address, since prepending length
+                    // later
+                    len = XBH_handle(clnt_sock, xbh_cmd+CMDLEN_SZ,len,reply_buf+4);
+
+                    reply_buf[0]=ntoa(len&0xf000 >> 12);
+                    reply_buf[1]=ntoa(len&0xf00 >> 8);
+                    reply_buf[2]=ntoa(len&0xf0 >> 4);
+                    reply_buf[3]=ntoa(len&0xf >> 0);
+
+                    retval = send(clnt_sock, reply_buf, len+4, 0);
                     COND_ERRMSG(retval < 0, "Failed to send XBH reply\n");
 
                     break;

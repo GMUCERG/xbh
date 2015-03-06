@@ -5,6 +5,7 @@
 #define XBH_PROTO_VER "05"
 #define XBD_PROTO_VER "04"
 
+// Total command length must be 32 bit aligned (4 bytes)
 #define XBH_CMD_DEF(X) "XBH"XBH_PROTO_VER#X,
 #define XBD_CMD_DEF(X) "XBD"XBD_PROTO_VER#X,
 #define GEN_XBH_CMD_ENUM(ENUM) XBH_CMD_##ENUM,
