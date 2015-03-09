@@ -165,35 +165,28 @@ static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
  * fails during flash download request to XBD
  */
 static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
-	uint32_t *cmd_ptr = (uint32_t*)(XBDCommandBuf+XBD_COMMAND_LEN);
-	uint32_t seqn=0,addr=0;
-    uint32_t byte_len = len/2; //byte length of len which is  ascii hex length in nybbles
+	uint8_t *cmd_ptr = XBDCommandBuf+XBD_COMMAND_LEN;
+	uint32_t seqn=0;
 	uint32_t len_remaining; //bytes left to send to XBD
     uint32_t fd_idx; // offset of packet to send to XBD
     uint32_t numbytes; // bytes written to XBD
+    uint32_t temp;
     int retval;
 
     memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_pfr], XBD_COMMAND_LEN);
 
-	// convert code load addr to binary (4 bytes)
-	for(uint32_t i=0; i < ADDRSIZE; ++i) {
-		addr |= ( (uint32_t)
-				 (htoi(input_buf[(i*2)])<<4 |
-				  htoi(input_buf[(i*2)+1]))
-				) <<((3-i)*8);
-	}
-
-    //XBD expects big endian
-	*cmd_ptr = htonl(addr);
+    // Copy address
+    memcpy(cmd_ptr, input_buf, ADDRSIZE);
+    cmd_ptr += ADDRSIZE;
 
 	//place LENG (in correct endianess)
-	++cmd_ptr; //ADDRSIZE == sizeof(uint32_t)
-	*cmd_ptr = htonl((uint32_t)(byte_len-ADDRSIZE));
+	temp =  htonl(len-ADDRSIZE);
+    memcpy(cmd_ptr, &temp, LENGSIZE);
+    cmd_ptr += LENGSIZE;
 
     XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE);
 	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
-
 	
 	if(0 != memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN) || 0 !=retval) {
         XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD!\n");
@@ -202,23 +195,21 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
         XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
     }
 
-
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_fdr], XBD_COMMAND_LEN);
-	len_remaining=(byte_len-ADDRSIZE);
+	len_remaining=(len-ADDRSIZE);
 	fd_idx = ADDRSIZE;
-	cmd_ptr = (uint32_t *)&XBDCommandBuf[XBD_COMMAND_LEN];
-    // Loop through, sending code in 128 byte packets + code
-    //
+	cmd_ptr = XBDCommandBuf+XBD_COMMAND_LEN;
+
 	while(len_remaining != 0) {
-        uint32_t i;
-		*cmd_ptr = htonl(seqn);
+        temp = htonl(seqn);
+        memcpy(cmd_ptr, &temp, SEQNSIZE);
+
 		++seqn;
-		for(i=0; i < (len_remaining<(XBD_PKT_PAYLOAD_MAX-SEQNSIZE)?len_remaining:(XBD_PKT_PAYLOAD_MAX-SEQNSIZE)) ; ++i) {
-			XBDCommandBuf[XBD_COMMAND_LEN+SEQNSIZE+i]=
-				htoi(input_buf[((fd_idx+i)*2)])<<4 |
-				htoi(input_buf[((fd_idx+i)*2)+1]);
-		}
-		numbytes=i;
+        numbytes = (len_remaining<(XBD_PKT_PAYLOAD_MAX-SEQNSIZE)) ? 
+                len_remaining : (XBD_PKT_PAYLOAD_MAX-SEQNSIZE);
+
+        memcpy(XBDCommandBuf+XBD_COMMAND_LEN+SEQNSIZE, input_buf+fd_idx, numbytes);
+
         XBH_DEBUG("Sending 'f'lash 'd'ownload 'r'equest to XBD\n");
 		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+SEQNSIZE+numbytes);
 		retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
@@ -243,7 +234,6 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
  * @return 0 if success, else fail
  */
 static int XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
-	uint8_t i;
     int retval;
 
 	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_tcr], XBD_COMMAND_LEN);
@@ -253,18 +243,12 @@ static int XBH_HandleTimingCalibrationRequest(uint8_t* p_answer) {/*{{{*/
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN+NUMBSIZE);
 
-
 	XBH_DEBUG("tcr\n");
 
 //	XBH_DEBUG("Answer: [%s]",((uint8_t*)XBDResponseBuf));
 
 	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_tco],XBD_COMMAND_LEN) && 0 == retval ) {	
-
-		for(i=0;i<4;++i)
-		{
-			p_answer[2*i] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]>>4);
-			p_answer[2*i+1] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]&0xf);
-		}
+        memcpy(p_answer, XBDResponseBuf+XBD_COMMAND_LEN, TIMESIZE);
 		return 0;
 	} else {
 		XBH_ERROR("Response wrong [%s\r\n",XBDResponseBuf);
@@ -308,21 +292,18 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)	{/*{{{*/
     uint64_t time = stop - start;
     uint32_t quot = time / g_syshz;
     uint32_t rem = time % g_syshz;
+    uint32_t syshz = htonl(g_syshz);
+
+    quot = htonl(quot);
+    rem = htonl(rem);
     //lldiv_t result = lldiv(time, g_syshz);
 
     //Format is seconds , timestamp % xbh_clk, xbh_clk
 
-	for(uint32_t i=0;i<8;++i) {
-		*p_answer++ = ntoa((quot>>(28-(4*i)))&0xf);
-	}
+    memcpy(p_answer, &quot, TIMESIZE);
+    memcpy(p_answer+TIMESIZE, &rem, TIMESIZE);
+    memcpy(p_answer+2*TIMESIZE, &syshz, TIMESIZE);
 
-	for(uint32_t i=0;i<8;++i) {
-		*p_answer++ = ntoa((rem>>(28-(4*i)))&0xf);
-	}
-
-	for(uint32_t i=0;i<8;++i) {
-		*p_answer++ = ntoa((g_syshz>>(28-(4*i)))&0xf);
-	}
 }/*}}}*/
 
 /**
@@ -365,40 +346,24 @@ static int XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/*{{{
  * fails during program download request to XBD
  */
 static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
-	uint32_t *cmd_ptr = (uint32_t*)(XBDCommandBuf+XBD_COMMAND_LEN);//+TYPESIZE+ADDRSIZE);
-	uint32_t seqn=0,temp=0;
-    uint32_t byte_len = len/2; //byte length of len which is  ascii hex length in nybbles
+	uint8_t *cmd_ptr = (XBDCommandBuf+XBD_COMMAND_LEN);//+TYPESIZE+ADDRSIZE);
+	uint32_t seqn=0;
 	uint32_t len_remaining; //bytes left to send to XBD
     uint32_t fd_idx; // offset of packet to send to XBD
     uint32_t numbytes; // bytes written to XBD
-    uint32_t i;
+    uint32_t temp;
     int retval;
 
     memcpy(XBDCommandBuf,XBD_CMD[XBD_CMD_ppr], XBD_COMMAND_LEN);
 
-	//place and endian-convert TYPE (4 bytes)
-	for(uint32_t i=0; i < TYPESIZE ; ++i) {
-		temp |= ( (uint32_t)
-				 (htoi(input_buf[(i*2)])<<4 |
-				  htoi(input_buf[(i*2)+1]))
-				) <<((3-i)*8);
-	}
-	*cmd_ptr = htonl(temp);
-	++cmd_ptr; //TYPESIZE == sizeof(uint32_t)
-	temp=0;
-	//place and endian-convert ADDR (4 bytes)
-	for(uint32_t i=0; i < ADDRSIZE ; ++i) {
-		temp |= ( (uint32_t)
-				 (htoi(input_buf[(TYPESIZE+i)*2])<<4 |
-				  htoi(input_buf[(TYPESIZE+i)*2+1]))
-				) <<((3-i)*8);
-	}
-	*cmd_ptr = htonl(temp);
-	++cmd_ptr; //ADDRSIZE == sizeof(uint32_t)
-	temp=0;
+    //Copy type and addr
+    memcpy(cmd_ptr, input_buf, TYPESIZE+ADDRSIZE);
+    cmd_ptr += TYPESIZE+ADDRSIZE;
 
 	//place LENG (in correct endianess)
-	*cmd_ptr =  htonl((uint32_t)(byte_len-ADDRSIZE-TYPESIZE));
+	temp =  htonl(len-ADDRSIZE-TYPESIZE);
+    memcpy(cmd_ptr, &temp, LENGSIZE);
+    cmd_ptr += LENGSIZE;
 
 
     XBH_DEBUG("Sending 'p'rogram 'p'arameters 'r'equest to XBD\n");
@@ -414,21 +379,21 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
 
 
     memcpy(XBDCommandBuf,XBD_CMD[XBD_CMD_pdr], XBD_COMMAND_LEN);
-	len_remaining=(byte_len-TYPESIZE-ADDRSIZE);
+	len_remaining=(len-TYPESIZE-ADDRSIZE);
 	fd_idx = ADDRSIZE+TYPESIZE;
-	cmd_ptr = (uint32_t *)&XBDCommandBuf[XBD_COMMAND_LEN];
+	cmd_ptr = XBDCommandBuf+XBD_COMMAND_LEN;
 	while(len_remaining != 0) {
-		*cmd_ptr =  htonl(seqn);
+        temp = htonl(seqn);
+        memcpy(cmd_ptr, &temp, SEQNSIZE);
+
 		++seqn;
-		for(i=0; i < (len_remaining<128?len_remaining:128) ; ++i)
-		{
-			XBDCommandBuf[XBD_COMMAND_LEN+SEQNSIZE+i]=
-				htoi(input_buf[((fd_idx+i)*2)])<<4 |
-				htoi(input_buf[((fd_idx+i)*2)+1]);
-		}
-		numbytes=i;
+        numbytes = (len_remaining<(XBD_PKT_PAYLOAD_MAX-SEQNSIZE)) ? 
+                len_remaining : (XBD_PKT_PAYLOAD_MAX-SEQNSIZE);
+
+        memcpy(XBDCommandBuf+XBD_COMMAND_LEN+SEQNSIZE, input_buf+fd_idx, numbytes);
+
         XBH_DEBUG("Sending 'p'rogram 'd'ownload 'r'equest to XBD\n");
-		xbdSend(XBDCommandBuf, byte_len=XBD_COMMAND_LEN+SEQNSIZE+numbytes);
+		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+SEQNSIZE+numbytes);
 		retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 
 		if(0 == memcmp(XBD_CMD[XBD_CMD_pdo],XBDResponseBuf,XBH_COMMAND_LEN) && 0 == retval) {
@@ -503,12 +468,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 
 
 	if( 0 == retval && ret==0 && 0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_rdo],XBD_COMMAND_LEN)) {	
-		for(int32_t i=state.recmp_datanext-1;i>=0; --i)
-		{
-			p_answer[2*i] = ntoa(p_answer[i]>>4);
-			p_answer[2*i+1] = ntoa(p_answer[i]&0xf);
-		}
-		return state.recmp_datanext*2;
+		return state.recmp_datanext;
 	} else {
         XBH_DEBUG("'r'esult 'd'ata 'r'equest to XBD failed\n");
 		return -(0x80+ret);
@@ -653,10 +613,8 @@ int XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
 	if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_suo],XBD_COMMAND_LEN) && 0 == retval) {	
         XBH_DEBUG("'s'tack 'u'sage 'o'kay received from XBD\n");
 		//Copy to Stack Usage information for transmission to the XBS
-		for(uint32_t i=0;i<4;++i) {
-			p_answer[2*i] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]>>4);
-			p_answer[2*i+1] = ntoa(XBDResponseBuf[XBD_COMMAND_LEN+i]&0xf);
-		}
+        memcpy(p_answer, XBDResponseBuf+XBD_COMMAND_LEN, ADDRSIZE);
+
 		return 0;
 	} else {
         XBH_DEBUG("'s'tack 'u'sage 'o'kay not received from XBD\n");
