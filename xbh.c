@@ -1,4 +1,5 @@
 /**
+ *
  * @file
  * XBH server firmware for connected TIVA-C w/ LWIP
  * (C) 2014, John Pham, George Mason University <jpham4@gmu.edu>
@@ -165,24 +166,14 @@ static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
  * fails during flash download request to XBD
  */
 static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
-	uint8_t *cmd_ptr = XBDCommandBuf+XBD_COMMAND_LEN;
-	uint32_t seqn=0;
-	uint32_t len_remaining; //bytes left to send to XBD
-    uint32_t fd_idx; // offset of packet to send to XBD
-    uint32_t numbytes; // bytes written to XBD
-    uint32_t temp;
+    const uint32_t addr = *(uint32_t*)input_buf;
+    struct xbd_multipkt_state state;
+    size_t size;
     int retval;
 
-    memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_pfr], XBD_COMMAND_LEN);
 
-    // Copy address
-    memcpy(cmd_ptr, input_buf, ADDRSIZE);
-    cmd_ptr += ADDRSIZE;
-
-	//place LENG (in correct endianess)
-	temp =  htonl(len-ADDRSIZE);
-    memcpy(cmd_ptr, &temp, LENGSIZE);
-    cmd_ptr += LENGSIZE;
+    XBD_genInitialMultiPacket(&state, input_buf+ADDRSIZE, len-ADDRSIZE, XBDCommandBuf,
+            XBD_CMD[XBD_CMD_pfr], addr, NO_MP_TYPE);
 
     XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE);
@@ -195,29 +186,14 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
         XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
     }
 
-	memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_fdr], XBD_COMMAND_LEN);
-	len_remaining=(len-ADDRSIZE);
-	fd_idx = ADDRSIZE;
-	cmd_ptr = XBDCommandBuf+XBD_COMMAND_LEN;
-
-	while(len_remaining != 0) {
-        temp = htonl(seqn);
-        memcpy(cmd_ptr, &temp, SEQNSIZE);
-
-		++seqn;
-        numbytes = (len_remaining<(XBD_PKT_PAYLOAD_MAX-SEQNSIZE)) ? 
-                len_remaining : (XBD_PKT_PAYLOAD_MAX-SEQNSIZE);
-
-        memcpy(XBDCommandBuf+XBD_COMMAND_LEN+SEQNSIZE, input_buf+fd_idx, numbytes);
-
+	while(state.dataleft != 0) {
+        size = XBD_genSucessiveMultiPacket(&state, XBDCommandBuf, XBD_PKT_PAYLOAD_MAX,  XBD_CMD[XBD_CMD_fdr]);
         XBH_DEBUG("Sending 'f'lash 'd'ownload 'r'equest to XBD\n");
-		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+SEQNSIZE+numbytes);
+		xbdSend(XBDCommandBuf, size);
 		retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 				
 		if(0 == memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN) && 0 == retval) {
             XBH_DEBUG("Received 'p'rogram 'f'lash 'o'kay from XBD\n");
-			len_remaining-=numbytes;
-			fd_idx+=numbytes;
 		} else {
             XBH_DEBUG("Error: Did not receive 'p'rogram 'f'lash 'o'kay from XBD\n");
 			return 2;
@@ -346,31 +322,19 @@ static int XBH_HandleSetCommunicationRequest(const uint8_t requestedComm) {/*{{{
  * fails during program download request to XBD
  */
 static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
-	uint8_t *cmd_ptr = (XBDCommandBuf+XBD_COMMAND_LEN);//+TYPESIZE+ADDRSIZE);
-	uint32_t seqn=0;
-	uint32_t len_remaining; //bytes left to send to XBD
-    uint32_t fd_idx; // offset of packet to send to XBD
-    uint32_t numbytes; // bytes written to XBD
-    uint32_t temp;
+    const uint32_t addr = *(uint32_t*)input_buf;
+    const uint32_t type = *(uint32_t*)input_buf+ADDRSIZE;
+    struct xbd_multipkt_state state;
+    size_t size;
     int retval;
 
-    memcpy(XBDCommandBuf,XBD_CMD[XBD_CMD_ppr], XBD_COMMAND_LEN);
-
-    //Copy type and addr
-    memcpy(cmd_ptr, input_buf, TYPESIZE+ADDRSIZE);
-    cmd_ptr += TYPESIZE+ADDRSIZE;
-
-	//place LENG (in correct endianess)
-	temp =  htonl(len-ADDRSIZE-TYPESIZE);
-    memcpy(cmd_ptr, &temp, LENGSIZE);
-    cmd_ptr += LENGSIZE;
-
+    XBD_genInitialMultiPacket(&state, input_buf+ADDRSIZE+TYPESIZE, len-ADDRSIZE, XBDCommandBuf,
+            XBD_CMD[XBD_CMD_ppr], addr, type);
 
     XBH_DEBUG("Sending 'p'rogram 'p'arameters 'r'equest to XBD\n");
 	xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+TYPESIZE+ADDRSIZE+LENGSIZE);
 	retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 
-	
 	if(0 != memcmp(XBD_CMD[XBD_CMD_ppo],XBDResponseBuf,XBH_COMMAND_LEN) || retval != 0) {
         XBH_DEBUG("Did not receive 'p'rogram 'p'arameters 'o'kay from XBD\n");
 		return 1;
@@ -378,28 +342,15 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
     XBH_DEBUG("Received 'p'rogram 'p'arameters 'o'kay from XBD\n");
 
 
-    memcpy(XBDCommandBuf,XBD_CMD[XBD_CMD_pdr], XBD_COMMAND_LEN);
-	len_remaining=(len-TYPESIZE-ADDRSIZE);
-	fd_idx = ADDRSIZE+TYPESIZE;
-	cmd_ptr = XBDCommandBuf+XBD_COMMAND_LEN;
-	while(len_remaining != 0) {
-        temp = htonl(seqn);
-        memcpy(cmd_ptr, &temp, SEQNSIZE);
-
-		++seqn;
-        numbytes = (len_remaining<(XBD_PKT_PAYLOAD_MAX-SEQNSIZE)) ? 
-                len_remaining : (XBD_PKT_PAYLOAD_MAX-SEQNSIZE);
-
-        memcpy(XBDCommandBuf+XBD_COMMAND_LEN+SEQNSIZE, input_buf+fd_idx, numbytes);
+	while(state.dataleft != 0) {
+        size = XBD_genSucessiveMultiPacket(&state, XBDCommandBuf, XBD_PKT_PAYLOAD_MAX,  XBD_CMD[XBD_CMD_fdr]);
 
         XBH_DEBUG("Sending 'p'rogram 'd'ownload 'r'equest to XBD\n");
-		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+SEQNSIZE+numbytes);
+		xbdSend(XBDCommandBuf, size);
 		retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 
 		if(0 == memcmp(XBD_CMD[XBD_CMD_pdo],XBDResponseBuf,XBH_COMMAND_LEN) && 0 == retval) {
             XBH_DEBUG("Received 'p'rogram 'd'ownload 'o'kay from XBD\n");
-			len_remaining-=numbytes;
-			fd_idx+=numbytes;
 		} else {
             XBH_DEBUG("Did not recieve 'p'rogram 'd'ownload 'o'kay from XBD\n");
 			return 2;
@@ -464,11 +415,11 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 		ret=XBD_recSucessiveMultiPacket(&state, XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE, p_answer, XBH_ANSWERLENG_MAX-XBH_COMMAND_LEN, XBD_CMD[XBD_CMD_rdo]);
 	//	XBH_DEBUG("2.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
 	//	XBH_DEBUG("ret: %\r\n",ret);
-	} while(state.recmp_dataleft != 0 && 0 == ret && 0 == retval); 
+	} while(state.dataleft != 0 && 0 == ret && 0 == retval); 
 
 
 	if( 0 == retval && ret==0 && 0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_rdo],XBD_COMMAND_LEN)) {	
-		return state.recmp_datanext;
+		return state.datanext;
 	} else {
         XBH_DEBUG("'r'esult 'd'ata 'r'equest to XBD failed\n");
 		return -(0x80+ret);
@@ -515,7 +466,6 @@ static uint8_t XBH_HandleStartApplicationRequest() {/*{{{*/
         XBH_DEBUG("Sending 's'tart 'a'pplication 'r'equest to XBD\n");
 		memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sar], XBD_COMMAND_LEN);
 		xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-        //TODO Replace vTaskDelay w/ ARM-specific function
 		vTaskDelay(100);
 
         XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
@@ -686,7 +636,7 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 		if(0 == ret) {
             XBH_DEBUG("'t'iming 'c'alibration 'o'kay sent\n");
             memcpy(reply, XBH_CMD[XBH_CMD_tco], XBH_COMMAND_LEN);
-			return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
+			return (uint16_t) XBH_COMMAND_LEN+TIMESIZE;
 		} else {
             XBH_DEBUG("'t'iming 'c'alibration 'f'ail sent\n");
             memcpy(reply, XBH_CMD[XBH_CMD_tcf], XBH_COMMAND_LEN);
