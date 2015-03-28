@@ -9,6 +9,6 @@
 #define TCP_XBH_PORT 22595
 #endif
 
-#define DEBUG_XBHNET
+//#define DEBUG_XBHNET
 
 #endif

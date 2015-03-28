@@ -42,7 +42,6 @@ void start_xbhserver(void){/*{{{*/
     LOOP_ERRMSG(retval != pdPASS, "Could not create xbh server task\n");
 }/*}}}*/
 
-
 // Define these outside XBH thread so they sit outside stack space
 uint8_t xbh_cmd[XBH_PACKET_SIZE_MAX];
 uint8_t reply_buf[XBH_ANSWERLENG_MAX];

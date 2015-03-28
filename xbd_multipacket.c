@@ -27,6 +27,7 @@ size_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const void *s
 	*((uint32_t*) ((uint8_t*)dstbuf + offset)) = htonl(srclen);
 	offset+=LENGSIZE;
 
+    state->type = type;
     state->tgt_data = srcdata;
 
 	return offset;

@@ -11,16 +11,18 @@ include ${TIVA_MAKE_ROOT}/tiva.make
 include ${FREERTOS_MAKE_ROOT}/freertos.make
 include ${LWIP_MAKE_ROOT}/lwip.make
 
-CFLAGS +=-std=gnu99 -DXBH_REVISION='"$(shell git rev-parse HEAD)"' -Wall
+CFLAGS +=-std=c11 -DXBH_REVISION='"$(shell git rev-parse HEAD)"' -Wall
 
 ifeq (${DEBUG}, 1)
 	CFLAGS+=-DDEBUG
 	CFLAGS+=-DDISABLE_WATCHDOG
-	#CFLAGS+=-DDEBUG_STACK
+#	CFLAGS+=-DDEBUG_XBHNET
+#	CFLAGS+=-DDEBUG_STACK
 	#CFLAGS+=-DLWIP_DEBUG
 	#CFLAGS+=-ggdb3 -Og
 	CFLAGS+=-ggdb3 -O0
 else
+	CFLAGS+=-DDISABLE_WATCHDOG
 	CFLAGS += -Os -ggdb3 -flto=8 -fuse-linker-plugin # -ffat-lto-objects
 	CFLAGS += -DTARGET_IS_TM4C129_RA0
 endif
