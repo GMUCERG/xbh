@@ -13,7 +13,7 @@ enum XBD_COMM_PROT{COMM_I2C, COMM_UART, COMM_UART_OVERDRIVE, COMM_ETHERNET};
 #define TIMESIZE sizeof(uint32_t)
 #define NUMBSIZE sizeof(uint32_t)
 #define REVISIZE 7	//GIT revisions are 40 digit hex numbers, only use first 7 
-#define CRC16SIZE 2
+#define CRC16SIZE sizeof(uint16_t)
 
 //TODO: XXX Make sure these buffer sizes do not overflow 
 //

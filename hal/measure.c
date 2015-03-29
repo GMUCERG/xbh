@@ -78,7 +78,7 @@ static void exec_timer_setup(void){/*{{{*/
 /**
  * Starts execution timer, enabling interrupts
  */
-static void exec_timer_start(void){/*{{{*/
+void exec_timer_start(void){/*{{{*/
     wrap_cnt = 0;
     t_start= 0;
     t_stop= 0;
@@ -362,9 +362,3 @@ uint64_t measure_get_start(void){
     return time;
 }
 
-/**
- * Kicks off only timer and not i2c power measurements
- */
-void timer_cal_start(void){
-    exec_timer_start();
-}

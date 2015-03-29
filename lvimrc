@@ -1,5 +1,21 @@
 let g:easytags_auto_update = 0
 let g:easytags_file="/home/john/thesis/xbh/tags"
-set pa=.,./deps/lwip/src/include,desp/lwip_port/tiva-tm4c129/include
 "set fileformat=unix
 set modifiable
+
+let xbhdir="/home/john/thesis/xbh/"
+
+let g:marching_include_paths = [
+\ xbhdir."deps/tiva-c_driverlib",
+\ xbhdir."deps/tiva-c_driverlib/inc",
+\ xbhdir."deps/FreeRTOS/FreeRTOS/Source",
+\ xbhdir."deps/FreeRTOS/FreeRTOS/Source/include",
+\ xbhdir."deps/FreeRTOS/FreeRTOS/Source/portable/GCC/ARM_CM4F",
+\ xbhdir."deps/lwip/src/include",
+\ xbhdir."deps/lwip_port/tiva-tm4c129/include ",
+\ "/home/john/.opt/x-tools-linaro/arm-stellaris-eabi/lib/gcc/arm-stellaris-eabi/4.9.3/include",
+\ "/home/john/.opt/x-tools-linaro/arm-stellaris-eabi/lib/gcc/arm-stellaris-eabi/4.9.3/include-fixed",
+\ "/home/john/.opt/x-tools-linaro/arm-stellaris-eabi/lib/gcc/arm-stellaris-eabi/4.9.3/../../../../arm-stellaris-eabi/include",
+\ "/home/john/.opt/x-tools-linaro/arm-stellaris-eabi/arm-stellaris-eabi/sysroot/usr/include"
+\]
+

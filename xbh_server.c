@@ -42,7 +42,6 @@ void start_xbhserver(void){/*{{{*/
     LOOP_ERRMSG(retval != pdPASS, "Could not create xbh server task\n");
 }/*}}}*/
 
-
 // Define these outside XBH thread so they sit outside stack space
 uint8_t xbh_cmd[XBH_PACKET_SIZE_MAX];
 uint8_t reply_buf[XBH_ANSWERLENG_MAX];
@@ -107,7 +106,7 @@ static void xbhsrv_task(void *arg){/*{{{*/
                     // If data length greater than XBD_PACKET_SIZE_MAX, then
                     // overlow would happen, so error out, close connection, and
                     // return to listening 
-                    if(len+CMDLEN_SZ > XBD_PACKET_SIZE_MAX){
+                    if(len+CMDLEN_SZ > XBH_PACKET_SIZE_MAX){
                         goto cmd_err;
                     }
 
@@ -136,18 +135,18 @@ static void xbhsrv_task(void *arg){/*{{{*/
                     reply_buf[2]=ntoa((len&0xf0  ) >> 4);
                     reply_buf[3]=ntoa((len&0xf   ) >> 0);
 
-                    retval = send(clnt_sock, reply_buf, len+4, 0);
-
-                    len = XBH_handle(clnt_sock, xbh_cmd+CMDLEN_SZ,len,reply_buf);
-
-                    retval = 0;
-                    do{
-                        retval = send(clnt_sock, reply_buf, len-retval, 0);
-                        if(retval < 0){
-                            uart_printf("Failed to send XBH reply\n");
-                            break;
-                        }
-                    }while(len - retval > 0);
+                    {
+                        size_t sent = 0;
+                        len += 4;
+                        do{
+                            retval = send(clnt_sock, reply_buf+sent, len-sent, 0);
+                            if(retval < 0){
+                                uart_printf("Failed to send XBH reply\n");
+                                break;
+                            }
+                            sent -= retval;
+                        }while(sent < len);
+                    }
 
                     break;
 cmd_err:

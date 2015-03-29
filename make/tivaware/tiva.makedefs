@@ -104,7 +104,7 @@ CFLAGS+=-mthumb             \
        -ffunction-sections \
        -fdata-sections     \
        -MD                 \
-       -std=c99            \
+       -std=c11            \
        -Wall               \
        -pedantic           \
        -DPART_${PART}      
