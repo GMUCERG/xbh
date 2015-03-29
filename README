@@ -1,3 +1,9 @@
+Firmware image for TM4C1294 - Connected Tiva XBH
+
+John Pham <jhnphm@gmail.com>
+
+Based off of:
+
 This is xbh firmware for an atmega 644.
 
 It is based on

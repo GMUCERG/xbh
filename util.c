@@ -13,8 +13,6 @@
 #include "util.h"
 
 //LTOA/*{{{*/
-//TODO: Make version for large unsigned ints
-
 /*
 **  LTOA.C
 **
