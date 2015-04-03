@@ -89,7 +89,7 @@ size_t XBH_HandleRevisionRequest(uint8_t* p_answer){/*{{{*/
         p_answer[XBH_REV_DIGITS+1+2*i+1]=ntoa(mac_addr[i]&0xf);
     }
     // Add Null terminator
-    p_answer[XBH_REV_DIGITS+1+2*6+1]=0;
+    p_answer[XBH_REV_DIGITS+1+2*6]=0;
     return XBH_REV_DIGITS+1+2*6+1;
 }/*}}}*/
 
@@ -564,7 +564,7 @@ int XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
     if(0 == memcmp(XBDResponseBuf,XBD_CMD[XBD_CMD_suo],XBD_COMMAND_LEN) && 0 == retval) {   
         XBH_DEBUG("'s'tack 'u'sage 'o'kay received from XBD\n");
         //Copy to Stack Usage information for transmission to the XBS
-        memcpy(p_answer, XBDResponseBuf+XBD_COMMAND_LEN, ADDRSIZE);
+        memcpy(p_answer, XBDResponseBuf+XBD_COMMAND_LEN, NUMBSIZE);
 
         return 0;
     } else {
@@ -798,7 +798,7 @@ if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         if(0 == ret) {
             XBH_DEBUG("'s'tack 'u'sage 'o'kay sent\n");
             memcpy(reply, XBH_CMD[XBH_CMD_suo], XBH_COMMAND_LEN);
-            return (uint16_t) XBH_COMMAND_LEN+2*NUMBSIZE;
+            return (uint16_t) XBH_COMMAND_LEN+NUMBSIZE;
         } else {
             XBH_DEBUG("'s'tack 'u'sage 'f'ail sent\n");
             memcpy(reply, XBH_CMD[XBH_CMD_suf], XBH_COMMAND_LEN);
