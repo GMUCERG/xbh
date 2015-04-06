@@ -22,7 +22,7 @@ ifeq (${DEBUG}, 1)
 	#CFLAGS+=-ggdb3 -Og
 	CFLAGS+=-ggdb3 -O0
 else
-	CFLAGS+=-DDISABLE_WATCHDOG
+#	CFLAGS+=-DDISABLE_WATCHDOG
 	CFLAGS += -Os -ggdb3 -flto=8 -fuse-linker-plugin # -ffat-lto-objects
 	CFLAGS += -DTARGET_IS_TM4C129_RA0
 endif
