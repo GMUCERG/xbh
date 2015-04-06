@@ -156,7 +156,7 @@
  * MEM_SIZE: the size of the heap memory. If the application will send
  * a lot of data that needs to be copied, this should be set high.
  */
-#define MEM_SIZE                        (64*1024)
+#define MEM_SIZE                        (32*1024)
 
 /**
  * MEMP_SEPARATE_POOLS: if defined to 1, each pool is placed in its own array.
@@ -287,7 +287,7 @@
  * MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP segments.
  * (requires the LWIP_TCP option)
  */
-#define MEMP_NUM_TCP_SEG                256
+#define MEMP_NUM_TCP_SEG                16
 
 /**
  * MEMP_NUM_REASSDATA: the number of IP packets simultaneously queued for
@@ -447,7 +447,7 @@
 /**
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool. 
  */
-#define PBUF_POOL_SIZE                  64
+#define PBUF_POOL_SIZE                  16
 
 /** MEMP_NUM_API_MSG: the number of concurrently active calls to various
  * socket, netconn, and tcpip functions
