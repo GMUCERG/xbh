@@ -24,9 +24,9 @@ size_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const void *s
 
 size_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, void *dstbuf, uint32_t dstlenmax, const char *cmd_code);
 
-size_t XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, const char *cmd_code, bool hastype, bool hasaddr);
+int XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, const char *cmd_code, bool hastype, bool hasaddr);
 
-size_t XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, void *dstbuf, uint32_t dstlenmax, const char *code);
+int XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, void *dstbuf, uint32_t dstlenmax, const char *code);
 
 
 #endif /* _XBD_MULTIPACKET_H */
