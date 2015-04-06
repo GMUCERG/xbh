@@ -1,7 +1,6 @@
 let g:easytags_auto_update = 0
 let g:easytags_file="/home/john/thesis/xbh/tags"
 "set fileformat=unix
-set modifiable
 
 let xbhdir="/home/john/thesis/xbh/"
 
