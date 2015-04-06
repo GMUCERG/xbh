@@ -172,11 +172,11 @@ static int XBH_HandleCodeDownloadRequest(const uint8_t *input_buf, uint32_t len)
     int retval;
 
 
-    XBD_genInitialMultiPacket(&state, input_buf+ADDRSIZE, len-ADDRSIZE, XBDCommandBuf,
+    size = XBD_genInitialMultiPacket(&state, input_buf+ADDRSIZE, len-ADDRSIZE, XBDCommandBuf,
             XBD_CMD[XBD_CMD_pfr], addr, NO_MP_TYPE);
 
     XBH_DEBUG( "Sending 'p'rogram 'f'lash 'r'equest to XBD\n");
-    xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+ADDRSIZE+LENGSIZE);
+    xbdSend(XBDCommandBuf, size);
     retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
     
     if(0 != memcmp(XBD_CMD[XBD_CMD_pfo],XBDResponseBuf,XBH_COMMAND_LEN) || 0 !=retval) {
@@ -328,11 +328,11 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
     size_t size;
     int retval;
 
-    XBD_genInitialMultiPacket(&state, input_buf+ADDRSIZE+TYPESIZE, len-ADDRSIZE, XBDCommandBuf,
+    size = XBD_genInitialMultiPacket(&state, input_buf+ADDRSIZE+TYPESIZE, len-ADDRSIZE, XBDCommandBuf,
             XBD_CMD[XBD_CMD_ppr], addr, type);
 
     XBH_DEBUG("Sending 'p'rogram 'p'arameters 'r'equest to XBD\n");
-    xbdSend(XBDCommandBuf, XBD_COMMAND_LEN+TYPESIZE+ADDRSIZE+LENGSIZE);
+    xbdSend(XBDCommandBuf, size);
     retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
 
     if(0 != memcmp(XBD_CMD[XBD_CMD_ppo],XBDResponseBuf,XBH_COMMAND_LEN) || retval != 0) {
@@ -373,14 +373,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
 
     memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_urr], XBD_COMMAND_LEN);
 
-/*  for(uint8_t u=0;u<XBD_COMMAND_LEN;++u)
-    {
-            XBH_DEBUG("%x ",XBDCommandBuf[u]);
-    }
-    XBH_DEBUG("\r\n");
-*/
     xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-//  vTaskDelay(100);
 
 
     retval = xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
@@ -389,32 +382,17 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
         XBH_DEBUG("Received 'u'pload 'r'esults 'o'kay from XBD\n");
     }else{
         XBH_DEBUG("Error with 'u'pload 'r'esults 'o'kay from XBD\n");
+        return -(ret);
     }
         
 
-
-/*
-    uint8_t XBDResponseBuf[XBD_ANSWERLENG_MAX];
-    uint8_t XBHMultiPacketDecodeBuf[XBD_ANSWERLENG_MAX];
-
-    for(uint8_t u=0;u<XBD_RESULTLEN_EBASH;++u)
-    {
-            XBH_DEBUG("%x ",XBDResponseBuf[u]);
-    }
-    XBH_DEBUG("\r\n");
-*/
 
     memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_rdr], XBD_COMMAND_LEN);
     do {
         XBH_DEBUG("Sending 'r'esult 'd'ata 'r'equest to XBD\n");
         xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-//      vTaskDelay(100);
-
-    //  XBH_DEBUG("1.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
         retval = xbdReceive(XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE);
         ret=XBD_recSucessiveMultiPacket(&state, XBDResponseBuf, XBD_ANSWERLENG_MAX-CRC16SIZE, p_answer, XBH_ANSWERLENG_MAX-XBH_COMMAND_LEN, XBD_CMD[XBD_CMD_rdo]);
-    //  XBH_DEBUG("2.xbd_recmp_dataleft: %\r\n",xbd_recmp_dataleft);
-    //  XBH_DEBUG("ret: %\r\n",ret);
     } while(state.dataleft != 0 && 0 == ret && 0 == retval); 
 
 
@@ -422,7 +400,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
         return state.datanext;
     } else {
         XBH_DEBUG("'r'esult 'd'ata 'r'equest to XBD failed\n");
-        return -(0x80+ret);
+        return -(ret);
     }
 }/*}}}*/
 
@@ -723,10 +701,10 @@ if ( (0 == memcmp(XBH_CMD[XBH_CMD_urr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
             memcpy(reply, XBH_CMD[XBH_CMD_urf], XBH_COMMAND_LEN);
             // Append return value of XBH_HandleUploadResultsRequest 
             
-            // TODO Find what return value actually means
-            reply[XBH_COMMAND_LEN]= ntoa(ret>>4);
-            reply[XBH_COMMAND_LEN+1]= ntoa(ret&0xf);
-            return XBH_COMMAND_LEN+2;
+            //reply[XBH_COMMAND_LEN]=ret;
+            //return XBH_COMMAND_LEN+1;
+            //Just discard return value, problem shouldn't happen normally
+            return XBH_COMMAND_LEN;
         }
     }/*}}}*/
 
