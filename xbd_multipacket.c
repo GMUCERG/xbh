@@ -32,7 +32,8 @@ size_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const void *s
 
 	return offset;
 }
-size_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, void* dstbuf, uint32_t dstlenmax, const char *cmd_code) {
+size_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, void*
+        dstbuf, size_t dstlenmax, const char *cmd_code) {
 	uint32_t offset=0;
 	uint32_t cpylen;
 
@@ -60,7 +61,8 @@ size_t XBD_genSucessiveMultiPacket(struct xbd_multipkt_state *state, void* dstbu
 	return offset;
 }
 
-int XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, const char *cmd_code, bool hastype, bool hasaddr) {
+int XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const void
+        *recdata, size_t reclen, const char *cmd_code, bool hastype, bool hasaddr) {
 	uint32_t offset=0;
 
 	state->seqn=0;
@@ -86,7 +88,9 @@ int XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const void *recd
 		offset+=ADDRSIZE;
 		if(offset > reclen)
 			return 2;	//rec'd packet too short
-	}
+	}else{
+        state->addr = 0;
+    }
 
 	state->dataleft=ntohl(*((uint32_t*) ((uint8_t *)recdata + offset)));
 	offset+=LENGSIZE;
@@ -96,7 +100,8 @@ int XBD_recInitialMultiPacket(struct xbd_multipkt_state *state, const void *recd
 	return 0;
 }
 
-int XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const void *recdata, uint32_t reclen, void *dstbuf, uint32_t dstlenmax, const char *code) {
+int XBD_recSucessiveMultiPacket(struct xbd_multipkt_state *state, const void
+        *recdata, size_t reclen, void *dstbuf, size_t dstlenmax, const char *code) {
 	uint32_t offset=0;
 	uint32_t cpylen;
 

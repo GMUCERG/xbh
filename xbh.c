@@ -366,8 +366,8 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
  * failure
  */
 static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
+    int ret;
     int retval;
-    uint8_t ret;
     struct xbd_multipkt_state state;
     XBH_DEBUG("Sending 'u'pload 'r'esults 'r'equest to XBD\n");
 
@@ -382,7 +382,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
         XBH_DEBUG("Received 'u'pload 'r'esults 'o'kay from XBD\n");
     }else{
         XBH_DEBUG("Error with 'u'pload 'r'esults 'o'kay from XBD\n");
-        return -(ret);
+        return -(retval);
     }
         
 
@@ -400,7 +400,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
         return state.datanext;
     } else {
         XBH_DEBUG("'r'esult 'd'ata 'r'equest to XBD failed\n");
-        return -(ret);
+        return -(retval);
     }
 }/*}}}*/
 
