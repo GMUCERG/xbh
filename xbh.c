@@ -328,7 +328,8 @@ static int XBH_HandleDownloadParametersRequest(const uint8_t *input_buf, uint32_
     size_t size;
     int retval;
 
-    size = XBD_genInitialMultiPacket(&state, input_buf+ADDRSIZE+TYPESIZE, len-ADDRSIZE, XBDCommandBuf,
+    size = XBD_genInitialMultiPacket(&state, input_buf+ADDRSIZE+TYPESIZE,
+            len-ADDRSIZE-TYPESIZE, XBDCommandBuf,
             XBD_CMD[XBD_CMD_ppr], addr, type);
 
     XBH_DEBUG("Sending 'p'rogram 'p'arameters 'r'equest to XBD\n");

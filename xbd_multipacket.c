@@ -6,6 +6,7 @@
 
 size_t XBD_genInitialMultiPacket(struct xbd_multipkt_state *state, const void *srcdata, size_t srclen, void *dstbuf, const char *cmd_code, uint32_t addr, uint32_t type) {
 	size_t offset=0;
+    state->addr = addr;
 	state->seqn=0;
 	state->datanext=0;
 	state->dataleft=srclen;
