@@ -1,0 +1,16 @@
+-nostdinc 
+-DDEBUG
+-DPART_TM4C129XNCZAD -I/home/john/thesis/xbh
+-Ideps/tiva-c_driverlib
+-Ideps/tiva-c_driverlib/inc
+-Ideps/FreeRTOS/FreeRTOS/Source
+-Ideps/FreeRTOS/FreeRTOS/Source/include
+-Ideps/FreeRTOS/FreeRTOS/Source/portable/GCC/ARM_CM4F
+-Ideps/lwip/src/include
+-Ideps/lwip_port/tiva-tm4c129/include 
+
+-I/home/john/.opt/x-tools-linaro/arm-stellaris-eabi/lib/gcc/arm-stellaris-eabi/4.9.3/include
+-I/home/john/.opt/x-tools-linaro/arm-stellaris-eabi/lib/gcc/arm-stellaris-eabi/4.9.3/include-fixed
+-I/home/john/.opt/x-tools-linaro/arm-stellaris-eabi/lib/gcc/arm-stellaris-eabi/4.9.3/../../../../arm-stellaris-eabi/include
+-I/home/john/.opt/x-tools-linaro/arm-stellaris-eabi/arm-stellaris-eabi/sysroot/usr/include
+
