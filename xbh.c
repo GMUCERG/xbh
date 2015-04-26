@@ -446,7 +446,7 @@ static uint8_t XBH_HandleStartApplicationRequest() {/*{{{*/
         XBH_DEBUG("Sending 's'tart 'a'pplication 'r'equest to XBD\n");
         memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sar], XBD_COMMAND_LEN);
         xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-        vTaskDelay(100);
+        vTaskDelay(500);
 
         XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
         memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir], XBD_COMMAND_LEN);
@@ -487,7 +487,7 @@ static uint8_t XBH_HandleStartBootloaderRequest() {/*{{{*/
         memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_sbr], XBD_COMMAND_LEN);
         xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
 
-        vTaskDelay(100);
+        vTaskDelay(500);
 
         memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_vir], XBD_COMMAND_LEN);
         XBH_DEBUG("Sending 'v'ersion 'i'nformation 'r'equest to XBD\n");
