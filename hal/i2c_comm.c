@@ -2,6 +2,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "FreeRTOSConfig.h"
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include <driverlib/rom.h>
 #include <driverlib/rom_map.h>
 
@@ -50,9 +54,10 @@ void i2c_setup(uint32_t base, bool highspeed){
  * @param addr Address of I2C device to write to
  * @param data Data to write
  * @param len Length of data
+ * @param yieldable Can task yield to other tasks while waiting
  * @return 0 if success, else value of I2CMasterErr
  */
-int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
+int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len, bool yieldable){
     size_t offset = 0;
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
@@ -64,14 +69,24 @@ int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     MAP_I2CMasterBurstLengthSet(base, MAX_FIFO_BURST);
     for(offset = 0; offset < (len-1)/MAX_FIFO_BURST; offset++){
         for(size_t i = 0; i < MAX_FIFO_BURST; ++i){
-            I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
+            if(yieldable){
+                while(!I2CFIFODataPutNonBlocking(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i])){
+                    vTaskDelay(1);
+                }
+            }else{
+                I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
+            }
         }
         if( 0 == offset){
             I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_START);
         }else{
             I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_CONT);
         }
-        while(I2CMasterBusy(base));
+        while(MAP_I2CMasterBusy(base)){
+            if(yieldable){
+                vTaskDelay(1);
+            }
+        }
         err = I2CMasterErr(base);
         if(err != I2C_MASTER_ERR_NONE){
             goto error;
@@ -79,19 +94,33 @@ int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len){
     }
     MAP_I2CMasterBurstLengthSet(base, final_burst);
     for(size_t i = 0; i < final_burst; ++i){
-        I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
+        if(yieldable){
+            while(!I2CFIFODataPutNonBlocking(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i])){
+                vTaskDelay(1);
+            }
+        }else{
+            I2CFIFODataPut(base, ((uint8_t *)data)[offset*MAX_FIFO_BURST+i]);
+        }
     }
     if(len <= MAX_FIFO_BURST){
         I2CMasterControl(base, I2C_MASTER_CMD_FIFO_SINGLE_SEND);
     }else{
         I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_SEND_FINISH);
     }
-    while(MAP_I2CMasterBusy(base));
+    while(MAP_I2CMasterBusy(base)){
+        if(yieldable){
+            vTaskDelay(1);
+        }
+    }
     err = MAP_I2CMasterErr(base);
     if(err != I2C_MASTER_ERR_NONE){
         goto error;
     }
-    while(!(MAP_I2CFIFOStatus(base) & I2C_FIFO_TX_EMPTY));
+    while(!(MAP_I2CFIFOStatus(base) & I2C_FIFO_TX_EMPTY)){
+        if(yieldable){
+            vTaskDelay(1);
+        }
+    }
     g_inI2C = false;
     return 0;
 error:
@@ -107,9 +136,10 @@ error:
  * @param addr Address of I2C device to read from
  * @param data Data to read
  * @param len Length of data
+ * @param yieldable Can task yield to other tasks while waiting
  * @return 0 if success, else value of I2CMasterErr
  */
-int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
+int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len, bool yieldable){
     size_t offset = 0;
     size_t len_mod = len % MAX_FIFO_BURST;
     size_t final_burst = (len_mod !=0 )? len_mod : MAX_FIFO_BURST;
@@ -127,7 +157,13 @@ int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
             I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_CONT);
         }
         for(size_t i = 0; i < MAX_FIFO_BURST; ++i){
-            ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = I2CFIFODataGet(base);
+            if(yieldable){
+                while(!I2CFIFODataGetNonBlocking(base,&((uint8_t *)data)[offset*MAX_FIFO_BURST+i])){
+                    vTaskDelay(1);
+                }
+            }else{
+                ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = I2CFIFODataGet(base);
+            }
         }
         err = I2CMasterErr(base);
         if(err != I2C_MASTER_ERR_NONE){
@@ -141,7 +177,13 @@ int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len){
         I2CMasterControl(base, I2C_MASTER_CMD_FIFO_BURST_RECEIVE_FINISH);
     }
     for(size_t i = 0; i < final_burst; ++i){
-        ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = I2CFIFODataGet(base);
+        if(yieldable){
+            while(!I2CFIFODataGetNonBlocking(base,&((uint8_t *)data)[offset*MAX_FIFO_BURST+i])){
+                vTaskDelay(1);
+            }
+        }else{
+            ((uint8_t *)data)[offset*MAX_FIFO_BURST+i] = I2CFIFODataGet(base);
+        }
     }
     err = MAP_I2CMasterErr(base);
     if(err != I2C_MASTER_ERR_NONE){
@@ -183,6 +225,6 @@ void i2c_comm_setup(void){
 }
 
 // For linking
-extern inline int i2c_comm_write(uint8_t addr, const void *data, size_t len);
-extern inline int i2c_comm_read(uint8_t addr, void *data, size_t len);
+extern inline int i2c_comm_write(uint8_t addr, const void *data, size_t len, bool yieldable);
+extern inline int i2c_comm_read(uint8_t addr, void *data, size_t len, bool yieldable);
 

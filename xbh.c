@@ -32,7 +32,6 @@
 #include <queue.h>
 #include <task.h>
 
-#include <lwip/sockets.h>
 
 #include "hal/hal.h"
 #include "hal/lwip_eth.h"
@@ -95,11 +94,9 @@ size_t XBH_HandleRevisionRequest(uint8_t* p_answer){/*{{{*/
 
 /**
  * Asks XBD to execute
- * @param socket Sock to stream power measurements to
  * @return 0 if success, 1 if fail.
  */
-static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
-    struct pwr_sample sample; 
+static int XBH_HandleEXecutionRequest(void) {/*{{{*/
     int retval;
     // 4 bytes pkt ID + sizeof pwr_sample in ascii hex. Subtract 2 to remove padding
     uint8_t pkt_buf[4+2*(sizeof(struct pwr_sample)-2)]; 
@@ -119,6 +116,8 @@ static int XBH_HandleEXecutionRequest(int sock) {/*{{{*/
 
 
 #if 0
+    struct pwr_sample sample; 
+    //TODO Use message passing instead of socket
     // Run power measurement/*{{{*/
     while(measure_isrunning()){
         // Dequeue data packets, waiting for a max of 2 ticks
@@ -564,7 +563,7 @@ int XBH_HandleStackUsageRequest(uint8_t* p_answer) {/*{{{*/
  * @param reply Buffer containing output to return (MUST be greater or equal to XBH_COMMAND_LEN
  * @return Length of reply containing return data
  */
-size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *reply) {/*{{{*/
+size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *reply) {/*{{{*/
     int ret;
     XBH_DEBUG("XBH_handle()\n");
 
@@ -579,7 +578,7 @@ size_t XBH_handle(int sock, const uint8_t *input, size_t input_len, uint8_t *rep
 
     if ( (0 == memcmp(XBH_CMD[XBH_CMD_exr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'ex'ecution 'r'equest received\n");
-        ret=XBH_HandleEXecutionRequest(sock);
+        ret=XBH_HandleEXecutionRequest();
 
         if(0 == ret) {
             XBH_DEBUG("Handle 'ex'ecution 'o'kay sent\n");

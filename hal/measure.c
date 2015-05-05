@@ -161,11 +161,11 @@ void exec_timer_wrap_isr(void){/*{{{*/
 #define INA219_I2C_ADDR 0x46
 
 #ifdef USE_SEPARATE_I2C
-#define I2C_WRITE(addr, data, len) i2c_write(I2C2_BASE, addr, data, len)
-#define I2C_READ(addr, data, len) i2c_read(I2C2_BASE, addr, data, len)
+#define I2C_WRITE(addr, data, len) i2c_write(I2C2_BASE, addr, data, len, false)
+#define I2C_READ(addr, data, len) i2c_read(I2C2_BASE, addr, data, len, false)
 #else
-#define I2C_WRITE(addr, data, len) i2c_comm_write(addr, data, len)
-#define I2C_READ(addr, data, len) i2c_comm_read(addr, data, len)
+#define I2C_WRITE(addr, data, len) i2c_comm_write(addr, data, len, false)
+#define I2C_READ(addr, data, len) i2c_comm_read(addr, data, len, false)
 #endif
 
 

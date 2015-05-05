@@ -130,3 +130,10 @@ void xbd_reset(bool value){/*{{{*/
     }
 
 }/*}}}*/
+
+/**
+ * Resets XBH
+ */
+void xbh_reset(void){
+    MAP_SysCtlReset();
+}

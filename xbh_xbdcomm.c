@@ -428,7 +428,7 @@ void xbdSend(const void *buf, size_t length) {
 
     switch(xbd_comm) {
         case COMM_I2C:
-            i2c_comm_write(SLAVE_ADDR, buf, length);
+            i2c_comm_write(SLAVE_ADDR, buf, length, true);
             break;
             //TODO: Implement other modes/*{{{*/
 #if 0
@@ -547,7 +547,7 @@ int xbdReceive(void *buf, size_t length) {
 
     switch(xbd_comm) {
         case COMM_I2C:
-            i = i2c_comm_read(SLAVE_ADDR, buf, length);
+            i = i2c_comm_read(SLAVE_ADDR, buf, length, true);
             if( i != 0 ) {
                 XBH_ERROR("I2C Receive error: %d\n",i);
             }

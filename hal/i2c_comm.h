@@ -13,8 +13,8 @@
 ///*{{{*/
 void i2c_flush(uint32_t base);
 void i2c_setup(uint32_t base, bool highspeed);
-int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len);
-int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len);
+int i2c_write(uint32_t base, uint8_t addr, const void *data, size_t len, bool yieldable);
+int i2c_read(uint32_t base, uint8_t addr, void *data, size_t len, bool yieldable);
 /*}}}*/
 
 /** Sets up i2c tranceiver for XBD comm */
@@ -27,8 +27,8 @@ void i2c_comm_setup(void);
  * @param len Length of data
  * @return 0 if success, 1 if error
  */
-inline int i2c_comm_write(uint8_t addr, const void *data, size_t len){
-    return i2c_write(I2C_COMM_BASE, addr, data, len);
+inline int i2c_comm_write(uint8_t addr, const void *data, size_t len, bool yieldable){
+    return i2c_write(I2C_COMM_BASE, addr, data, len, yieldable);
 }
 /**
  * Writes array over I2C to address given
@@ -37,8 +37,8 @@ inline int i2c_comm_write(uint8_t addr, const void *data, size_t len){
  * @param len Length of data
  * @return 0 if success, 1 if error
  */
-inline int i2c_comm_read(uint8_t addr, void *data, size_t len){
-    return i2c_read(I2C_COMM_BASE, addr, data, len);
+inline int i2c_comm_read(uint8_t addr, void *data, size_t len, bool yieldable){
+    return i2c_read(I2C_COMM_BASE, addr, data, len, yieldable);
 }
 
 extern bool g_inI2C;

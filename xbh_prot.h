@@ -65,6 +65,7 @@
     GEN(trr) \
     GEN(lor) \
 /* OK ('o') Responses from XBH */ \
+    GEN(kao) /* KeepAlive OK */\
     GEN(cdo) \
     GEN(exo) \
     GEN(cco) \

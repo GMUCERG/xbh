@@ -15,8 +15,8 @@
 #include "hal/i2c_comm.h"
 #include "util.h"
 
-// Set watchdog to reset 
-#define WATCHDOG_INTERVAL 15000
+// Set watchdog to reset after 180 secnods
+#define WATCHDOG_INTERVAL 180000
 
 void watchdog_setup(void){
 #ifndef DISABLE_WATCHDOG

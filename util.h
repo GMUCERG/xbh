@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 #include "hal/hal.h"
 
@@ -85,7 +86,10 @@
 
 //char *ltoa(long val, char *str, int base, bool lowercase);
 void uart_printf(const char *buffer,...) ;
-int recv_waitall(int s, void *mem, size_t len, int flags);
+ssize_t recv_waitall(int sock, void *data, size_t len, int flags);
+ssize_t sendall(int sock, void *data, size_t len, int flags);
+void len2hex(size_t len, uint8_t *buf);
+size_t hex2len(uint8_t *buf);
 
 /**
  * Converts hex digit in ascii to numerical value

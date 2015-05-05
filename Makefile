@@ -13,6 +13,8 @@ include ${LWIP_MAKE_ROOT}/lwip.make
 
 CFLAGS +=-std=c11 -DXBH_REVISION='"$(shell git rev-parse HEAD)"' -Wall
 
+# Currently always disable watchdog, since we can reset via command 
+CFLAGS+=-DDISABLE_WATCHDOG
 ifeq (${DEBUG}, 1)
 	CFLAGS+=-DDEBUG
 	CFLAGS+=-DDISABLE_WATCHDOG
@@ -22,9 +24,11 @@ ifeq (${DEBUG}, 1)
 	#CFLAGS+=-ggdb3 -Og
 	CFLAGS+=-ggdb3 -O0
 else
+	CFLAGS+=-DNDEBUG
 #	CFLAGS+=-DDISABLE_WATCHDOG
-	CFLAGS += -Os -ggdb3 -flto=8 -fuse-linker-plugin # -ffat-lto-objects
-	CFLAGS += -DTARGET_IS_TM4C129_RA0
+#	CFLAGS += -Os -ggdb3 -flto=8 -fuse-linker-plugin # -ffat-lto-objects
+	CFLAGS += -Os -ggdb3 -fuse-linker-plugin # -ffat-lto-objects
+#	CFLAGS += -DTARGET_IS_TM4C129_RA0
 endif
 ifeq (IPV6, 1)
 	CFLAGS+=-DLWIP_IPV6

@@ -3,14 +3,18 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stddef.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <assert.h>
 
+#include "FreeRTOSConfig.h"
+#include <FreeRTOS.h>
+#include <task.h>
 #include <lwip/sockets.h> 
 
 #include "util.h"
+#include "xbh_server.h"
 
 //LTOA/*{{{*/
 /*
@@ -267,18 +271,70 @@ void assert_called( const char * const filename,uint32_t line ) { __error__((cha
 /*}}}*/
 
 /** Simulates recv() w/ MSG_WAITALL flag */
-int recv_waitall(int s, void *mem, size_t len, int flags){/*{{{*/
-    int recved = 0;
-    while(recved < len){
-        int retval = recv(s, (uint8_t *)mem+recved, len-recved, flags);
+ssize_t recv_waitall(int sock, void *data, size_t len, int flags){/*{{{*/
+    ssize_t recved = 0;
+    while(true){
+        int retval = recv(sock, (uint8_t *)data+recved, len-recved, flags);
         if(retval <= 0){
             return retval;
         }else{
             recved += retval;
         }
+
+        if( recved < len){
+            vTaskDelay(1);
+        }else{
+            break;
+        }
     }
     return recved;
 }/*}}}*/
+
+
+/** 
+ * Sends entire buffer
+ */
+ssize_t sendall(int sock, void *data, size_t len, int flags){/*{{{*/
+    size_t sent = 0;
+    ssize_t retval;
+    while(true){
+        retval = send(sock, data, len-sent, flags);
+        if(retval < 0){
+            uart_printf("Failed to send XBH reply\n");
+            return -1;
+        }
+        sent += retval;
+        if(sent < len){
+            vTaskDelay(1);
+        }else{
+            return sent;
+        }
+    }
+}/*}}}*/
+
+/**
+ * Converts length to CMDLEN_SZ hex string
+ */
+void len2hex(size_t len, uint8_t *buf){
+    assert(CMDLEN_SZ == 4);
+    buf[0]=ntoa((len&0xf000) >> 12);
+    buf[1]=ntoa((len&0xf00 ) >> 8);
+    buf[2]=ntoa((len&0xf0  ) >> 4);
+    buf[3]=ntoa((len&0xf   ) >> 0);
+}
+/**
+ * Converts CMDLEN_SZ hex string to length
+ */
+size_t hex2len(uint8_t *buf){
+    size_t len = 0;
+    // Get length of command message in ascii hex format
+    for(size_t i = 0; i < CMDLEN_SZ; i++){
+        len += htoi(buf[i]) << 4*(CMDLEN_SZ-1-i);
+    }
+    return len;
+}
+
+
 
 //for c99 compliance
 extern inline uint8_t htoi(char h);

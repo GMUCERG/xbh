@@ -10,7 +10,7 @@
 
 /**
  * Contains power measurement sample
- * All values should be big endian
+ * All values should be big endian when sent over network
  */
 struct pwr_sample{
     uint64_t timestamp;
