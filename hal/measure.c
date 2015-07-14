@@ -36,6 +36,7 @@ QueueHandle_t pwr_sample_q_handle;
 
 // Timer capture variables/*{{{*/
 static volatile uint32_t wrap_cnt;
+// Used to capture wrap value if wrap interrupts capture
 static volatile uint32_t wrap_cap_cnt;
 volatile uint64_t t_start;
 volatile uint64_t t_stop;
@@ -93,32 +94,21 @@ void exec_timer_start(void){/*{{{*/
  * Not atomic, since can be interrupted by wrap_isr
  */
 void exec_timer_cap_isr(void){/*{{{*/
-    uint32_t wrap_cnt_snap;
     uint32_t cap_time;
-#ifdef DEBUG
-    static uint32_t s_wrap_cnt_snap;
-    static uint32_t s_cap_time;
-#endif
 
-    dint();{
-        MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
-        //Disable interrupts so snap and time read are atomic
-        wrap_cnt_snap = wrap_cnt;
-        cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
-    } eint();
+    //Can't disable interrupts to make operations atomic, since otherwise missed
+    //wrap
+    //dint();{
+    MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
+    cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
+    //} eint();
 
     if(0 == cap_cnt){
-        t_start = (wrap_cnt_snap << 16) | cap_time;
-#ifdef DEBUG
-        s_cap_time = cap_time;
-        s_wrap_cnt_snap = wrap_cnt_snap;
-#endif
+        t_start = (wrap_cnt << 16) | cap_time;
     }else if (1 == cap_cnt ){
-        t_stop = (wrap_cnt_snap << 16) | cap_time;
+        t_stop = (wrap_cnt << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
-        DEBUG_OUT("s_wrap_cnt: %u\n", s_wrap_cnt_snap);
-        DEBUG_OUT("s_cap_time: %u\n", s_cap_time);
-        DEBUG_OUT("wrap_cnt: %u\n", wrap_cnt_snap);
+        DEBUG_OUT("wrap_cnt: %u\n", wrap_cnt);
         DEBUG_OUT("cap_time: %u\n", cap_time);
         DEBUG_OUT("t_start: %lu\n", t_start);
         DEBUG_OUT("t_stop: %llu\n", t_stop);
@@ -126,20 +116,29 @@ void exec_timer_cap_isr(void){/*{{{*/
     }
     ++cap_cnt;
     
+    // If timer wrap ISR has run, update wrap_cnt
+    if(wrap_cap_cnt > wrap_cnt){
+        wrap_cnt = wrap_cap_cnt;
+    }
 
 }/*}}}*/
 
 /**
  * Counts how many times capture timer wraps around
  * This ISR should be of higher priority than exec_timer_cap_isr 
+ * If we have interrupted the timer capture ISR, do not increme
  */
 void exec_timer_wrap_isr(void){/*{{{*/
     MAP_TimerIntClear(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
     
-    ++wrap_cnt; 
-    wrap_cap_cnt = wrap_cnt;
     if(MAP_TimerIntStatus(TIMER0_BASE, true)&TIMER_CAPA_EVENT){
-        --wrap_cap_cnt;
+        wrap_cap_cnt = wrap_cnt;
+        ++wrap_cap_cnt;
+    }else{
+        if(wrap_cap_cnt > wrap_cnt){
+            wrap_cnt = wrap_cap_cnt;
+        }
+        ++wrap_cnt; 
     }
 }/*}}}*/
 /*}}}*/
@@ -340,25 +339,25 @@ bool measure_isrunning(void){
 
 /**
  * Gets stop time
+ * Locking not required since this should only be run after timer is disabled
+ * We make this a function so it can be added later if needed
  * @return Stop time
  */
 uint64_t measure_get_stop(void){
     uint64_t time;
-    dint();{
-        time = t_stop;
-    }eint();
+    time = t_stop;
     return time;
 }
 
 /**
  * Gets start time
+ * Locking not required since this should only be run after timer is disabled
+ * We make this a function so it can be added later if needed
  * @return Start time
  */
 uint64_t measure_get_start(void){
     uint64_t time;
-    dint();{
-        time = t_start;
-    }eint();
+    time = t_start;
     return time;
 }
 
