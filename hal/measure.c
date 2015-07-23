@@ -99,7 +99,6 @@ void exec_timer_cap_isr(void){/*{{{*/
     //Can't disable interrupts to make operations atomic, since otherwise missed
     //wrap
     //dint();{
-    MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
     cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
     //} eint();
 
@@ -121,6 +120,9 @@ void exec_timer_cap_isr(void){/*{{{*/
         wrap_cnt = wrap_cap_cnt;
     }
 
+    //Clear at the end of the interrupt, so that wrap_isr knows if it has
+    //preempted this interrupt.
+    MAP_TimerIntClear(TIMER0_BASE, TIMER_CAPA_EVENT);
 }/*}}}*/
 
 /**
