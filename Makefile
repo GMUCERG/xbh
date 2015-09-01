@@ -112,7 +112,7 @@ tags:
 		${FREERTOS_ROOT}/Source/*.c \
 		${FREERTOS_ROOT}/Source/portable/MemMang \
 		${FREERTOS_ROOT}/Source/portable/GCC/ARM_CM4F \
-		$(shell echo| `arm-tiva_c-eabi-gcc -print-prog-name=cc1` -v 2>&1| awk '/#include <...>/ {flag=1;next} /End of search list/{flag=0} flag {print $$0 " "}')
+		$(shell echo| `$CC -print-prog-name=cc1` -v 2>&1| awk '/#include <...>/ {flag=1;next} /End of search list/{flag=0} flag {print $$0 " "}')
 		
 		
 
