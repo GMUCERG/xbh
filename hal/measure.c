@@ -36,8 +36,6 @@ QueueHandle_t pwr_sample_q_handle;
 
 // Timer capture variables/*{{{*/
 static volatile uint32_t wrap_cnt;
-// Used to capture wrap value if wrap interrupts capture
-static volatile uint32_t wrap_cap_cnt;
 volatile uint64_t t_start;
 volatile uint64_t t_stop;
 static volatile uint32_t cap_cnt;
@@ -95,29 +93,30 @@ void exec_timer_start(void){/*{{{*/
  */
 void exec_timer_cap_isr(void){/*{{{*/
     uint32_t cap_time;
+    uint32_t after_cap_time;
+    uint32_t wrap_cap_cnt;
 
-    //Can't disable interrupts to make operations atomic, since otherwise missed
-    //wrap
-    //dint();{
     cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
-    //} eint();
+    wrap_cap_cnt = wrap_cnt;
+    after_cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_B);
+
+    if(cap_time > after_cap_time){
+        //rollover
+        wrap_cap_cnt = wrap_cnt-1;
+
+    }
+
 
     if(0 == cap_cnt){
-        t_start = (wrap_cnt << 16) | cap_time;
+        t_start = (wrap_cap_cnt << 16) | cap_time;
     }else if (1 == cap_cnt ){
-        t_stop = (wrap_cnt << 16) | cap_time;
+        t_stop = (wrap_cap_cnt << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
-        DEBUG_OUT("wrap_cnt: %u\n", wrap_cnt);
+        DEBUG_OUT("wrap_cnt: %u\n", wrap_cap_cnt);
         DEBUG_OUT("cap_time: %u\n", cap_time);
         DEBUG_OUT("t_start: %lu\n", t_start);
         DEBUG_OUT("t_stop: %llu\n", t_stop);
         DEBUG_OUT("t_elapsed: %lld\n", (int32_t)t_stop-t_start);
-    }
-    ++cap_cnt;
-    
-    // If timer wrap ISR has run, update wrap_cnt
-    if(wrap_cap_cnt > wrap_cnt){
-        wrap_cnt = wrap_cap_cnt;
     }
 
     //Clear at the end of the interrupt, so that wrap_isr knows if it has
@@ -131,17 +130,8 @@ void exec_timer_cap_isr(void){/*{{{*/
  * If we have interrupted the timer capture ISR, do not increme
  */
 void exec_timer_wrap_isr(void){/*{{{*/
+    ++wrap_cnt;
     MAP_TimerIntClear(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
-    
-    if(MAP_TimerIntStatus(TIMER0_BASE, true)&TIMER_CAPA_EVENT){
-        wrap_cap_cnt = wrap_cnt;
-        ++wrap_cap_cnt;
-    }else{
-        if(wrap_cap_cnt > wrap_cnt){
-            wrap_cnt = wrap_cap_cnt;
-        }
-        ++wrap_cnt; 
-    }
 }/*}}}*/
 /*}}}*/
 
