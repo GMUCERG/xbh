@@ -2185,14 +2185,14 @@
  * LWIP_IPV6==1: Enable IPv6
  */
 #ifndef LWIP_IPV6
-#define LWIP_IPV6                       0
+#define LWIP_IPV6                      0
 #endif
 
 /**
  * LWIP_IPV6_NUM_ADDRESSES: Number of IPv6 addresses per netif.
  */
 //#ifndef LWIP_IPV6_NUM_ADDRESSES
-//#define LWIP_IPV6_NUM_ADDRESSES         3
+#define LWIP_IPV6_NUM_ADDRESSES         3
 //#endif
 
 /**
@@ -2206,7 +2206,7 @@
  * LWIP_ICMP6==1: Enable ICMPv6 (mandatory per RFC)
  */
 //#ifndef LWIP_ICMP6
-//#define LWIP_ICMP6                      (LWIP_IPV6)
+#define LWIP_ICMP6                      (LWIP_IPV6)
 //#endif
 
 /**
@@ -2360,9 +2360,9 @@
  * LWIP_IPV6_SEND_ROUTER_SOLICIT==1: Send router solicitation messages during
  * network startup.
  */
-//#ifndef LWIP_IPV6_SEND_ROUTER_SOLICIT
-//#define LWIP_IPV6_SEND_ROUTER_SOLICIT   1
-//#endif
+#ifndef LWIP_IPV6_SEND_ROUTER_SOLICIT
+#define LWIP_IPV6_SEND_ROUTER_SOLICIT   1
+#endif
 
 /**
  * LWIP_ND6_TCP_REACHABILITY_HINTS==1: Allow TCP to provide Neighbor Discovery
@@ -2376,9 +2376,9 @@
 /**
  * LWIP_IPV6_AUTOCONFIG==1: Enable stateless address autoconfiguration as per RFC 4862.
  */
-//#ifndef LWIP_IPV6_AUTOCONFIG
-//#define LWIP_IPV6_AUTOCONFIG            (LWIP_IPV6)
-//#endif
+#ifndef LWIP_IPV6_AUTOCONFIG
+#define LWIP_IPV6_AUTOCONFIG            (LWIP_IPV6)
+#endif
 
 /**
  * LWIP_IPV6_DUP_DETECT_ATTEMPTS: Number of duplicate address detection attempts.
@@ -2467,7 +2467,7 @@
  * compared against this value. If it is smaller, then debugging
  * messages are written.
  */
-#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_OFF
+#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ON
 //#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_OFF
 
 /**
@@ -2488,7 +2488,7 @@
  */
 //define NETIF_DEBUG LWIP_DBG_ON
 //#ifndef NETIF_DEBUG
-//#define NETIF_DEBUG                     LWIP_DBG_OFF
+#define NETIF_DEBUG                     LWIP_DBG_ON
 //#endif
 
 /**

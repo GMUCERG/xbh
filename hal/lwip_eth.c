@@ -160,11 +160,15 @@ static void tcpip_init_cb(void *args){/*{{{*/
     LOOP_ERRMSG(retval != pdPASS, "Could not start lwip eth_int task\n" );
 
 
-
+#if XBH_IP4_STATIC
+    ip_addr.addr = htonl(XBH_IP4_ADDR);
+    netmask.addr = htonl(XBH_IP4_NETMASK);
+    gw_addr.addr = 0;
+#else
     ip_addr.addr = 0;
     netmask.addr = 0;
     gw_addr.addr = 0;
-
+#endif
     netif_add(&lwip_netif, &ip_addr, &netmask, &gw_addr, NULL, tivaif_init,
             tcpip_input);
 
@@ -176,15 +180,16 @@ static void tcpip_init_cb(void *args){/*{{{*/
 #if LWIP_IPV6
     lwip_netif.ip6_autoconfig_enabled = 1;
     lwip_netif.output_ip6 = ethip6_output;
-
     //IPv6, enable linklocal addresses and SLAAC
     netif_create_ip6_linklocal_address(&lwip_netif, 1);
     netif_ip6_addr_set_state((&lwip_netif), 0, IP6_ADDR_TENTATIVE); 
-
 #endif
-
+#if XBH_IP4_STATIC
+    netif_set_up(&lwip_netif);
+#else
     dhcp_start(&lwip_netif);
-
+#endif
+    
 #if DEBUG_STACK
     DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
 #endif
