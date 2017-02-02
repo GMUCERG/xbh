@@ -27,7 +27,8 @@
 
 
 
-#define RESET_PIN GPIO_PIN_7
+#define RESET_PIN GPIO_PIN_3
+#define RESET_BASE GPIO_PORTL_BASE
 
 /**
  * Clock rate in HZ
@@ -75,7 +76,7 @@ void HAL_setup(void){/*{{{*/
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
 
     //Configure reset pin for XBD
-    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, RESET_PIN);
+    MAP_GPIOPinTypeGPIOOutput(RESET_BASE, RESET_PIN);
     //Reset XBD
     xbd_reset(true);
 
@@ -124,9 +125,9 @@ void uart_write_char(char c){
  */
 void xbd_reset(bool value){/*{{{*/
     if(value){
-        MAP_GPIOPinWrite(GPIO_PORTC_BASE, RESET_PIN, RESET_PIN);
+        MAP_GPIOPinWrite(RESET_BASE, RESET_PIN, RESET_PIN);
     }else{
-        MAP_GPIOPinWrite(GPIO_PORTC_BASE, RESET_PIN, 0);
+        MAP_GPIOPinWrite(RESET_BASE, RESET_PIN, 0);
     }
 
 }/*}}}*/
