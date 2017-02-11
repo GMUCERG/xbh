@@ -13,7 +13,7 @@
 //#define DEBUG_XBHNET
 
 #define XBH_IP4_STATIC 1
-#define XBH_IP4_ADDR 0x0A2A000A
+#define XBH_IP4_ADDR 0x0A2A000C
 #define XBH_IP4_NETMASK 0xFF000000
 #define XBH_IP4_GW 0
 #endif

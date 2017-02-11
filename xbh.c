@@ -106,14 +106,13 @@ static int XBH_HandleEXecutionRequest(void) {/*{{{*/
 
     //Kick off power measurement
     //measure_start();
-    //exec_timer_start();
+    // exec_timer_start();
 
     // Send execution request to XBD
     XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
     exec_timer_start();
     memcpy(XBDCommandBuf, XBD_CMD[XBD_CMD_exr], XBD_COMMAND_LEN);
     xbdSend(XBDCommandBuf, XBD_COMMAND_LEN);
-
 
 #if 0
     struct pwr_sample sample; 
@@ -268,6 +267,10 @@ void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)    {/*{{{*/
     uint32_t quot = time / g_syshz;
     uint32_t rem = time % g_syshz;
     uint32_t syshz = htonl(g_syshz);
+
+    DEBUG_OUT("start: %llu\n", start);
+    DEBUG_OUT("stop: %llu\n", stop);
+    DEBUG_OUT("elapsed: %lld\n", time);
 
     quot = htonl(quot);
     rem = htonl(rem);
