@@ -28,7 +28,6 @@
 #define PWR_SAMP_STACK 256
 #define SAMPLE_PERIOD_US 200
 
-#define TIMER0_CYCLES 65536     //max. counts before wraparound,65535?
 
 
 
@@ -103,49 +102,25 @@ void exec_timer_cap_isr(void){/*{{{*/
 
     DEBUG_OUT("cap_cnt: %u\n", cap_cnt);
 
-    // cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
-    // wrap_cap_cnt = wrap_cnt;
-    // after_cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_B);
 
-    // if(cap_time > after_cap_time){
-    //     //rollover
-    //     wrap_cap_cnt = wrap_cnt-1;
-
-    // }
-
-
-    // if(0 == cap_cnt){
-    //     t_start = (wrap_cap_cnt << 16) | cap_time;
-    // }else if (1 == cap_cnt ){
-    //     t_stop = (wrap_cap_cnt << 16) | cap_time;
-    //     MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
-    //     DEBUG_OUT("wrap_cnt: %u\n", wrap_cap_cnt);
-    //     DEBUG_OUT("cap_time: %u\n", cap_time);
-    //     DEBUG_OUT("t_start: %lu\n", t_start);
-    //     DEBUG_OUT("t_stop: %llu\n", t_stop);
-    //     DEBUG_OUT("t_elapsed: %lld\n", (int32_t)t_stop-t_start);
-    // }
-
+    //----------Prev. code, more efficient but doesn't work (overflow???)------------
     cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
     wrap_cap_cnt = wrap_cnt;
     after_cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_B);
 
-    
+    if(cap_time > after_cap_time){
+        //rollover
+        wrap_cap_cnt = wrap_cnt-1;
+
+    }
+
 
     if(0 == cap_cnt){
-        t_start = (wrap_cap_cnt*TIMER0_CYCLES) + cap_time;
-
-        // if(cap_time > after_cap_time){   //warp_cnt accounting for edge cases
-        //     //rollover
-        //     wrap_cap_cnt = wrap_cnt-1;
-
-        // }        
-
+        t_start = (wrap_cap_cnt << 16) | cap_time;
         cap_cnt = cap_cnt^1;
     }else if (1 == cap_cnt ){
+        t_stop = (wrap_cap_cnt << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
-
-        t_stop = t_start + (wrap_cap_cnt*TIMER0_CYCLES) + cap_time;
         cap_cnt = cap_cnt^1;
 
         DEBUG_OUT("wrap_cnt: %u\n", wrap_cap_cnt);
@@ -154,6 +129,9 @@ void exec_timer_cap_isr(void){/*{{{*/
         DEBUG_OUT("t_stop: %llu\n", t_stop);
         DEBUG_OUT("t_elapsed: %lld\n", (int32_t)t_stop-t_start);
     }
+
+
+   
 
     //Clear at the end of the interrupt, so that wrap_isr knows if it has
     //preempted this interrupt.
