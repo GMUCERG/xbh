@@ -30,6 +30,7 @@
 
 
 
+
 /** Sampling task handle */
 static TaskHandle_t pwr_sample_task_handle;
 QueueHandle_t pwr_sample_q_handle;
@@ -74,6 +75,7 @@ static void exec_timer_setup(void){/*{{{*/
     MAP_TimerIntEnable(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
 }/*}}}*/
 
+
 /**
  * Starts execution timer, enabling interrupts
  */
@@ -83,7 +85,9 @@ void exec_timer_start(void){/*{{{*/
     t_stop= 0;
     cap_cnt = 0;
 
+    MAP_TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC);
     MAP_TimerEnable(TIMER0_BASE, TIMER_BOTH);
+
 }/*}}}*/
 
 /**
@@ -96,6 +100,10 @@ void exec_timer_cap_isr(void){/*{{{*/
     uint32_t after_cap_time;
     uint32_t wrap_cap_cnt;
 
+    DEBUG_OUT("cap_cnt: %u\n", cap_cnt);
+
+
+    //----------Prev. code, more efficient but doesn't work (overflow???)------------
     cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_A);
     wrap_cap_cnt = wrap_cnt;
     after_cap_time = MAP_TimerValueGet(TIMER0_BASE, TIMER_B);
@@ -109,15 +117,21 @@ void exec_timer_cap_isr(void){/*{{{*/
 
     if(0 == cap_cnt){
         t_start = (wrap_cap_cnt << 16) | cap_time;
+        cap_cnt = cap_cnt^1;
     }else if (1 == cap_cnt ){
         t_stop = (wrap_cap_cnt << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
+        cap_cnt = cap_cnt^1;
+
         DEBUG_OUT("wrap_cnt: %u\n", wrap_cap_cnt);
         DEBUG_OUT("cap_time: %u\n", cap_time);
         DEBUG_OUT("t_start: %lu\n", t_start);
         DEBUG_OUT("t_stop: %llu\n", t_stop);
         DEBUG_OUT("t_elapsed: %lld\n", (int32_t)t_stop-t_start);
     }
+
+
+   
 
     //Clear at the end of the interrupt, so that wrap_isr knows if it has
     //preempted this interrupt.
@@ -352,4 +366,3 @@ uint64_t measure_get_start(void){
     time = t_start;
     return time;
 }
-
