@@ -255,6 +255,19 @@ int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 }/*}}}*/
 
 /**
+ * Reports Power
+ * @param p_answer Array to be filled w/ w/ hex in big endian of format 
+ * pppppppp where p is power.
+ */
+void XBH_HandlePowerRequest(uint8_t* p_answer) {
+     float p_measure = measure_get_power();
+     DEBUG_OUT("Power: %f\n", p_measure);
+     p_measure = htonl(p_measure);
+     memcpy(p_answer, &p_measure, TIMESIZE);
+}
+     
+     
+/**
  * Reports time taken of last operation
  * @param p_answer Array to be filled w/ w/ hex in big endian of format 
  * SSSSSSSSFFFFFFFFCCCCCCCC where S = seconds F = fraction of seconds in cycles,
