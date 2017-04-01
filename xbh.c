@@ -665,6 +665,16 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *reply) {/*{{{
         return  XBH_COMMAND_LEN+(3*TIMESIZE);
     }/*}}}*/
 
+    if ( (0 == memcmp(XBH_CMD[XBH_CMD_pwr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'p'o'w'er measurement 'r'equest received\n");
+
+        XBH_HandlePowerRequest(&reply[XBH_COMMAND_LEN]);
+        
+        XBH_DEBUG("'p'o'w'er measurement 'o'kay sent\n");
+        memcpy(reply, XBH_CMD[XBH_CMD_pwo], XBH_COMMAND_LEN);
+        return  XBH_COMMAND_LEN+(TIMESIZE);
+    }/*}}}*/
+     
     if ( (0 == memcmp(XBH_CMD[XBH_CMD_scr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 's'et 'c'ommunication 'r'equest received\n");
 
