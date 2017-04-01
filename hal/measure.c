@@ -313,7 +313,7 @@ uint64_t measure_get_start(void){
  * @return power reading
  */
 float measure_get_power(void){
-    float power;
-    power = voltage;
-    return power;
+    float volts;
+    volts = voltage;
+    return volts;
 }
