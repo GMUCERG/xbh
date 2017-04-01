@@ -223,8 +223,6 @@ static float pwr_sample_setup(){/*{{{*/
         }
         
         voltage = (3.3/4096)*pui32ADC0Value[0];
-        
-        return voltage;
     }
     
 
@@ -308,4 +306,14 @@ uint64_t measure_get_start(void){
     uint64_t time;
     time = t_start;
     return time;
+}
+
+/**
+ * Gets power reading
+ * @return power reading
+ */
+float measure_get_power(void){
+    float power;
+    power = voltage;
+    return power;
 }
