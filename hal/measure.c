@@ -12,7 +12,7 @@
 #include <driverlib/pin_map.h>
 #include <driverlib/sysctl.h>
 #include <driverlib/timer.h>
-#include "driverlib/adc.h"
+#include <driverlib/adc.h>
 
 #include "FreeRTOSConfig.h"
 #include <FreeRTOS.h>
