@@ -107,6 +107,7 @@ static int XBH_HandleEXecutionRequest(void) {/*{{{*/
     //Kick off power measurement
     //measure_start();
     // exec_timer_start();
+    power_setup();
 
     // Send execution request to XBD
     XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
