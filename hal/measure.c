@@ -265,6 +265,13 @@ void measure_setup(void){
 //    pwr_sample_setup();
 }
 
+/**
+ * Sets up power measurement hardware.
+ */
+void power_setup(void){
+    pwr_sample_setup();
+}
+
 
 /**
  * Kicks off measurement start, starting timers, etc
