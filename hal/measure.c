@@ -331,7 +331,37 @@ uint64_t measure_get_start(void){
  * @return power reading
  */
 float measure_get_power(void){
-    float volts;
-    volts = voltage;
-    return volts;
+    return power;
+}
+
+/**
+ * Gets current reading
+ * @return current reading
+ */
+float measure_get_current(void){
+    return current;
+}
+
+/**
+ * Gets voltage reading
+ * @return voltage reading
+ */
+float measure_get_voltage(void){
+    return voltage;
+}
+
+/**
+ * Gets avg power reading
+ * @return avg power reading
+ */
+float measure_get_avg(void){
+    return avgPwr;
+}
+
+/**
+ * Gets max reading
+ * @return max reading
+ */
+float measure_get_max(void){
+    return maxPwr;
 }
