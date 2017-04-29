@@ -46,9 +46,14 @@ static volatile uint32_t cap_cnt;
 // holds ADC sample
 uint32_t pui32ADC0Value[1];
 //holds voltage values
-float voltage=0;
+float voltage=3.3;
 //flag to check if interrupt occurred
 static volatile bool g_bIntFlag = false;
+float power = 0;
+float current = 0;
+float maxPwr = 0;
+float avgPwr = 0;
+int i = 0;
 
 
 // Execution timer stuff/*{{{*/
@@ -222,7 +227,13 @@ static float pwr_sample_setup(){/*{{{*/
 
         }
         
-        voltage = (3.3/4096)*pui32ADC0Value[0];
+        current = (.3/4096)*pui32ADC0Value[0];
+        power = current * voltage;
+
+        avgPwr = avgPwr * (i-1)/i + (power/i)
+        i++;
+
+        if(power > maxPwr) maxPwr = power;
     }
     
 
