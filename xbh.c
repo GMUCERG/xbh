@@ -107,6 +107,7 @@ static int XBH_HandleEXecutionRequest(void) {/*{{{*/
     //Kick off power measurement
     //measure_start();
     // exec_timer_start();
+    power_setup();
 
     // Send execution request to XBD
     XBH_DEBUG("Sending 'ex'ecution  'r'equest to XBD\n");
@@ -254,6 +255,36 @@ int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 
 }/*}}}*/
 
+/**
+ * Reports Power
+ * @param p_answer Array to be filled w/ w/ hex in big endian of format 
+ * pppppppp where p is power.
+ */
+void XBH_HandlePowerRequest(uint8_t* p_answer) {
+     float p_measure = measure_get_power();
+     float c_measure = measure_get_current();
+     float v_measure = measure_get_voltage();
+     float avgPwr = measure_get_avg();
+     float maxPwr = measure_get_max();
+     DEBUG_OUT("Power: %f\n", p_measure);
+     DEBUG_OUT("Current: %f\n", c_measure);
+     DEBUG_OUT("Voltage: %f\n", v_measure);
+     DEBUG_OUT("Average Power: %f\n", avgPwr);
+     DEBUG_OUT("Maximum Power: %f\n", maxPwr);
+     p_measure = htonl(p_measure);
+     c_measure = htonl(c_measure);
+     v_measure = htonl(v_measure);
+     avgPwr = htonl(avgPwr);
+     maxPwr = htonl(maxPwr);
+     
+     memcpy(p_answer, &p_measure, TIMESIZE);
+     memcpy(p_answer+TIMESIZE, &c_measure, TIMESIZE);
+     memcpy(p_answer+(2*TIMESIZE), &v_measure, TIMESIZE);
+     memcpy(p_answer+(3*TIMESIZE), &avgPwr, TIMESIZE);
+     memcpy(p_answer+(4*TIMESIZE), &maxPwr, TIMESIZE);
+}
+     
+     
 /**
  * Reports time taken of last operation
  * @param p_answer Array to be filled w/ w/ hex in big endian of format 
@@ -652,6 +683,16 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *reply) {/*{{{
         return  XBH_COMMAND_LEN+(3*TIMESIZE);
     }/*}}}*/
 
+    if ( (0 == memcmp(XBH_CMD[XBH_CMD_pwr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'p'o'w'er measurement 'r'equest received\n");
+
+        XBH_HandlePowerRequest(&reply[XBH_COMMAND_LEN]);
+        
+        XBH_DEBUG("'p'o'w'er measurement 'o'kay sent\n");
+        memcpy(reply, XBH_CMD[XBH_CMD_pwo], XBH_COMMAND_LEN);
+        return  XBH_COMMAND_LEN+(5*TIMESIZE);
+    }/*}}}*/
+     
     if ( (0 == memcmp(XBH_CMD[XBH_CMD_scr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 's'et 'c'ommunication 'r'equest received\n");
 
