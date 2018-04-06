@@ -139,6 +139,11 @@ static int XBH_HandleEXecutionRequest(void) {/*{{{*/
     }/*}}}*/
 #endif
 
+// make send and receive two independent functions
+// add function to querry timer flag
+// call receive only when timer flag high
+// all functions need xbd id (0-3)
+// verify watchdog timer setting now that execution is non blocking
 
     // Receive status from XBD
     retval = xbdReceive(XBDResponseBuf, XBD_COMMAND_LEN);
