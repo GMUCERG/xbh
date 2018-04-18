@@ -121,13 +121,14 @@ void uart_write_char(char c){
 
 /**
  * Sets reset pin to given value
- * @param value true to bring reset high, false for low
+ * @param value true to bring reset low, false for high
+ * as reset is low active on TI launchpads
  */
 void xbd_reset(bool value){/*{{{*/
     if(value){
-        MAP_GPIOPinWrite(RESET_BASE, RESET_PIN, RESET_PIN);
-    }else{
         MAP_GPIOPinWrite(RESET_BASE, RESET_PIN, 0);
+    }else{
+        MAP_GPIOPinWrite(RESET_BASE, RESET_PIN, RESET_PIN);
     }
 
 }/*}}}*/
