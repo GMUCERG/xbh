@@ -27,5 +27,4 @@ bool measure_isrunning(void);
 uint64_t measure_get_stop(void);
 uint64_t measure_get_start(void);
 void exec_timer_start(void);
-void power_setup(void);
 #endif
