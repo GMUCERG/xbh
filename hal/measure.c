@@ -31,8 +31,8 @@
 
 
 /** Sampling task handle */
-static TaskHandle_t pwr_sample_task_handle;
-QueueHandle_t pwr_sample_q_handle;
+//static TaskHandle_t pwr_sample_task_handle;
+//QueueHandle_t pwr_sample_q_handle;
 
 // Timer capture variables/*{{{*/
 static volatile uint32_t wrap_cnt;
@@ -42,6 +42,13 @@ volatile uint64_t t_start;
 volatile uint64_t t_stop;
 static volatile uint32_t cap_cnt;
 /*}}}*/
+
+//Power measurement variables 
+static volatile uint32_t avgPwr;  // upper 3 nibbles get ADC values
+static volatile uint32_t maxPwr;  // direct ADC values
+static volatile uint32_t gain;    // 0 -> 25, 1 -> 50, 2 -> 100, 3 -> 200 gain
+static volatile uint32_t cntover; //set to 1 when avgcnt reaches 0x000FFFFF
+static volatile uint32_t avgcnt;
 
 
 // Execution timer stuff/*{{{*/
@@ -171,7 +178,7 @@ void exec_timer_wrap_isr(void){/*{{{*/
 
 
 
-static void pwr_sample_setup(){/*{{{*/
+/*static void pwr_sample_setup(){
     uint8_t cmd_buf[3];
     // Configure interrupt priority for periodic sampling timer
     MAP_IntPrioritySet(INT_TIMER1A, PWR_SAMPLE_ISR_PRIO);
@@ -214,12 +221,12 @@ static void pwr_sample_setup(){/*{{{*/
     cmd_buf[1] = INA219_CAL >> 8; 
     cmd_buf[2] = INA219_CAL & 0xFF;
     I2C_WRITE(INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
-}/*}}}*/
+}*/
 
 /**
  * Timer interrupt notifies sample task to wake and perform one sample
  */
-void pwr_sample_timer_isr(void){/*{{{*/
+/*void pwr_sample_timer_isr(void){
     BaseType_t wake = pdFALSE;
 
     MAP_TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
@@ -231,9 +238,9 @@ void pwr_sample_timer_isr(void){/*{{{*/
     if(pdTRUE == wake){
         portYIELD_FROM_ISR(wake);
     }
-}/*}}}*/
+}*/
 
-static void pwr_sample_task(void *args){/*{{{*/
+/*static void pwr_sample_task(void *args){
     uint32_t wrap_cnt_snap;
     uint32_t wrap_time_snap; 
 
@@ -290,9 +297,9 @@ static void pwr_sample_task(void *args){/*{{{*/
     // Delete task when done
     MAP_TimerDisable(TIMER1_BASE, TIMER_A);
     vTaskDelete(NULL);
-}/*}}}*/
+*/
 
-static void pwr_sample_start(){/*{{{*/
+/*static void pwr_sample_start(){
     BaseType_t retval;
 
     MAP_TimerEnable(TIMER1_BASE, TIMER_A);
@@ -307,7 +314,7 @@ static void pwr_sample_start(){/*{{{*/
             &pwr_sample_task_handle);
     pwr_sample_q_handle = xQueueCreate(32, sizeof(struct pwr_sample));
     COND_ERRMSG(retval != pdPASS, "Could not create power sampling task\n");
-}/*}}}*/
+}*/
 
 /*}}}*/
 
@@ -326,7 +333,7 @@ void measure_setup(void){
  */
 void measure_start(void){
     exec_timer_start();
-    pwr_sample_start();
+//    pwr_sample_start();
     MAP_TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC|TIMER_1A_SYNC);
 }
 
@@ -363,3 +370,36 @@ uint64_t measure_get_start(void){
     return time;
 }
 
+
+/**
+ * Gets avg power reading
+ * @return avg power reading
+ */
+uint32_t measure_get_avg(void){
+    return avgPwr;
+}
+
+/**
+ * Gets max reading
+ * @return max reading
+ */
+uint32_t measure_get_max(void){
+    return maxPwr;
+}
+
+
+/**
+ * Gets gain of the XBP
+ * @return gain of XBP
+ */
+uint32_t measure_get_gain(void){
+    return gain;
+}
+
+/**
+ * Gets average counter overflow
+ * @return counter overflow
+ */
+uint32_t measure_get_cntover(void){
+    return cntover;
+}

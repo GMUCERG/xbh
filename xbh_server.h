@@ -17,7 +17,7 @@
 struct xbh_hndlr_to_srv_msg{
     uint8_t *reply_buf;
     size_t len;
-    struct pwr_sample sample;
+//    struct pwr_sample sample;
     uint8_t type: 2;
 };
 struct xbh_srv_to_hndlr_msg{

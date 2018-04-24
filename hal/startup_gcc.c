@@ -86,7 +86,7 @@ extern void xPortSysTickHandler(void);
 extern void lwIP_eth_isr(void);
 extern void exec_timer_cap_isr(void);
 extern void exec_timer_wrap_isr(void);
-extern void pwr_sample_timer_isr(void);
+//extern void pwr_sample_timer_isr(void);
 extern void watchdog_isr(void);
 
 
@@ -138,7 +138,8 @@ void (* const g_pfnVectors[])(void) =
     watchdog_isr,                           // 34  // Watchdog Timers 0 and 1
     exec_timer_cap_isr,                     // 35  // 16/32-Bit Timer 0A
     exec_timer_wrap_isr,                    // 36  // 16/32-Bit Timer 0B
-    pwr_sample_timer_isr,                   // 37  // 16/32-Bit Timer 1A
+//    pwr_sample_timer_isr,                   // 37  // 16/32-Bit Timer 1A
+    IntDefaultHandler,                   // 37  // 16/32-Bit Timer 1A
     IntDefaultHandler,                      // 38  // 16/32-Bit Timer 1B
     IntDefaultHandler,                      // 39  // 16/32-Bit Timer 2A
     IntDefaultHandler,                      // 40  // 16/32-Bit Timer 2B

@@ -99,9 +99,9 @@ size_t XBH_HandleRevisionRequest(uint8_t* p_answer){/*{{{*/
 static int XBH_HandleEXecutionRequest(void) {/*{{{*/
     int retval;
     // 4 bytes pkt ID + sizeof pwr_sample in ascii hex. Subtract 2 to remove padding
-    uint8_t pkt_buf[4+2*(sizeof(struct pwr_sample)-2)]; 
+//    uint8_t pkt_buf[4+2*(sizeof(struct pwr_sample)-2)]; 
     
-    memcpy(pkt_buf, "PWRD", 4);
+//    memcpy(pkt_buf, "PWRD", 4);
 
 
     //Kick off power measurement
@@ -262,11 +262,50 @@ int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 
 }/*}}}*/
 
+
+/**
+ * Reports Power
+ * @param p_answer Array to be filled w/ w/ hex in big endian of format 
+ * pppppppp where p is power.
+ */
+void XBH_HandlePowerRequest(uint8_t* p_answer) {
+     uint32_t avgPwr = measure_get_avg();
+     uint32_t maxPwr = measure_get_max();
+     uint32_t  gain = measure_get_gain();
+     uint32_t  cntover = measure_get_cntover();
+     
+     avgPwr = avgPwr >> 20;
+     DEBUG_OUT("Average amplified shunt voltage: %d\n", avgPwr);
+     DEBUG_OUT("Maximum amplified shunt voltage: %d\n", maxPwr);
+     DEBUG_OUT("Gain set on XBP: %d\n", gain);
+     if(cntover) {
+         DEBUG_OUT("Counter for Average computation had a overflow\n");
+     }
+     avgPwr = htonl(avgPwr);
+     maxPwr = htonl(maxPwr);
+     cntover = htonl(cntover);
+     
+     memcpy(p_answer, &avgPwr, TIMESIZE);
+     memcpy(p_answer+TIMESIZE, &maxPwr, TIMESIZE);
+     memcpy(p_answer+2*TIMESIZE, &cntover, TIMESIZE);
+}
+
+/**
+ * Set XBP Gain
+ * @param input_buf Buffer containing type code in ascii hex format 
+ * @param len Length of buffer in bytes (in hex format)
+ */
+static void XBH_HandlePowerGainRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
+    const uint32_t gain = ntohl(*(uint32_t*)input_buf);
+    
+     DEBUG_OUT("Setting Gain on XBP of: %d\n", gain);
+
+    // add code to set IOs
+}
+
 /**
  * Reports time taken of last operation
  * @param p_answer Array to be filled w/ w/ hex in big endian of format 
- * SSSSSSSSFFFFFFFFCCCCCCCC where S = seconds F = fraction of seconds in cycles,
- * C = clock rate
  */
 void XBH_HandleRePorttimestampRequest(uint8_t* p_answer)    {/*{{{*/
     uint64_t start = measure_get_start();
@@ -389,7 +428,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
         XBH_DEBUG("Received 'u'pload 'r'esults 'o'kay from XBD\n");
     }else{
         XBH_DEBUG("Error with 'u'pload 'r'esults 'o'kay from XBD\n");
-        return -(retval);
+        return (retval); // was -
     }
         
 
@@ -407,7 +446,7 @@ static ssize_t XBH_HandleUploadResultsRequest(uint8_t* p_answer) {/*{{{*/
         return state.datanext;
     } else {
         XBH_DEBUG("'r'esult 'd'ata 'r'equest to XBD failed\n");
-        return -(retval);
+        return (retval); // was -
     }
 }/*}}}*/
 
@@ -656,6 +695,29 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *reply) {/*{{{
         return  XBH_COMMAND_LEN+(3*TIMESIZE);
     }/*}}}*/
 
+   
+    if ( (0 == memcmp(XBH_CMD[XBH_CMD_pwr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'p'o'w'er measurement 'r'equest received\n");
+
+        XBH_HandlePowerRequest(&reply[XBH_COMMAND_LEN]);
+        
+        XBH_DEBUG("'p'o'w'er measurement 'o'kay sent\n");
+        memcpy(reply, XBH_CMD[XBH_CMD_pwo], XBH_COMMAND_LEN);
+        return  XBH_COMMAND_LEN+(3*TIMESIZE);
+    }/*}}}*/
+    
+
+ 
+     if ( (0 == memcmp(XBH_CMD[XBH_CMD_pgr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
+        XBH_DEBUG("Proper 'p'ower 'g'ain set 'r'equest received\n");
+
+        XBH_HandlePowerGainRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN));
+        
+        XBH_DEBUG("'p'ower 'g'ain set 'o'kay sent\n");
+        memcpy(reply, XBH_CMD[XBH_CMD_pwo], XBH_COMMAND_LEN);
+        return  XBH_COMMAND_LEN;
+    }/*}}}*/
+    
     if ( (0 == memcmp(XBH_CMD[XBH_CMD_scr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 's'et 'c'ommunication 'r'equest received\n");
 

@@ -59,6 +59,7 @@
     GEN(urr) \
     GEN(rpr) \
     GEN(pwr) \
+    GEN(pgr) \
     GEN(scr) \
     GEN(sur) \
     GEN(tcr) \
@@ -78,6 +79,7 @@
     GEN(uro) \
     GEN(rpo) \
     GEN(pwo) \
+    GEN(pgo) \
     GEN(sco) \
     GEN(suo) \
     GEN(tco) \
