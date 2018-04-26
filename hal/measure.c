@@ -24,7 +24,7 @@
 #include "hal/i2c_comm.h"
 
 #include "util.h"
-
+#include "driverlib/adc.h"
 #define PWR_SAMP_STACK 256
 #define SAMPLE_PERIOD_US 200
 
@@ -49,6 +49,7 @@ static volatile uint32_t maxPwr;  // direct ADC values
 static volatile uint32_t gain;    // 0 -> 25, 1 -> 50, 2 -> 100, 3 -> 200 gain
 static volatile uint32_t cntover; //set to 1 when avgcnt reaches 0x000FFFFF
 static volatile uint32_t avgcnt;
+uint32_t ADC0Value[1];
 
 
 // Execution timer stuff/*{{{*/
@@ -156,165 +157,141 @@ void exec_timer_wrap_isr(void){/*{{{*/
 // Power measurement stuff /*{{{*/
 #define SAMPLE_PERIOD ((g_syshz*SAMPLE_PERIOD_US)/1000000)
 
-/** Refer to page 25 in ina219.pdf */
-#define INA219_REG_CONF 0x0
-#define INA219_REG_VOLT 0x2
-#define INA219_REG_POWR 0x3
-#define INA219_REG_CURR 0x4
-#define INA219_REG_CAL  0x5
-#define INA219_CONF (1<<15|1<<13|2<<11|1<<7|1<<2|7)
-#define INA219_CAL 0x1000 //10uA increments, w/ 1Ohm resistor
-#define INA219_CNVR 0x2
-#define INA219_OVF 0x1
-#define INA219_I2C_ADDR 0x46
-
-#ifdef USE_SEPARATE_I2C
-#define I2C_WRITE(addr, data, len) i2c_write(I2C2_BASE, addr, data, len, false)
-#define I2C_READ(addr, data, len) i2c_read(I2C2_BASE, addr, data, len, false)
-#else
-#define I2C_WRITE(addr, data, len) i2c_comm_write(addr, data, len, false)
-#define I2C_READ(addr, data, len) i2c_comm_read(addr, data, len, false)
-#endif
-
-
-
-/*static void pwr_sample_setup(){
-    uint8_t cmd_buf[3];
-    // Configure interrupt priority for periodic sampling timer
-    MAP_IntPrioritySet(INT_TIMER1A, PWR_SAMPLE_ISR_PRIO);
-
-    // Enable timer1 as periodic sampling timer
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER1);
+ void power_measure_setup(void){
     
-    // Set as periodic and load period
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+    //
+    // For this example ADC0 is used with AIN0 on port E7.
+    // The actual port and pins used may be different on your part, consult
+    // the data sheet for more information.  GPIO port E needs to be enabled
+    // so these pins can be used.
+    // TODO: change this to whichever GPIO port you are using.
+    //
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+    //
+    // Select the analog ADC function for these pins.
+    // Consult the data sheet to see which functions are allocated per pin.
+    // TODO: change this to select the port/pin you are using.
+    //
+    MAP_GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_0);
+    // Enable sample sequence 3 with a processor signal trigger.  Sequence 3
+    // will do a single sample when the processor sends a signal to start the
+    // conversion.  Each ADC module has 4 programmable sequences, sequence 0
+    // to sequence 3.  This example is arbitrarily using sequence 3.
+    //
+    MAP_ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_TIMER , 0);
+    //
+    // Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
+    // single-ended mode (default) and configure the interrupt flag
+    // (ADC_CTL_IE) to be set when the sample is done.  Tell the ADC logic
+    // that this is the last conversion on sequence 3 (ADC_CTL_END).  Sequence
+    // 3 has only one programmable step.  Sequence 1 and 2 have 4 steps, and
+    // sequence 0 has 8 programmable steps.  Since we are only doing a single
+    // conversion using sequence 3 we will only configure step 0.  For more
+    // information on the ADC sequences and steps, reference the datasheet.
+    //
+    MAP_ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_CH0 | ADC_CTL_IE | ADC_CTL_END);
+    //
+    // Since sample sequence 3 is now configured, it must be enabled.
+    //
+    MAP_ADCSequenceEnable(ADC0_BASE, 3);
+    //
+    // Clear the interrupt status flag.  This is done to make sure the
+    // interrupt flag is cleared before we sample.
+    //
+    MAP_ADCIntClear(ADC0_BASE, 3);
+    /*
+     * Timer
+     */
+    // The Timer1 peripheral must be enabled for use.
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+    // Configure Timer1A as a 32-bit periodic timer.
     MAP_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
-    MAP_TimerLoadSet(TIMER1_BASE, TIMER_A, SAMPLE_PERIOD);
-
-    MAP_IntEnable(INT_TIMER1A);
-    MAP_TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-
-#ifdef USE_SEPARATE_I2C
-#define INA219_I2C_BASE I2C2_BASE
-
-    // Configure I2C pins
-    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C7);
-    MAP_SysCtlPeripheralReset(SYSCTL_PERIPH_I2C7);
-    MAP_GPIOPinConfigure(GPIO_PD0_I2C7SCL);
-    MAP_GPIOPinConfigure(GPIO_PD1_I2C7SDA);
-    MAP_GPIOPinTypeI2CSCL(GPIO_PORTD_BASE, GPIO_PIN_0);
-    MAP_GPIOPinTypeI2C(GPIO_PORTD_BASE, GPIO_PIN_1);
-
-    // Configure I2C master and fifos, and flush fifos
-    i2c_setup(I2C2_BASE, true);
-#endif
-
-
-    // Send configuration to INA219 config register
-    cmd_buf[0] = INA219_REG_CONF;
-    cmd_buf[1] = INA219_CONF >> 8; 
-    cmd_buf[2] = INA219_CONF & 0xFF;
-    I2C_WRITE(INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
-
-    // Write calibration
-    cmd_buf[0] = INA219_REG_CAL; 
-    cmd_buf[1] = INA219_CAL >> 8; 
-    cmd_buf[2] = INA219_CAL & 0xFF;
-    I2C_WRITE(INA219_I2C_ADDR, cmd_buf, sizeof(cmd_buf));
-}*/
+    // Set the Timer1A load value to 1ms.
+    //TimerLoadSet(TIMER1_BASE, TIMER_A, SAMPLE_PERIOD);
+    #define F_SAMPLE    1000
+    MAP_TimerLoadSet(TIMER1_BASE, TIMER_A, SysCtlClockGet()/F_SAMPLE );
+    // Enable triggering
+    // TimerControlTrigger(TIMER1_BASE, TIMER_A, true);
+    MAP_TimerControlTrigger(TIMER1_BASE, TIMER_A, true );
+    //MAP_IntMasterEnable();
+    MAP_IntPrioritySet(INT_TIMER0B, PWR_SAMPLE_ISR_PRIO);
+    //Enable ADC interrupt
+    MAP_ADCIntEnable(ADC0_BASE, 3);
+    //enable the ADC0 Sequencer 3 Interrupt in the NVIC
+    MAP_IntEnable(INT_ADC0SS3);
+}
+    
 
 /**
- * Timer interrupt notifies sample task to wake and perform one sample
+ * Starts execution timer, enabling interrupts
  */
-/*void pwr_sample_timer_isr(void){
-    BaseType_t wake = pdFALSE;
-
-    MAP_TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-
-    vTaskNotifyGiveFromISR(pwr_sample_task_handle, &wake);
-
-    // Should always be true, since pwr_sample_task is supposed to be higher
-    // priority than any other task
-    if(pdTRUE == wake){
-        portYIELD_FROM_ISR(wake);
-    }
-}*/
-
-/*static void pwr_sample_task(void *args){
-    uint32_t wrap_cnt_snap;
-    uint32_t wrap_time_snap; 
-
-    struct pwr_sample sample; 
-    
-    // Run while no stop time set on capture timer
-    while(0 == t_stop){
-        bool valid;
-        
-        do{
-            uint8_t reg; 
-
-            //Read current
-            reg = INA219_REG_CURR;
-            I2C_WRITE(INA219_I2C_ADDR, &reg, 1);
-            I2C_READ(INA219_I2C_ADDR, &sample.current, 2);
-
-            //Read power 
-            reg = INA219_REG_POWR;
-            I2C_WRITE(INA219_I2C_ADDR, &reg, 1);
-            I2C_READ(INA219_I2C_ADDR, &sample.power, 2);
-
-            //Read voltage. 
-            reg = INA219_REG_VOLT;
-            I2C_WRITE(INA219_I2C_ADDR, &reg, 1);
-            I2C_READ(INA219_I2C_ADDR, &sample.voltage, 2);
-
-            //TI documentation is contradictory on whether power or voltage read
-            //triggers conversion. TODO: Verify what happens
-            sample.voltage = ntohs(sample.voltage);
-            valid = (sample.voltage & INA219_CNVR) && !(sample.voltage & INA219_OVF);
-            sample.voltage = htons(sample.voltage >> 3);
-        }while(!valid);
-
-        //Pick up timestamp where valid value is available
-        //Can't use taskENTER_CRITICAL since wrap counter is higher priority
-        MAP_IntMasterDisable();{
-            wrap_cnt_snap = wrap_cnt;
-            wrap_time_snap = MAP_TimerValueGet(TIMER0_BASE, TIMER_A); 
-        }MAP_IntMasterEnable();
-        
-        sample.timestamp = wrap_cnt_snap << 16 | wrap_time_snap;
-
-        COND_ERRMSG(
-                pdTRUE != xQueueSendToBack(pwr_sample_q_handle, &sample, 0), 
-                "Power Sample queue full!\n" );
-
-        // Wait forever until notified by ISR, clear notification upon exit
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-#if DEBUG_STACK
-        DEBUG_OUT("Stack Usage: %s: %d\n", __PRETTY_FUNCTION__, uxTaskGetStackHighWaterMark(NULL));
-#endif
-    }
-    // Delete task when done
-    MAP_TimerDisable(TIMER1_BASE, TIMER_A);
-    vTaskDelete(NULL);
-*/
-
-/*static void pwr_sample_start(){
-    BaseType_t retval;
-
+void  power_measure_start(void){/*{{{*/
+    // Enable Timer1A.
     MAP_TimerEnable(TIMER1_BASE, TIMER_A);
+}
 
-    i2c_flush(I2C2_BASE);
+void ADC0SS3_HANDLER(void)
+{
+    MAP_ADCIntClear(ADC0_BASE, 3);
+    // Read ADC Value.
+    MAP_ADCSequenceDataGet(ADC0_BASE, 3, ADC0Value);
 
-    retval = xTaskCreate( pwr_sample_task,
-            "pwr_samp",
-            PWR_SAMP_STACK,
-            NULL,
-            PWR_SAMP_PRIO,
-            &pwr_sample_task_handle);
-    pwr_sample_q_handle = xQueueCreate(32, sizeof(struct pwr_sample));
-    COND_ERRMSG(retval != pdPASS, "Could not create power sampling task\n");
-}*/
+    avgPwr = ADC0Value[0];
+
+    //leftshift=left<<20;
+
+
+   // current = (0.0008/4096)*pui32ADC0Value[0];
+   // current = 0.0008*pui32ADC0Value[0];
+   // right=  (0.3/4096)*leftshift;
+    // right=  current;
+   // rightshift=right>>20;
+   //right = current;
+    //right = current>>20;
+   // unit32_t int num = 0;
+
+/*
+    float valTemp = current;
+    num_c = (int) valTemp;
+    f_c = valTemp - (float)num_c;
+    f_c = f_c * 10000;
+
+    power = current * voltage;
+
+    float valTemp1 = power;
+        num_p = (int) valTemp1;
+        f_p = valTemp1 - (float)num_p;
+        f_p = f_p * 10000;
+
+    i++;
+
+
+     avgPwr = avgPwr * (i-1)/i + (power/i);
+     float valTemp2 =  avgPwr;
+             num_ap = (int) valTemp2;
+             f_ap = valTemp1 - (float)num_ap;
+             f_ap = f_ap * 10000;
+ DEBUG_OUT("Power Mwasurenment");
+
+            if(power > maxPwr) maxPwr = power;
+            float valTemp3 =  maxPwr;
+                        num_mp = (int) valTemp3;
+                        f_mp = valTemp3 - (float)num_mp;
+                        f_mp = f_mp * 10000;
+                        */
+                       // DEBUG_OUT("\nADC input value= %d \nADC Current measured=%4d.%4d\nPower=%4d.%4d\nAverage Power=%4d.%4d \nMaximum Power=%4d.%4d",left,(int)num_c,(int)f_c, (int)num_p,(int)f_p, (int)num_ap,(int)f_ap, (int)num_mp,(int)f_mp);
+                        
+    DEBUG_OUT("\nADC input value= %d", avgPwr);
+                        
+                        
+            //UARTprintf("ADC Current measured = %4d.%4d\r\r\r\r\r\n  Power = %4d\r \n  Average Power = %4d\r \n Maximum Power = %4d\r",current, power, avgPwr, maxPwr);
+           // UARTprintf("\nADC input value= %d \nADC Current measured=%4d.%4d\nPower=%4d.%4d\nAverage Power=%4d.%4d \nMaximum Power=%4d.%4d",left,(int)num_c,(int)f_c, (int)num_p,(int)f_p, (int)num_ap,(int)f_ap, (int)num_mp,(int)f_mp);
+  
+                         
+    MAP_TimerDisable(TIMER1_BASE, TIMER_A);
+
+}
 
 /*}}}*/
 
@@ -324,18 +301,18 @@ void exec_timer_wrap_isr(void){/*{{{*/
  */
 void measure_setup(void){
     exec_timer_setup();
-//    pwr_sample_setup();
+    power_measure_setup();
 }
 
 
 /**
  * Kicks off measurement start, starting timers, etc
  */
-void measure_start(void){
-    exec_timer_start();
-//    pwr_sample_start();
-    MAP_TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC|TIMER_1A_SYNC);
-}
+//void measure_start(void){
+//    exec_timer_start();
+//    power_measure_start();
+//    MAP_TimerSynchronize(TIMER0_BASE, TIMER_0A_SYNC|TIMER_0B_SYNC|TIMER_1A_SYNC);
+//}
 
 
 /**
@@ -376,7 +353,9 @@ uint64_t measure_get_start(void){
  * @return avg power reading
  */
 uint32_t measure_get_avg(void){
-    return avgPwr;
+    uint32_t l_avgPwr;
+    l_avgPwr = avgPwr;
+    return l_avgPwr;
 }
 
 /**
