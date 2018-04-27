@@ -44,10 +44,9 @@ static volatile uint32_t cap_cnt;
 /*}}}*/
 
 //Power measurement variables 
-static volatile uint32_t avgPwr;  // upper 3 nibbles get ADC values
+volatile uint64_t sumPwr;  // sum of all ADC readings
 static volatile uint32_t maxPwr;  // direct ADC values
-static volatile uint32_t gain;    // 0 -> 25, 1 -> 50, 2 -> 100, 3 -> 200 gain
-static volatile uint32_t cntover; //set to 1 when avgcnt reaches 0x000FFFFF
+static volatile uint32_t cntover; //set to 1 when avgcnt reaches 0xFFFFFFFF
 static volatile uint32_t avgcnt;
 uint32_t ADC0Value[1];
 
@@ -79,7 +78,7 @@ static void exec_timer_setup(void){/*{{{*/
 
     MAP_IntEnable(INT_TIMER0A);
     MAP_IntEnable(INT_TIMER0B);
-
+// 
     MAP_TimerIntEnable(TIMER0_BASE, TIMER_CAPA_EVENT);
     MAP_TimerIntEnable(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
 }/*}}}*/
@@ -92,9 +91,15 @@ void exec_timer_start(void){/*{{{*/
     t_start= 0;
     t_stop= 0;
     cap_cnt = 0;
-
+    sumPwr = 0;
+    maxPwr = 0;    
+    cntover= 0;
+    avgcnt = 0;
+    // Enable Timer1A.
     MAP_TimerEnable(TIMER0_BASE, TIMER_BOTH);
+
 }/*}}}*/
+
 
 /**
  * Records time that execution started and stopped, triggered by rising/falling
@@ -112,14 +117,20 @@ void exec_timer_cap_isr(void){/*{{{*/
 
     if(0 == cap_cnt){
         t_start = (wrap_cnt << 16) | cap_time;
+        MAP_TimerEnable(TIMER1_BASE, TIMER_A);
     }else if (1 == cap_cnt ){
         t_stop = (wrap_cnt << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
+        MAP_TimerDisable(TIMER1_BASE, TIMER_A);
         DEBUG_OUT("wrap_cnt: %u\n", wrap_cnt);
         DEBUG_OUT("cap_time: %u\n", cap_time);
-        DEBUG_OUT("t_start: %lu\n", t_start);
+        DEBUG_OUT("t_start: %llu\n", t_start);
         DEBUG_OUT("t_stop: %llu\n", t_stop);
-        DEBUG_OUT("t_elapsed: %lld\n", (int32_t)t_stop-t_start);
+        DEBUG_OUT("t_elapsed: %llu\n", t_stop-t_start);
+        DEBUG_OUT("power sum: %llu\n", sumPwr);
+        DEBUG_OUT("power samples: %u\n", avgcnt);
+//        DEBUG_OUT("Timer clock: %u\n", MAP_TimerClockSourceGet(TIMER0_BASE));
+//        DEBUG_OUT("Timer power: %u\n", MAP_TimerClockSourceGet(TIMER1_BASE));
     }
     ++cap_cnt;
     
@@ -209,12 +220,12 @@ void exec_timer_wrap_isr(void){/*{{{*/
     MAP_TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
     // Set the Timer1A load value to 1ms.
     //TimerLoadSet(TIMER1_BASE, TIMER_A, SAMPLE_PERIOD);
-    #define F_SAMPLE    1000
-    MAP_TimerLoadSet(TIMER1_BASE, TIMER_A, SysCtlClockGet()/F_SAMPLE );
-    // Enable triggering
-    // TimerControlTrigger(TIMER1_BASE, TIMER_A, true);
+    #define F_SAMPLE    240000
+    MAP_TimerLoadSet(TIMER1_BASE, TIMER_A, g_syshz/F_SAMPLE );
+    // Enable triggeringER1_BASE, TIMER_A, true);
     MAP_TimerControlTrigger(TIMER1_BASE, TIMER_A, true );
     //MAP_IntMasterEnable();
+    // TimerControlTrigger(TIM
     MAP_IntPrioritySet(INT_TIMER0B, PWR_SAMPLE_ISR_PRIO);
     //Enable ADC interrupt
     MAP_ADCIntEnable(ADC0_BASE, 3);
@@ -227,17 +238,30 @@ void exec_timer_wrap_isr(void){/*{{{*/
  * Starts execution timer, enabling interrupts
  */
 void  power_measure_start(void){/*{{{*/
+    sumPwr = 0;
+    maxPwr = 0;    
+    cntover= 0;
+    avgcnt = 0;
     // Enable Timer1A.
     MAP_TimerEnable(TIMER1_BASE, TIMER_A);
 }
 
 void ADC0SS3_HANDLER(void)
 {
+    uint32_t adcreading;
+    
     MAP_ADCIntClear(ADC0_BASE, 3);
     // Read ADC Value.
     MAP_ADCSequenceDataGet(ADC0_BASE, 3, ADC0Value);
 
-    avgPwr = ADC0Value[0];
+    adcreading = ADC0Value[0];
+    avgcnt++;
+
+    if(maxPwr < adcreading) {
+        maxPwr = adcreading;
+    }
+    
+    sumPwr += adcreading;
 
     //leftshift=left<<20;
 
@@ -282,14 +306,14 @@ void ADC0SS3_HANDLER(void)
                         */
                        // DEBUG_OUT("\nADC input value= %d \nADC Current measured=%4d.%4d\nPower=%4d.%4d\nAverage Power=%4d.%4d \nMaximum Power=%4d.%4d",left,(int)num_c,(int)f_c, (int)num_p,(int)f_p, (int)num_ap,(int)f_ap, (int)num_mp,(int)f_mp);
                         
-    DEBUG_OUT("\nADC input value= %d", avgPwr);
+    //DEBUG_OUT("\nADC input value= %d", avgPwr);
                         
                         
             //UARTprintf("ADC Current measured = %4d.%4d\r\r\r\r\r\n  Power = %4d\r \n  Average Power = %4d\r \n Maximum Power = %4d\r",current, power, avgPwr, maxPwr);
            // UARTprintf("\nADC input value= %d \nADC Current measured=%4d.%4d\nPower=%4d.%4d\nAverage Power=%4d.%4d \nMaximum Power=%4d.%4d",left,(int)num_c,(int)f_c, (int)num_p,(int)f_p, (int)num_ap,(int)f_ap, (int)num_mp,(int)f_mp);
   
                          
-    MAP_TimerDisable(TIMER1_BASE, TIMER_A);
+    //MAP_TimerDisable(TIMER1_BASE, TIMER_A);
 
 }
 
@@ -354,7 +378,7 @@ uint64_t measure_get_start(void){
  */
 uint32_t measure_get_avg(void){
     uint32_t l_avgPwr;
-    l_avgPwr = avgPwr;
+    l_avgPwr = (uint32_t) (sumPwr/avgcnt);
     return l_avgPwr;
 }
 
@@ -368,17 +392,9 @@ uint32_t measure_get_max(void){
 
 
 /**
- * Gets gain of the XBP
- * @return gain of XBP
- */
-uint32_t measure_get_gain(void){
-    return gain;
-}
-
-/**
  * Gets average counter overflow
  * @return counter overflow
  */
 uint32_t measure_get_cntover(void){
-    return cntover;
+    return avgcnt; //debugging cntover;
 }

@@ -30,6 +30,11 @@
 #define RESET_PIN GPIO_PIN_3
 #define RESET_BASE GPIO_PORTL_BASE
 
+#define GAINA_PIN GPIO_PIN_0
+#define GAINA_BASE GPIO_PORTG_BASE
+#define GAINB_PIN GPIO_PIN_3
+#define GAINB_BASE GPIO_PORTF_BASE
+
 /**
  * Clock rate in HZ
  */
@@ -138,4 +143,20 @@ void xbd_reset(bool value){/*{{{*/
  */
 void xbh_reset(void){
     MAP_SysCtlReset();
+}
+
+void power_gain_set(uint32_t xbpgain){
+    if(xbpgain == 25){
+        MAP_GPIOPinWrite(GAINA_BASE, GAINA_PIN, 0);
+        MAP_GPIOPinWrite(GAINB_BASE, GAINB_PIN, 0);
+    } else if(xbpgain == 50){
+        MAP_GPIOPinWrite(GAINA_BASE, GAINA_PIN, GAINA_PIN);
+        MAP_GPIOPinWrite(GAINB_BASE, GAINB_PIN, 0);    
+    } else if(xbpgain == 100){
+        MAP_GPIOPinWrite(GAINA_BASE, GAINA_PIN, 0);
+        MAP_GPIOPinWrite(GAINB_BASE, GAINB_PIN, GAINB_PIN);
+    } else if(xbpgain == 200){
+        MAP_GPIOPinWrite(GAINA_BASE, GAINA_PIN, GAINA_PIN);
+        MAP_GPIOPinWrite(GAINB_BASE, GAINB_PIN, GAINB_PIN);
+    }
 }

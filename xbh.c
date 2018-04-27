@@ -105,7 +105,7 @@ static int XBH_HandleEXecutionRequest(void) {/*{{{*/
 
 
     //Kick off power measurement
-    power_measure_start();
+    //power_measure_start();
     //exec_timer_start();
 
     // Send execution request to XBD
@@ -271,13 +271,11 @@ int XBH_HandleTargetRevisionRequest(uint8_t* p_answer) {/*{{{*/
 void XBH_HandlePowerRequest(uint8_t* p_answer) {
      uint32_t avgPwr = measure_get_avg();
      uint32_t maxPwr = measure_get_max();
-     uint32_t  gain = measure_get_gain();
      uint32_t  cntover = measure_get_cntover();
      
-     avgPwr = avgPwr >> 20;
+     //avgPwr = avgPwr >> 20;
      DEBUG_OUT("Average amplified shunt voltage: %d\n", avgPwr);
      DEBUG_OUT("Maximum amplified shunt voltage: %d\n", maxPwr);
-     DEBUG_OUT("Gain set on XBP: %d\n", gain);
      if(cntover) {
          DEBUG_OUT("Counter for Average computation had a overflow\n");
      }
@@ -295,11 +293,14 @@ void XBH_HandlePowerRequest(uint8_t* p_answer) {
  * @param input_buf Buffer containing type code in ascii hex format 
  * @param len Length of buffer in bytes (in hex format)
  */
-static void XBH_HandlePowerGainRequest(const uint8_t *input_buf, uint32_t len) {/*{{{*/
-    const uint32_t gain = ntohl(*(uint32_t*)input_buf);
+static void XBH_HandlePowerGainRequest(const uint8_t* gainbuf) {/*{{{*/
+    
+    uint32_t gain;
+    memcpy(&gain,gainbuf,sizeof(gain));
+    gain = ntohl(gain);
     
      DEBUG_OUT("Setting Gain on XBP of: %d\n", gain);
-
+     power_gain_set(gain);
     // add code to set IOs
 }
 
@@ -711,10 +712,10 @@ size_t XBH_handle(const uint8_t *input, size_t input_len, uint8_t *reply) {/*{{{
      if ( (0 == memcmp(XBH_CMD[XBH_CMD_pgr],input,XBH_COMMAND_LEN)) ) {/*{{{*/
         XBH_DEBUG("Proper 'p'ower 'g'ain set 'r'equest received\n");
 
-        XBH_HandlePowerGainRequest(&input[XBH_COMMAND_LEN],(input_len-XBH_COMMAND_LEN));
+        XBH_HandlePowerGainRequest(&input[XBH_COMMAND_LEN]);
         
         XBH_DEBUG("'p'ower 'g'ain set 'o'kay sent\n");
-        memcpy(reply, XBH_CMD[XBH_CMD_pwo], XBH_COMMAND_LEN);
+        memcpy(reply, XBH_CMD[XBH_CMD_pgo], XBH_COMMAND_LEN);
         return  XBH_COMMAND_LEN;
     }/*}}}*/
     
