@@ -201,7 +201,7 @@ void exec_timer_wrap_isr(void){/*{{{*/
     // conversion using sequence 3 we will only configure step 0.  For more
     // information on the ADC sequences and steps, reference the datasheet.
     //
-    MAP_ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_CH0 | ADC_CTL_IE | ADC_CTL_END);
+    MAP_ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_CH3 | ADC_CTL_IE | ADC_CTL_END);
     //
     // Since sample sequence 3 is now configured, it must be enabled.
     //

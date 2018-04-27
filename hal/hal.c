@@ -80,6 +80,9 @@ void HAL_setup(void){/*{{{*/
 
     MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
 
+    //Configure pins for XBP Gain
+    MAP_GPIOPinTypeGPIOOutput(GAINA_BASE, GAINA_PIN);    
+    MAP_GPIOPinTypeGPIOOutput(GAINB_BASE, GAINB_PIN);    
     //Configure reset pin for XBD
     MAP_GPIOPinTypeGPIOOutput(RESET_BASE, RESET_PIN);
     //Reset XBD
