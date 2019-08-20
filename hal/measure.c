@@ -116,10 +116,12 @@ void exec_timer_cap_isr(void){/*{{{*/
     //} eint();
 
     if(0 == cap_cnt){
-        t_start = (wrap_cnt << 16) | cap_time;
+        t_start = wrap_cnt; // now in two lines as wrap_cnt is only 32-bit
+        t_start = (t_start << 16) | cap_time;
         MAP_TimerEnable(TIMER1_BASE, TIMER_A);
     }else if (1 == cap_cnt ){
-        t_stop = (wrap_cnt << 16) | cap_time;
+        t_stop = wrap_cnt; // t_Start and t_stop are 64-bit
+        t_stop = (t_stop << 16) | cap_time;
         MAP_TimerDisable(TIMER0_BASE, TIMER_BOTH);
         MAP_TimerDisable(TIMER1_BASE, TIMER_A);
         DEBUG_OUT("wrap_cnt: %u\n", wrap_cnt);
@@ -255,6 +257,8 @@ void ADC0SS3_HANDLER(void)
     MAP_ADCSequenceDataGet(ADC0_BASE, 3, ADC0Value);
 
     adcreading = ADC0Value[0];
+    if(avgcnt == 0xFFFFFFFF) 
+        cntover++;
     avgcnt++;
 
     if(maxPwr < adcreading) {
@@ -263,61 +267,8 @@ void ADC0SS3_HANDLER(void)
     
     sumPwr += adcreading;
 
-    //leftshift=left<<20;
-
-
-   // current = (0.0008/4096)*pui32ADC0Value[0];
-   // current = 0.0008*pui32ADC0Value[0];
-   // right=  (0.3/4096)*leftshift;
-    // right=  current;
-   // rightshift=right>>20;
-   //right = current;
-    //right = current>>20;
-   // unit32_t int num = 0;
-
-/*
-    float valTemp = current;
-    num_c = (int) valTemp;
-    f_c = valTemp - (float)num_c;
-    f_c = f_c * 10000;
-
-    power = current * voltage;
-
-    float valTemp1 = power;
-        num_p = (int) valTemp1;
-        f_p = valTemp1 - (float)num_p;
-        f_p = f_p * 10000;
-
-    i++;
-
-
-     avgPwr = avgPwr * (i-1)/i + (power/i);
-     float valTemp2 =  avgPwr;
-             num_ap = (int) valTemp2;
-             f_ap = valTemp1 - (float)num_ap;
-             f_ap = f_ap * 10000;
- DEBUG_OUT("Power Mwasurenment");
-
-            if(power > maxPwr) maxPwr = power;
-            float valTemp3 =  maxPwr;
-                        num_mp = (int) valTemp3;
-                        f_mp = valTemp3 - (float)num_mp;
-                        f_mp = f_mp * 10000;
-                        */
-                       // DEBUG_OUT("\nADC input value= %d \nADC Current measured=%4d.%4d\nPower=%4d.%4d\nAverage Power=%4d.%4d \nMaximum Power=%4d.%4d",left,(int)num_c,(int)f_c, (int)num_p,(int)f_p, (int)num_ap,(int)f_ap, (int)num_mp,(int)f_mp);
-                        
-    //DEBUG_OUT("\nADC input value= %d", avgPwr);
-                        
-                        
-            //UARTprintf("ADC Current measured = %4d.%4d\r\r\r\r\r\n  Power = %4d\r \n  Average Power = %4d\r \n Maximum Power = %4d\r",current, power, avgPwr, maxPwr);
-           // UARTprintf("\nADC input value= %d \nADC Current measured=%4d.%4d\nPower=%4d.%4d\nAverage Power=%4d.%4d \nMaximum Power=%4d.%4d",left,(int)num_c,(int)f_c, (int)num_p,(int)f_p, (int)num_ap,(int)f_ap, (int)num_mp,(int)f_mp);
-  
-                         
-    //MAP_TimerDisable(TIMER1_BASE, TIMER_A);
-
 }
 
-/*}}}*/
 
 
 /**
@@ -396,5 +347,5 @@ uint32_t measure_get_max(void){
  * @return counter overflow
  */
 uint32_t measure_get_cntover(void){
-    return avgcnt; //debugging cntover;
+    return cntover; //debugging avgcntr;
 }
